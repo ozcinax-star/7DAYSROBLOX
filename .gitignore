@@ -1,0 +1,21 @@
+# Build output
+*.rbxl
+*.rbxlx
+*.rbxm
+*.rbxmx
+*.rbxl.lock
+*.rbxlx.lock
+
+# Tooling
+sourcemap.json
+Packages/
+ServerPackages/
+DevPackages/
+roblox.yml
+roblox.d.luau
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
