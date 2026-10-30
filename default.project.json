@@ -21,7 +21,9 @@
 		},
 		"Workspace": {
 			"$properties": {
-				"StreamingEnabled": true
+				"StreamingEnabled": true,
+				"StreamingTargetRadius": 384,
+				"StreamingMinRadius": 128
 			}
 		}
 	}
