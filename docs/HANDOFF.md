@@ -151,6 +151,18 @@ tablosu var).
 | `f3e58ab` | Alet kemeri slotları 0×0'dı (2. adımdan beri; liste düzeni çocuğa boyut vermiyor); artık boyutlanıyor |
 | `410cc9b` | `CraftingService`: 4 işlik kuyruk, malzeme kuyruğa alınırken düşer, iptal iade eder, sığmayan ürün kuyrukta bekler, iadesi sığmayan iptal reddedilir; tamir aynı kuyrukta, alet eski slotuna döner. `Inventory.putSlot/addAll`, 1 test |
 | `459404d` | Crafting paneli (sırt çantasının sağında) ve sırt çantasında Repair düğmesi |
+| `a86be35` | Oyuncu çıktıktan sonra gelen crafting isteği kuyruk kaydı açmıyor |
+
+### 7. Bölüm: zombi loot'u (31 Ekim)
+
+Kullanıcı 31 Ekim akşamı "her iş bitince sıradaki eksiği kapat" dedi ve ertesi gün öğlene kadar
+yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan seçilip kaydedilir.
+
+| Commit | Ne yapıldı |
+| --- | --- |
+| `74caafe` | Hurda demir ve kumaş eşyaları, `Config.Loot`, saf `Shared/Loot` (enjekte edilen rastgele kaynak), 2 test |
+| `8c39766` | `LootService`: zombi ölünce ~%20 torba, 1 sn basılı tutarak arama, ömür 20 dk, en fazla 60 torba |
+| `531edd1` | Envantere sığmayan toplama eşyası ve crafting iadesi oyuncunun ayağına torba olarak düşüyor |
 
 ## Mevcut durum
 
@@ -169,15 +181,16 @@ tablosu var).
 | Vuruş (`ToolService` + `Shared/Melee`) | Çalışıyor. İstemci yalnızca nişan yönünü yollar. Sunucu: birim vektör, hız sınırı (4/sn), aletin 7DTD aralığı (60/APM + 0,1 sn, %12 tolerans), hedefi kendi baş konumundan seçer: menzildeki en yakın zombi (silindir + baktığı yöne eğik kafa küresi), arada duvar varsa vurmaz. Hasar 7DTD: yumruk 5, taş balta 6, taş kürek 9, taş kazma 7; kafaya ×2. Alet yalnızca isabette 1 aşınır; 0'da kullanılamaz. Dünyaya isabet `onWorldHit` dinleyicilerine gider (toplama). Oyunculara vuruş yok (PvP lobi seçeneği gelince). |
 | Toplama (`HarvestService` + `Shared/Harvest`) | Çalışıyor. 7DTD formülü: verimin üçte ikisi nesnenin toplam hasarıyla orantılı olarak vuruşlarda, üçte biri kıran vuruşta; iyi alet yalnızca hızlandırır. Hasar = aletin blok hasarı × malzeme çarpanı, tam sayıya kesilir, en az 1. Aynı nesneye vuran herkes aynı hasarı paylaşır. Ağaç: 300/30, 600/70, 900/110, 1200/150 (can/odun, boy ölçeğe göre). Çalı 1–3 odun, ot 2 lif, yerdeki taş 1 taş (E ile de alınır), kaya 400 can / 22 taş. Devrilen ağaç çarpışmayı hemen bırakır, altındaki yol hücreleri açılır, 3,5 sn sonra silinir. Hiçbir şey yeniden çıkmaz (7DTD). Sığmayan eşya kaybolur ve kırmızı satırla bildirilir (loot torbası gelince yere düşecek). |
 | Crafting (`CraftingService` + `Shared/Crafting`) | Çalışıyor. 7DTD sırt çantası crafting'i: 4 işlik kuyruk, yalnızca ilk iş sunucu saatiyle ilerler (çanta kapalıyken de). Süre = Σ adet × malzeme süresi (odun, taş, lif 0,2 sn; diğerleri 1 sn), tarif kendi süresini verirse o. Malzemeler kuyruğa alınırken kaynaklarıyla düşer; iptal kalanı iade eder. Sığmayan ürün kuyrukta "No room" ile bekler. İadesi sığmayan iptal reddedilir ve kırmızı satırla bildirilir (loot torbası gelince yere düşebilir). Tamir: hasarlı taş alet + gereken taş (taş başına 300 dayanıklılık, 0,5 sn) kuyruğa girer; alet boşsa eski slotuna döner. Kuyruk oyuncu çıkınca kaybolur (kayıt yok). Tarifler: taş balta, taş kürek, taş kazma, kereste. |
-| Loot, kazı | **Sıradaki iş** (NEXT_STEPS 5–6). `ToolService.onWorldHit` kazı için, `ZombieService.onDied` loot için, `InventoryService.give/take/wearHeld` hepsi için hazır. |
+| Loot (`LootService` + `Shared/Loot`) | Çalışıyor. Ölen zombi %20 ihtimalle torba bırakır (7DTD %2–4). Torba: bir ortak seçim (3–10 hurda demir, 2–6 kumaş veya 5–15 küçük taş) ve %15 ihtimalle %30–100 dayanıklılıkta taş alet. 18 slot, 20 dk ömür (7DTD 1.x), dünyada en fazla 60 torba (en eski silinir). E'yi 1 sn basılı tutunca sığan alınır, kalanı torbada kalır; boşalan torba silinir. Sunucu torbanın varlığını, canlı karakteri, mesafeyi, basılı tutma süresini ve hızı yeniden denetler. `LootService.drop(konum, yığınlar, birleştir)` başka servislerden de kullanılır: sığmayan toplama eşyası ve crafting iadesi oyuncunun ayağına düşer, 6 stud içindeki torbaya eklenir. Torba içeriği yalnızca sunucuda. |
+| Kazı | **Sırada** (NEXT_STEPS). `ToolService.onWorldHit` kazı için, `ZombieService.onDied` loot için, `InventoryService.give/take/wearHeld` hepsi için hazır. |
 | Perk, kayıt, monetizasyon | Bilerek yazılmadı. |
 
 ### Ölçümler
 
 Ölçümler 30–31 Ekim 2026'da PC'de, Studio içinde alındı. Telefonda ölçüm yok.
 
-- **Testler:** 43/43 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
-  Inventory 6, Melee 5, Harvest 4, Crafting 6).
+- **Testler:** 45/45 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
+  Inventory 6, Melee 5, Harvest 4, Crafting 6, Loot 2).
   Testler yalnızca Studio düzeneğiyle çalıştırıldı; Lune ile hiç çalıştırılmadı.
 - **Zombi performansı:** 80 zombiyle tick ortalaması 0,04–0,17 ms, en kötü tick genelde 1,3–1,8 ms
   (bir kez 3,9 ms). Zombi başına 17 parça.
@@ -246,6 +259,16 @@ tablosu var).
     Tek karede 40 istekten 6'sı geçti (hız sınırı 6/sn).
   - Ekran görüntüsünde sırt çantası (594 px) ve panel (340 px) 2198 px genişlikte yan yana sığıyor;
     4 tarif kaydırmadan görünüyor.
+- **Loot (Play, 31 Ekim):**
+  - 80 zombi + gürültü, 40 öldürme: 10 torba (%25; 10.000 zarlık testte oran %20 ±1,5). Torbalar
+    zeminden 0,59 stud yukarıda (çuval merkezi; doğru).
+  - E'yi 1,4 sn basılı tutmak: +2 kumaş, torba silindi. Kısa basış arama yapmadı.
+  - Envanter doluyken arama: "No room for 7 Scrap Iron", eşya torbada kaldı.
+  - Envanter doluyken ota vuruş: 2 lif ayağa torba olarak düştü. 190 taş baltalık işin iptali: 380
+    odun envantere, 380 taş ve 380 lif aynı torbaya eklendi. Yer açınca arama 382 lif + 380 taş
+    verdi, torba silindi.
+  - Ölçülmeyenler: 20 dakikalık ömür, 60 torba sınırı, torbanın görünüşü (3B ekran görüntüsü bu
+    oturumda Edit'te de beyaz çıktı).
 - **Konsol:** Sunucu ve istemcide 0 uyarı, 0 hata.
 
 ## Teknik notlar
@@ -312,7 +335,7 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
    local src = Http:GetAsync("http://127.0.0.1:8765/Harness.luau", true)
    Http.HttpEnabled = was
    local H = loadstring(src)()
-   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "43 passed, 0 failed"
+   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "45 passed, 0 failed"
    ```
    Düzenek place'e hiçbir şey bırakmaz.
 3. Her kod değişikliğinden sonra adım 1'deki bundle komutunu tekrar çalıştır, sonra `H.sync()`.
@@ -352,7 +375,8 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
 ### Ekran görüntüsü
 
 - `screen_capture` Play modunda 3B sahneyi beyaz çekiyor ama arayüz görünüyor (31 Ekim crafting
-  paneli böyle çekildi). 3B görüntü için Edit modu gerekiyor.
+  paneli böyle çekildi). 3B görüntü için Edit modu gerekiyor; 31 Ekim gecesi Edit'te de beyaz çıktı
+  (Studio penceresi arka plandayken 3B çizilmiyor olabilir).
 - **Elde alet önizlemesi:** Edit modunda `Players:CreateHumanoidModelFromDescription` ile R15 rig
   kurulur, `H.load(...Modules.HeldItems).build(id, rig.RightHand, grip)` ile alet takılır.
 - **Zombi önizlemesi:** Edit modunda `H.load(<StarterPlayer altındaki ZombieRig>)` ile

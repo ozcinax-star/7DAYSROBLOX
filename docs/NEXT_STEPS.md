@@ -20,8 +20,8 @@ Yol haritası notu ve Kararlar tablosu).
 | Vuruş | Bitti: 7DTD hasar ve hızları, kafa vuruşu, aşınma, duvar kontrolü |
 | Toplama | Bitti: ağaç, çalı, ot, yerdeki taş, kaya; 7DTD verim formülü, ağaç devirme |
 | Crafting | Bitti: 7DTD kuyruğu (4 iş), malzeme süreleri, iptal ve iade, taşla tamir, panel |
-| Zombi loot'u, kazı | **Sıradaki iş** (aşağıda 5–6) |
-| Gündüz-gece, tehdit hesabı, tahta duvar, kamera | **Yapılmadı** |
+| Zombi loot'u | Bitti: %20 torba, arama, sığmayan eşya ayağa düşer |
+| Kazı, gündüz-gece, inşa, tehdit, horde | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
 | Kapı 1: 80 zombiyle orta seviye telefonda 30 FPS | **Ölçülmedi**; kullanıcı erteledi |
 | Kapı 2: 3 kişilik test grubu "bir gece daha" diyor | Henüz yapılamaz |
 
@@ -73,7 +73,6 @@ küçük taş ve bitki lifi 6000'lik yığın. Kalanlar:
 - **Tohum:** ağaç devrilince 1–2 tohum (Destroy düşüşü). Tarım adımında.
 - **Ağaç zombiyi ezsin:** 7DTD'de düşen ağaç, yolundaki zombilere 1,5 sn sonra
   `int((15 + 7h) × 5 × 0,36)` hasar verir (h: gövde boyu × 0,9, metre); oyunculara vermez.
-- **Sığmayan eşya:** şimdilik kayboluyor (kırmızı satır). Loot torbası gelince oyuncunun ayağına düşsün.
 - **Vuruş efekti ve sesi:** ağaca, kayaya, ota vurunca parçacık ve ses; ağaç vurulunca hafif sallansın.
 - **Binaların kapı alanları** açılışta bir kez kuruluyor; bina yanında devrilen ağaç o alanlara yansımaz.
 - **Kazı** (6. madde) aynı `onWorldHit` dinleyicisini kullanacak: arazi malzemesi toprak / taş.
@@ -85,22 +84,22 @@ küçük taş ve bitki lifi 6000'lik yığın. Kalanlar:
 kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalanlar:
 - **Kuyruk kaydı:** oyuncu çıkınca kuyruk ve içindeki malzeme kayboluyor (7DTD saklar). Kalıcılık
   adımında.
-- **Sığmayan iade:** iadesi sığmayan iptal şimdilik reddediliyor. Loot torbası gelince yere düşsün
-  (5. madde).
 - **İş istasyonları ve tarif kilitleri:** kamp ateşi, tezgah, demirci ocağı ve kitap / perk kilidi
   yok; ihtiyaç doğunca.
 - **Tahta sopa:** istenirse eklenecek tarif.
 - **Dar ekran:** sırt çantası en küçük slotla 432 px, panel 340 px; 800 px'ten dar ekranda sığmaz.
   Telefon / kamera adımında mobil düzen.
 
-### 5. Zombi loot'u
+### 5. Zombi loot'u (bitti, 31 Ekim)
 
-- `LootService`, `ZombieService.onDied` olayını dinler (hazır).
-- Yaklaşık %20 ihtimalle torba bırakılır; oran Config'de.
-- Torbada "Ara" ProximityPrompt'u. Eşyalar envantere girer, sığmayan torbada kalır.
-- Torbanın ömrü Config'de.
-- Aynı torba, envantere sığmayan toplama eşyası ve iadesi sığmayan crafting iptali için oyuncunun
-  ayağına düşsün (3. ve 4. maddenin kalanları).
+`74caafe`, `8c39766`, `531edd1`. Kalanlar:
+- **Torba penceresi:** 7DTD'de torba açılınca 18 slotluk pencere çıkar ve eşya tek tek alınır;
+  bizde arama sığan her şeyi alır. Sandık / iş istasyonu arayüzüyle birlikte.
+- **İçerik:** yiyecek, su, ilaç, mermi ve kitap yok (hayatta kalma istatistikleri ve silahlar
+  gelince tabloya eklenecek).
+- **Üst üste torbalar:** aynı noktada ölen zombilerin torbaları üst üste duruyor; prompt en
+  yakınını seçiyor.
+- **Bina loot'u:** binaların `Loot` özelliği (`Food`, `Medical`, …) aynı servisle kaplara bağlanacak.
 
 ### 6. Kazılabilir zemin
 

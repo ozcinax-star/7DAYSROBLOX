@@ -33,7 +33,9 @@ Bu dosya PLAN.md'deki kapsam kuralının istediği referanstır: ana referans 7 
 | Kafa vuruşu | Gerçek çarpışma kutuları | Sunucuda zombi başına silindir + öne eğik kafa küresi | Sunucuda zombi parçası yok |
 | Ağaç boyu | Ağacın türü ve boyu (4–48 m) malzemeyi seçer | Ağaçlarımız 4–6,5 m; boy ölçeğe göre: ≤0,925 küçük, ≤1,05 orta, ≤1,175 büyük, üstü tam boy (`Config.Harvest.TreeSizes`) | Stilize ağaçlar küçük; can ve verim yine 7DTD'nin |
 | Devrilen ağaç | Fizik nesnesi, yolundaki zombilere hasar | İstemcide animasyon (2,5 sn + 1 sn solma); zombiye hasar henüz yok | Sunucuda fizik yok; ezme sonra (NEXT_STEPS) |
-| Envanter dolu | Eşya oyuncunun ayağına düşer | Kaybolur, kırmızı satırla bildirilir | Yere düşen eşya kabı loot adımında gelecek |
+| Envanter dolu | Eşya oyuncunun ayağına düşer | Ayağa loot torbası düşer (6 stud içindeki torbaya eklenir) | Tek tek eşya yerine torba: parça sayısı |
+| Torba içeriği | Mermi, hurda, yiyecek, ilaç, kitap, alet… | Hurda demir / kumaş / küçük taş ve %15 aşınmış taş alet | Diğer eşyalar henüz yok |
+| Torba arama | 18 slotluk pencere, eşya tek tek | Basılı tutunca sığan her şey alınır | Pencere sandık arayüzüyle gelecek |
 | Ot ve yerdeki taş | Biyoma göre her yerde blok | 26 stud'luk orman hücrelerinde şansla; kasabada ot var, taş ve kaya yok | Parça sayısı; PLAN: kasabada kaya yok |
 
 ---
