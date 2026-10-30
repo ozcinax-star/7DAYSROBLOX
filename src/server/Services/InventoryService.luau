@@ -221,6 +221,58 @@ function InventoryService.take(player: Player, costs: { [string]: number }): (bo
 	return ok, removed
 end
 
+-- The stack in slot `index` (a copy), or nil for an empty or invalid slot.
+function InventoryService.peekSlot(player: Player, index: number): Inventory.Stack?
+	local state = states[player]
+	if state == nil or not isSlotIndex(index, #state.inventory.slots) then
+		return nil
+	end
+	local slot = state.inventory.slots[index]
+	return if slot then table.clone(slot) else nil
+end
+
+-- Empties slot `index` and returns its stack (a tool going into the repair queue), or nil.
+function InventoryService.takeSlot(player: Player, index: number): Inventory.Stack?
+	local state = states[player]
+	if state == nil or not isSlotIndex(index, #state.inventory.slots) then
+		return nil
+	end
+	local stack = Inventory.takeSlot(state.inventory, index)
+	if stack then
+		markDirty(player)
+	end
+	return stack
+end
+
+-- Puts `stack` back into slot `index` if it is still empty; false otherwise.
+function InventoryService.putSlot(player: Player, index: number, stack: Inventory.Stack): boolean
+	local state = states[player]
+	if state == nil or not Inventory.putSlot(state.inventory, index, stack) then
+		return false
+	end
+	markDirty(player)
+	return true
+end
+
+-- Gives a cancelled job's stacks back, all or nothing (Inventory.addAll). When they do not all fit,
+-- nothing changes, the player is told what had no room, and false is returned.
+function InventoryService.giveBack(player: Player, returns: { Inventory.Return }): boolean
+	local state = states[player]
+	if state == nil then
+		return false
+	end
+	local ok, id, left = Inventory.addAll(state.inventory, returns)
+	if not ok then
+		gainRemote:FireClient(player, id, 0, left)
+		return false
+	end
+	markDirty(player)
+	for _, entry in returns do
+		gainRemote:FireClient(player, entry.stack.id, entry.stack.count, 0)
+	end
+	return true
+end
+
 function InventoryService.count(player: Player, id: string): number
 	local state = states[player]
 	return if state then Inventory.count(state.inventory, id) else 0

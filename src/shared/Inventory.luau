@@ -287,6 +287,43 @@ function Inventory.takeSlot(inv: Inventory, index: number): Stack?
 	return slot
 end
 
+-- Puts `stack` into slot `index` when that slot is empty (a repaired tool going back where it was);
+-- false for a taken or invalid slot.
+function Inventory.putSlot(inv: Inventory, index: number, stack: Stack): boolean
+	if inv.slots[index] ~= false then
+		return false
+	end
+	inv.slots[index] = stack
+	return true
+end
+
+-- A stack to give back, into `slot` when that slot is still empty.
+export type Return = { stack: Stack, slot: number? }
+
+local function place(inv: Inventory, entry: Return): number
+	local stack = entry.stack
+	if entry.slot and Inventory.putSlot(inv, entry.slot, table.clone(stack)) then
+		return 0
+	end
+	return Inventory.add(inv, stack.id, stack.count, stack.source, stack.durability)
+end
+
+-- Adds every stack (a cancelled crafting job), all or nothing. Returns true, or false with the item id
+-- and the count that had no room, in which case nothing changed.
+function Inventory.addAll(inv: Inventory, returns: { Return }): (boolean, string?, number?)
+	local trial: Inventory = { toolbelt = inv.toolbelt, slots = Inventory.copySlots(inv) }
+	for _, entry in returns do
+		local left = place(trial, entry)
+		if left > 0 then
+			return false, entry.stack.id, left
+		end
+	end
+	for _, entry in returns do
+		place(inv, entry)
+	end
+	return true, nil, nil
+end
+
 -- A copy safe to send over a remote or keep as a snapshot.
 function Inventory.copySlots(inv: Inventory): { Slot }
 	local copy: { Slot } = table.create(#inv.slots, false)

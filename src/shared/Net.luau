@@ -28,6 +28,14 @@ local Definitions: { [string]: "RemoteEvent" | "UnreliableRemoteEvent" } = {
 	InventoryGain = "RemoteEvent",
 	-- Server -> client: a tree was felled (tree model, trunk base Vector3, horizontal unit fall direction).
 	TreeFelled = "RemoteEvent",
+	-- Client -> server: queue crafts (recipe id: string, count: number).
+	CraftQueue = "RemoteEvent",
+	-- Client -> server: cancel a queued job (queue index: number).
+	CraftCancel = "RemoteEvent",
+	-- Client -> server: repair the tool in an inventory slot (slot index: number).
+	CraftRepair = "RemoteEvent",
+	-- Server -> client: the player's crafting queue ({ CraftingService.JobView }, server time: number).
+	CraftUpdate = "RemoteEvent",
 }
 
 local Net = {}

@@ -49,6 +49,16 @@ local Strings: { [string]: { [string]: string } } = {
 		InventoryGain = "+{count} {item}",
 		InventoryFull = "No room for {count} {item}",
 
+		-- Crafting
+		CraftingTitle = "Crafting",
+		CraftingCraft = "Craft",
+		CraftingQueue = "Queue (click to cancel)",
+		CraftingWaiting = "No room",
+		CraftingSeconds = "{seconds}s",
+		CraftingCount = "x{count}",
+		CraftingRepair = "Repair",
+		CraftingRepairJob = "Repair {item}",
+
 		-- Items (key = "Item" .. item id)
 		ItemWood = "Wood",
 		ItemSmallStone = "Small Stone",

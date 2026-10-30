@@ -805,6 +805,34 @@ test("repairs take whole stones and tools come out of their slot", function()
 	expectEq(Inventory.takeSlot(inv, 99), nil, "invalid slot")
 end)
 
+test("a cancelled job goes back all or nothing, a tool into its old slot", function()
+	-- Slot 2 is where the tool came from; plain adds fill slot 1 or 3 first (FillToolbeltFirst).
+	local inv = Inventory.new(2, 1)
+	local axe: Inventory.Stack = { id = "StoneAxe", count = 1, source = "Craft", durability = 40 }
+	expectEq(Inventory.putSlot(inv, 99, axe), false, "invalid slot")
+	local ok = Inventory.addAll(inv, {
+		{ stack = axe, slot = 2 },
+		{ stack = { id = "SmallStone", count = 2, source = "Loot" }, slot = nil },
+	})
+	expectEq(ok, true, "fits")
+	local home = inv.slots[2]
+	expectEq(home and home.id, "StoneAxe", "tool back in its slot")
+	expectEq(home and home.durability, 40, "durability kept")
+	expectEq(Inventory.putSlot(inv, 2, axe), false, "taken slot")
+	local before = Inventory.copySlots(inv)
+	local fits, id, left = Inventory.addAll(inv, {
+		{ stack = { id = "Wood", count = 3, source = "Loot" }, slot = nil },
+		{ stack = { id = "StonePickaxe", count = 1, source = "Loot", durability = 9 }, slot = 2 },
+	})
+	expectEq(fits, false, "no room for the pickaxe")
+	expectEq(id, "StonePickaxe", "what had no room")
+	expectEq(left, 1, "how many")
+	for index, slot in inv.slots do
+		local was = before[index]
+		expectEq(slot and slot.count, was and was.count, `slot {index} unchanged`)
+	end
+end)
+
 test("every recipe and repair is well formed", function()
 	local listed = {}
 	for _, id in Config.Crafting.Order do
