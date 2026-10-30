@@ -4,15 +4,29 @@
 
 local Config = {}
 
+-- How a tool is repaired: each unit of item Id restores Amount durability and takes Seconds in the
+-- crafting queue (7DTD RepairTools / RepairAmount / RepairTime).
+export type RepairDef = { Id: string, Amount: number, Seconds: number }
+
 -- An item. Stack: most per slot. Color: placeholder icon colour (0-1 RGB) until icons exist.
--- Durability: tools only, uses when new; tools never stack.
+-- Durability: tools only, uses when new; tools never stack. Repair: tools that can be repaired.
 export type ItemDef = {
 	Stack: number,
 	Color: { number },
 	Durability: number?,
+	Repair: RepairDef?,
 }
 
 export type ItemCount = { Id: string, Count: number }
+
+-- A crafting recipe: Count of item Output from the ingredients. Seconds per craft when given,
+-- otherwise the ingredients' Config.Crafting.IngredientSeconds add up (7DTD).
+export type Recipe = {
+	Output: string,
+	Count: number,
+	Ingredients: { ItemCount },
+	Seconds: number?,
+}
 
 -- What a world object is made of, for tool damage (7DTD damage categories: earth covers dirt, grass and
 -- leaves; stone covers rock and boulders).
@@ -349,6 +363,21 @@ Config.Camera = {
 	DefaultMode = "Shoulder",
 }
 
+-- 7DTD: stone tools are repaired with small stones, 300 durability and 0.5 s per stone.
+local STONE_REPAIR: RepairDef = { Id = "SmallStone", Amount = 300, Seconds = 0.5 }
+
+-- Recipe ingredients from an { [id] = count } table, in a stable order (by id) for display.
+local function costs(counts: { [string]: number }): { ItemCount }
+	local list: { ItemCount } = {}
+	for id, count in counts do
+		table.insert(list, { Id = id, Count = count })
+	end
+	table.sort(list, function(a, b)
+		return a.Id < b.Id
+	end)
+	return list
+end
+
 -- Items. Stack sizes and durabilities follow 7 Days to Die 1.0+ (item id in each comment); Lumber and
 -- the stone pickaxe are ours (PLAN, Kararlar).
 Config.Items = {
@@ -356,10 +385,41 @@ Config.Items = {
 	SmallStone = { Stack = 6000, Color = { 0.56, 0.56, 0.54 } }, -- resourceRockSmall
 	PlantFiber = { Stack = 6000, Color = { 0.55, 0.63, 0.3 } }, -- resourceYuccaFibers
 	Lumber = { Stack = 6000, Color = { 0.8, 0.62, 0.4 } },
-	StoneAxe = { Stack = 1, Durability = 250, Color = { 0.45, 0.42, 0.38 } }, -- meleeToolRepairT0StoneAxe
-	StoneShovel = { Stack = 1, Durability = 250, Color = { 0.5, 0.46, 0.4 } }, -- meleeToolShovelT0StoneShovel
-	StonePickaxe = { Stack = 1, Durability = 250, Color = { 0.42, 0.42, 0.44 } },
+	-- meleeToolRepairT0StoneAxe
+	StoneAxe = { Stack = 1, Durability = 250, Repair = STONE_REPAIR, Color = { 0.45, 0.42, 0.38 } },
+	-- meleeToolShovelT0StoneShovel
+	StoneShovel = { Stack = 1, Durability = 250, Repair = STONE_REPAIR, Color = { 0.5, 0.46, 0.4 } },
+	StonePickaxe = { Stack = 1, Durability = 250, Repair = STONE_REPAIR, Color = { 0.42, 0.42, 0.44 } },
 } :: { [string]: ItemDef }
+
+-- Backpack crafting (7DTD 1.0-3.2 recipes.xml). Recipes are keyed by id; Order lists them for the UI.
+-- The stone pickaxe and lumber recipes are ours (PLAN, Kararlar): 7DTD has neither item.
+Config.Recipes = {
+	StoneAxe = { Output = "StoneAxe", Count = 1, Ingredients = costs({ SmallStone = 2, PlantFiber = 2, Wood = 2 }) },
+	StoneShovel = {
+		Output = "StoneShovel",
+		Count = 1,
+		Ingredients = costs({ SmallStone = 5, PlantFiber = 3, Wood = 3 }),
+	},
+	StonePickaxe = {
+		Output = "StonePickaxe",
+		Count = 1,
+		Ingredients = costs({ SmallStone = 4, PlantFiber = 3, Wood = 3 }),
+	},
+	-- Two wood per lumber keeps 7DTD's wood costs when building parts ask for lumber.
+	Lumber = { Output = "Lumber", Count = 1, Ingredients = costs({ Wood = 2 }) },
+} :: { [string]: Recipe }
+
+Config.Crafting = {
+	Order = { "StoneAxe", "StoneShovel", "StonePickaxe", "Lumber" },
+	-- 7DTD: a 4-slot queue; only the first slot works at a time.
+	QueueSlots = 4,
+	-- Most crafts one queue slot may hold (7DTD's cap is unconfirmed).
+	MaxCount = 500,
+	-- 7DTD CraftingIngredientTime: seconds each ingredient adds to a craft, 1 when not listed.
+	IngredientSeconds = { Wood = 0.2, SmallStone = 0.2, PlantFiber = 0.2 } :: { [string]: number },
+	DefaultIngredientSeconds = 1,
+}
 
 -- Melee stats by item id. "Fist" is the empty hand; any held item without an entry here (wood,
 -- stone...) also hits like the fist. 7DTD item names in the comments; the stone pickaxe is ours
@@ -497,6 +557,8 @@ Config.Remotes = {
 	InventoryRequestsPerSecond = 20,
 	-- The fastest tool swings under 2 times a second; the cooldown is checked separately.
 	UseToolRequestsPerSecond = 4,
+	-- Queueing, cancelling and repairing.
+	CraftRequestsPerSecond = 6,
 }
 
 Config.Debug = {

@@ -277,6 +277,16 @@ function Inventory.wear(inv: Inventory, index: number, amount: number): number?
 	return left
 end
 
+-- Empties slot `index` and returns what it held, or nil for an empty or invalid slot.
+function Inventory.takeSlot(inv: Inventory, index: number): Stack?
+	local slot = inv.slots[index]
+	if slot == false or slot == nil then
+		return nil
+	end
+	inv.slots[index] = false
+	return slot
+end
+
 -- A copy safe to send over a remote or keep as a snapshot.
 function Inventory.copySlots(inv: Inventory): { Slot }
 	local copy: { Slot } = table.create(#inv.slots, false)

@@ -12,6 +12,7 @@ local ZombieLook = require("../src/shared/ZombieLook")
 local Inventory = require("../src/shared/Inventory")
 local Melee = require("../src/shared/Melee")
 local Harvest = require("../src/shared/Harvest")
+local Crafting = require("../src/shared/Crafting")
 
 local passed, failed = 0, 0
 
@@ -732,6 +733,96 @@ test("every node, tree size and tool is well formed", function()
 	for toolId, tool in Config.Tools do
 		for _, material in { "Wood", "Earth", "Stone" } do
 			assert((tool.Materials :: any)[material] > 0, `{toolId} {material} multiplier`)
+		end
+	end
+end)
+
+print("Crafting")
+
+local Recipes = Config.Recipes
+
+test("craft times follow 7DTD's ingredient times", function()
+	expectNear(Crafting.unitSeconds(Recipes.StoneAxe), 1.2, 1e-9, "stone axe")
+	expectNear(Crafting.unitSeconds(Recipes.StoneShovel), 2.2, 1e-9, "stone shovel")
+	expectNear(Crafting.unitSeconds(Recipes.StonePickaxe), 2.0, 1e-9, "stone pickaxe")
+	expectNear(Crafting.unitSeconds(Recipes.Lumber), 0.4, 1e-9, "lumber")
+	local explicit: Config.Recipe = { Output = "Wood", Count = 1, Ingredients = {}, Seconds = 5 }
+	expectEq(Crafting.unitSeconds(explicit), 5, "explicit time")
+	local unknown: Config.Recipe = { Output = "Wood", Count = 1, Ingredients = { { Id = "Lumber", Count = 3 } } }
+	expectEq(Crafting.unitSeconds(unknown), 3, "unlisted ingredients take 1 s each")
+end)
+
+test("costs scale with the count and the stock caps how many can be made", function()
+	local costs = Crafting.costs(Recipes.StoneShovel, 3)
+	expectEq(costs.SmallStone, 15, "stone")
+	expectEq(costs.PlantFiber, 9, "fibre")
+	expectEq(costs.Wood, 9, "wood")
+	local stock = { SmallStone = 11, PlantFiber = 20, Wood = 7 }
+	local function countOf(id: string): number
+		return (stock :: any)[id] or 0
+	end
+	expectEq(Crafting.maxCount(Recipes.StoneAxe, countOf), 3, "wood runs out first")
+	expectEq(Crafting.maxCount(Recipes.Lumber, function()
+		return 1e6
+	end), Config.Crafting.MaxCount, "capped")
+	expectEq(Crafting.maxCount(Recipes.StoneShovel, function()
+		return 0
+	end), 0, "nothing on hand")
+end)
+
+test("a job's pool pays each craft from the first stacks and keeps the rest for refunds", function()
+	local pool: { Inventory.Stack } = {
+		{ id = "Wood", count = 3, source = "Loot" },
+		{ id = "Wood", count = 5, source = "Craft" },
+		{ id = "SmallStone", count = 4, source = "Loot" },
+	}
+	Crafting.draw(pool, { Wood = 4, SmallStone = 2 })
+	expectEq(#pool, 2, "the first wood stack is used up")
+	expectEq(pool[1].count, 4, "wood left")
+	expectEq(pool[1].source, "Craft", "source kept")
+	expectEq(pool[2].count, 2, "stone left")
+	Crafting.draw(pool, { Wood = 4, SmallStone = 2 })
+	expectEq(#pool, 0, "all used")
+end)
+
+test("repairs take whole stones and tools come out of their slot", function()
+	expectEq(Crafting.repairUnits(250, 300), 1, "a broken stone axe needs 1 stone")
+	expectEq(Crafting.repairUnits(500, 300), 2, "two when more than 300 is missing")
+	expectEq(Crafting.repairUnits(1, 300), 1, "any damage needs one")
+	local inv = Inventory.new(2, 2)
+	Inventory.add(inv, "StoneAxe", 1, "Craft", 40)
+	local index = 0
+	for i, slot in inv.slots do
+		if slot then
+			index = i
+		end
+	end
+	local stack = Inventory.takeSlot(inv, index)
+	assert(stack, "taken")
+	expectEq(stack.durability, 40, "durability kept")
+	expectEq(inv.slots[index], false, "slot emptied")
+	expectEq(Inventory.takeSlot(inv, index), nil, "empty slot")
+	expectEq(Inventory.takeSlot(inv, 99), nil, "invalid slot")
+end)
+
+test("every recipe and repair is well formed", function()
+	local listed = {}
+	for _, id in Config.Crafting.Order do
+		assert(Recipes[id], `order lists unknown recipe {id}`)
+		listed[id] = true
+	end
+	for id, recipe in Recipes do
+		assert(listed[id], `recipe {id} is not in Config.Crafting.Order`)
+		assert(Config.Items[recipe.Output], `{id} makes unknown item`)
+		assert(recipe.Count >= 1 and recipe.Count % 1 == 0, `{id} count`)
+		for _, ingredient in recipe.Ingredients do
+			assert(Config.Items[ingredient.Id], `{id} needs unknown item {ingredient.Id}`)
+		end
+	end
+	for id, item in Config.Items do
+		if item.Repair then
+			assert(item.Durability, `{id} repairs but has no durability`)
+			assert(Config.Items[item.Repair.Id], `{id} repairs with an unknown item`)
 		end
 	end
 end)
