@@ -48,6 +48,9 @@ export type ToolDef = {
 -- Items a world object gives: Min-Max rolled again on every payout.
 export type Drop = { Id: string, Min: number, Max: number }
 
+-- One entry of a loot group: Weight against the group's other entries, Min-Max items when picked.
+export type LootPick = { Id: string, Min: number, Max: number, Weight: number }
+
 -- A harvestable world object (7DTD block). Harvest drops pay two thirds while it is hit, in proportion
 -- to damage, and one third on the killing hit; Destroy drops pay once when it breaks.
 export type HarvestNode = {
@@ -385,6 +388,8 @@ Config.Items = {
 	SmallStone = { Stack = 6000, Color = { 0.56, 0.56, 0.54 } }, -- resourceRockSmall
 	PlantFiber = { Stack = 6000, Color = { 0.55, 0.63, 0.3 } }, -- resourceYuccaFibers
 	Lumber = { Stack = 6000, Color = { 0.8, 0.62, 0.4 } },
+	ScrapIron = { Stack = 6000, Color = { 0.52, 0.36, 0.3 } }, -- resourceScrapIron
+	Cloth = { Stack = 250, Color = { 0.78, 0.72, 0.6 } }, -- resourceCloth
 	-- meleeToolRepairT0StoneAxe
 	StoneAxe = { Stack = 1, Durability = 250, Repair = STONE_REPAIR, Color = { 0.45, 0.42, 0.38 } },
 	-- meleeToolShovelT0StoneShovel
@@ -500,6 +505,40 @@ Config.Harvest = {
 	-- Loose rocks are picked up with the interact key from this far (studs), at most this often.
 	PickupDistance = 8,
 	PickupsPerSecond = 4,
+}
+
+-- Loot bags (7DTD 1.x-3.2 entityclasses.xml and loot.xml; docs/REFERENCE_7DTD.md, Part A 4).
+Config.Loot = {
+	-- A dying zombie drops a bag this often. 7DTD: 2-4 %; ours is more generous because sessions are
+	-- short (PLAN, Kararlar).
+	ZombieBagChance = 0.2,
+	-- What a zombie bag holds. 7DTD's regular bag always rolls one pick from a common group (scrap,
+	-- cobblestones, food, drinks, medical, duct tape...) and has a 50 % group that includes tiered
+	-- tools. We only have raw resources and stone tools yet: one common pick, and a stone tool at a
+	-- worn share of its durability.
+	ZombieCommon = {
+		{ Id = "ScrapIron", Min = 3, Max = 10, Weight = 3 },
+		{ Id = "Cloth", Min = 2, Max = 6, Weight = 3 },
+		{ Id = "SmallStone", Min = 5, Max = 15, Weight = 2 },
+	} :: { LootPick },
+	ZombieToolChance = 0.15,
+	ZombieTools = { "StoneAxe", "StoneShovel", "StonePickaxe" },
+	ToolDurabilityMin = 0.3,
+	ToolDurabilityMax = 1,
+	-- Bags vanish after this many seconds (7DTD 1.x TimeStayAfterDeath; 2.6+ uses 3600).
+	BagSeconds = 1200,
+	-- 7DTD bags are 6 x 3 slots.
+	BagSlots = 18,
+	-- Searching holds the interact key this long (7DTD open time 1 s), from this far (studs), at most
+	-- this often per player.
+	SearchSeconds = 1,
+	SearchDistance = 8,
+	SearchesPerSecond = 4,
+	-- Most bags in the world at once; a new bag past the cap removes the oldest (hordes of 120).
+	MaxBags = 60,
+	-- Items with no room in the inventory drop in a bag at the player's feet; a bag within this many
+	-- studs is topped up instead of dropping another.
+	MergeDistance = 6,
 }
 
 Config.Melee = {

@@ -49,6 +49,10 @@ local Strings: { [string]: { [string]: string } } = {
 		InventoryGain = "+{count} {item}",
 		InventoryFull = "No room for {count} {item}",
 
+		-- Loot
+		LootBag = "Loot Bag",
+		LootSearch = "Search",
+
 		-- Crafting
 		CraftingTitle = "Crafting",
 		CraftingCraft = "Craft",
@@ -64,6 +68,8 @@ local Strings: { [string]: { [string]: string } } = {
 		ItemSmallStone = "Small Stone",
 		ItemPlantFiber = "Plant Fibers",
 		ItemLumber = "Lumber",
+		ItemScrapIron = "Scrap Iron",
+		ItemCloth = "Cloth",
 		ItemStoneAxe = "Stone Axe",
 		ItemStoneShovel = "Stone Shovel",
 		ItemStonePickaxe = "Stone Pickaxe",

@@ -13,6 +13,7 @@ local Inventory = require("../src/shared/Inventory")
 local Melee = require("../src/shared/Melee")
 local Harvest = require("../src/shared/Harvest")
 local Crafting = require("../src/shared/Crafting")
+local Loot = require("../src/shared/Loot")
 
 local passed, failed = 0, 0
 
@@ -852,6 +853,56 @@ test("every recipe and repair is well formed", function()
 			assert(item.Durability, `{id} repairs but has no durability`)
 			assert(Config.Items[item.Repair.Id], `{id} repairs with an unknown item`)
 		end
+	end
+end)
+
+print("Loot")
+
+test("zombies drop a bag about as often as Config says, with valid stacks", function()
+	math.randomseed(7)
+	local rolls, bags, tools = 10000, 0, 0
+	for _ = 1, rolls do
+		local stacks = Loot.rollZombie(math.random)
+		if stacks then
+			bags += 1
+			for _, stack in stacks do
+				local item = Config.Items[stack.id]
+				assert(item, `unknown item {stack.id}`)
+				assert(stack.count >= 1 and stack.count <= item.Stack, `{stack.id} count {stack.count}`)
+				if item.Durability then
+					tools += 1
+					local durability = stack.durability or 0
+					assert(durability >= 1 and durability <= item.Durability, `{stack.id} durability {durability}`)
+				end
+			end
+		end
+	end
+	expectNear(bags / rolls, Config.Loot.ZombieBagChance, 0.015, "bag rate")
+	expectNear(tools / bags, Config.Loot.ZombieToolChance, 0.03, "tool rate")
+end)
+
+test("loot picks follow their weights and stay in range", function()
+	math.randomseed(11)
+	local picks: { Config.LootPick } = {
+		{ Id = "Wood", Min = 1, Max = 1, Weight = 3 },
+		{ Id = "Cloth", Min = 1, Max = 1, Weight = 1 },
+	}
+	local wood = 0
+	for _ = 1, 8000 do
+		if Loot.pick(math.random, picks).Id == "Wood" then
+			wood += 1
+		end
+	end
+	expectNear(wood / 8000, 0.75, 0.02, "weighted")
+	expectEq(Loot.pick(function()
+		return 0.999999
+	end, picks).Id, "Cloth", "top of the range")
+	for _, entry in Config.Loot.ZombieCommon do
+		assert(Config.Items[entry.Id], `loot table lists unknown item {entry.Id}`)
+		assert(entry.Min >= 1 and entry.Max >= entry.Min, `{entry.Id} range`)
+	end
+	for _, id in Config.Loot.ZombieTools do
+		assert(Config.Items[id] and Config.Items[id].Durability, `{id} is not a tool`)
 	end
 end)
 
