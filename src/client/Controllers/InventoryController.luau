@@ -288,6 +288,9 @@ local function layout()
 	local size = slotSize()
 	local toolbeltWidth = size * IC.ToolbeltSlots + SLOT_GAP * (IC.ToolbeltSlots - 1)
 	toolbelt.Size = UDim2.fromOffset(toolbeltWidth, size)
+	for index = 1, IC.ToolbeltSlots do
+		views[index].button.Size = UDim2.fromOffset(size, size)
+	end
 	backpackGrid.CellSize = UDim2.fromOffset(size, size)
 	local rows = math.ceil(IC.BackpackSlots / BACKPACK_COLUMNS)
 	local panelWidth = size * BACKPACK_COLUMNS + SLOT_GAP * (BACKPACK_COLUMNS - 1) + PANEL_PADDING * 2
