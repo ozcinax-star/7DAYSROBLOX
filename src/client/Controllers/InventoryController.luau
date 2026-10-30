@@ -6,7 +6,10 @@
 -- Moving items works the same with mouse, touch and gamepad cursor: pick a slot, then pick the slot
 -- to put it in (picking the same slot again cancels). Right-click, or the Split toggle on touch,
 -- picks up half a stack. With the backpack closed, a toolbelt slot (click, tap, 1-9/0, or the
--- gamepad bumpers) becomes the active one.
+-- gamepad bumpers) becomes the active one. Repair sends the picked tool to the crafting queue.
+--
+-- Another panel (crafting) can be attached to the right of the backpack; the backpack then moves left
+-- and its slots shrink so both fit on the screen.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -15,6 +18,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Crafting = require(Shared.Crafting)
 local Inventory = require(Shared.Inventory)
 local Localization = require(Shared.Localization)
 local Net = require(Shared.Net)
@@ -43,6 +47,7 @@ local TEXT_COLOR = Color3.new(1, 1, 1)
 local PANEL_COLOR = Color3.fromRGB(18, 18, 20)
 local DURABILITY_GOOD = Color3.fromRGB(110, 200, 90)
 local DURABILITY_BAD = Color3.fromRGB(210, 70, 60)
+local DISABLED_TRANSPARENCY = 0.6
 
 local SLOT_KEYS = {
 	Enum.KeyCode.One,
@@ -82,8 +87,13 @@ local backpack: Frame
 local backpackGrid: UIGridLayout
 local nameLabel: TextLabel
 local splitButton: TextButton
+local repairButton: TextButton
 local moveRemote: RemoteEvent
 local selectRemote: RemoteEvent
+local repairRemote: RemoteEvent
+local sidePanel: Frame? = nil
+local sideWidth = 0
+local slotsChangedCallbacks: { () -> () } = {}
 local nameToken = 0
 
 local function itemName(id: string): string
@@ -191,6 +201,29 @@ local function showName(text: string)
 	end)
 end
 
+-- Total count of `id` in the inventory copy.
+local function countOf(id: string): number
+	local total = 0
+	for _, slot in slots do
+		if slot and slot.id == id then
+			total += slot.count
+		end
+	end
+	return total
+end
+
+-- True when slot `index` holds a damaged tool that can be repaired with what the player carries.
+local function canRepair(index: number?): boolean
+	local slot = if index then slots[index] else nil
+	local def = if slot then Inventory.def(slot.id) else nil
+	local repair = if def then def.Repair else nil
+	if not slot or def == nil or repair == nil or def.Durability == nil or slot.durability == nil then
+		return false
+	end
+	local missing = def.Durability - slot.durability
+	return missing > 0 and countOf(repair.Id) >= Crafting.repairUnits(missing, repair.Amount)
+end
+
 local function render()
 	for index, view in views do
 		local slot = slots[index]
@@ -229,6 +262,7 @@ local function render()
 		end
 	end
 	splitButton.BackgroundColor3 = if pickHalf then PICKED_STROKE else SLOT_COLOR
+	repairButton.TextTransparency = if canRepair(picked) then 0 else DISABLED_TRANSPARENCY
 end
 
 local function selectSlot(index: number)
@@ -291,12 +325,24 @@ local function layout()
 	for index = 1, IC.ToolbeltSlots do
 		views[index].button.Size = UDim2.fromOffset(size, size)
 	end
-	backpackGrid.CellSize = UDim2.fromOffset(size, size)
+	-- With a side panel the backpack slots shrink until both panels fit side by side.
+	local camera = workspace.CurrentCamera
+	local screenWidth = if camera then camera.ViewportSize.X else 1024
+	local side = if sideWidth > 0 then sideWidth + SLOT_GAP else 0
+	local fit = (screenWidth - SCREEN_MARGIN * 2 - side - PANEL_PADDING * 2 - SLOT_GAP * (BACKPACK_COLUMNS - 1))
+		/ BACKPACK_COLUMNS
+	local cell = math.floor(math.clamp(fit, MIN_SLOT_SIZE, size))
+	backpackGrid.CellSize = UDim2.fromOffset(cell, cell)
 	local rows = math.ceil(IC.BackpackSlots / BACKPACK_COLUMNS)
-	local panelWidth = size * BACKPACK_COLUMNS + SLOT_GAP * (BACKPACK_COLUMNS - 1) + PANEL_PADDING * 2
-	local panelHeight = TITLE_HEIGHT + size * rows + SLOT_GAP * (rows - 1) + PANEL_PADDING * 3
+	local panelWidth = cell * BACKPACK_COLUMNS + SLOT_GAP * (BACKPACK_COLUMNS - 1) + PANEL_PADDING * 2
+	local panelHeight = TITLE_HEIGHT + cell * rows + SLOT_GAP * (rows - 1) + PANEL_PADDING * 3
 	backpack.Size = UDim2.fromOffset(panelWidth, panelHeight)
-	backpack.Position = UDim2.new(0.5, 0, 1, -(BOTTOM_OFFSET + size + SLOT_GAP * 2))
+	backpack.Position = UDim2.new(0.5, -side / 2, 1, -(BOTTOM_OFFSET + size + SLOT_GAP * 2))
+	local panel = sidePanel
+	if panel then
+		panel.Position = UDim2.new(1, SLOT_GAP, 0, 0)
+		panel.Size = UDim2.fromOffset(sideWidth, panelHeight)
+	end
 end
 
 local function makeTextButton(parent: Instance, name: string, text: string, onClick: () -> ()): TextButton
@@ -352,7 +398,7 @@ local function buildGui(playerGui: PlayerGui)
 
 	local title = makeLabel(backpack, "Title")
 	title.Position = UDim2.fromOffset(PANEL_PADDING, PANEL_PADDING)
-	title.Size = UDim2.new(1, -(PANEL_PADDING * 2 + BUTTON_WIDTH * 2 + SLOT_GAP * 2), 0, TITLE_HEIGHT)
+	title.Size = UDim2.new(1, -(PANEL_PADDING * 2 + BUTTON_WIDTH * 3 + SLOT_GAP * 3), 0, TITLE_HEIGHT)
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	title.TextSize = 20
 	title.Text = Localization.get("InventoryBackpack")
@@ -370,6 +416,17 @@ local function buildGui(playerGui: PlayerGui)
 	splitButton.AnchorPoint = Vector2.new(1, 0)
 	splitButton.Position = UDim2.new(1, -(PANEL_PADDING + BUTTON_WIDTH + SLOT_GAP), 0, PANEL_PADDING)
 	splitButton.Size = UDim2.fromOffset(BUTTON_WIDTH, TITLE_HEIGHT)
+	repairButton = makeTextButton(backpack, "Repair", Localization.get("CraftingRepair"), function()
+		if picked and canRepair(picked) then
+			repairRemote:FireServer(picked)
+			picked = nil
+			pickHalf = false
+			render()
+		end
+	end)
+	repairButton.AnchorPoint = Vector2.new(1, 0)
+	repairButton.Position = UDim2.new(1, -(PANEL_PADDING + (BUTTON_WIDTH + SLOT_GAP) * 2), 0, PANEL_PADDING)
+	repairButton.Size = UDim2.fromOffset(BUTTON_WIDTH, TITLE_HEIGHT)
 
 	local gridHolder = Instance.new("Frame")
 	gridHolder.Name = "Slots"
@@ -423,6 +480,9 @@ local function buildGui(playerGui: PlayerGui)
 	if camera then
 		camera:GetPropertyChangedSignal("ViewportSize"):Connect(place)
 	end
+	if sidePanel then
+		sidePanel.Parent = backpack
+	end
 	place()
 	gui.Parent = playerGui
 end
@@ -467,6 +527,28 @@ function InventoryController.isBackpackOpen(): boolean
 	return backpackOpen
 end
 
+-- The inventory copy the server last sent (read only).
+function InventoryController.getSlots(): { Inventory.Slot }
+	return slots
+end
+
+-- Calls `callback` whenever a new inventory copy arrives.
+function InventoryController.onSlotsChanged(callback: () -> ())
+	table.insert(slotsChangedCallbacks, callback)
+end
+
+-- Docks `panel` to the right of the backpack panel, `width` pixels wide and as tall as the backpack;
+-- it shows and hides with the backpack. Before the backpack is built, it is docked when it is.
+function InventoryController.attachSidePanel(panel: Frame, width: number)
+	sidePanel = panel
+	sideWidth = width
+	panel.AnchorPoint = Vector2.new(0, 0)
+	if backpack then
+		panel.Parent = backpack
+		layout()
+	end
+end
+
 -- The stack in the active toolbelt slot as the server last sent it, or nil for an empty hand.
 function InventoryController.getHeld(): Inventory.Stack?
 	local slot = slots[selected]
@@ -476,6 +558,7 @@ end
 function InventoryController.init()
 	moveRemote = Net.event("InventoryMove")
 	selectRemote = Net.event("InventorySelect")
+	repairRemote = Net.event("CraftRepair")
 end
 
 function InventoryController.start()
@@ -496,6 +579,9 @@ function InventoryController.start()
 			picked = nil
 		end
 		render()
+		for _, callback in slotsChangedCallbacks do
+			task.spawn(callback)
+		end
 	end)
 	render()
 end
