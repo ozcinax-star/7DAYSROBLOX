@@ -10,6 +10,7 @@ local order = {
 	require(Services.ThreatService),
 	require(Services.ZombieService),
 	require(Services.InventoryService),
+	require(Services.LootService),
 	require(Services.ToolService),
 	require(Services.HarvestService),
 	require(Services.CraftingService),
