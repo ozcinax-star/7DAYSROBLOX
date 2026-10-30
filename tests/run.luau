@@ -11,6 +11,7 @@ local Config = require("../src/shared/Config")
 local ZombieLook = require("../src/shared/ZombieLook")
 local Inventory = require("../src/shared/Inventory")
 local Melee = require("../src/shared/Melee")
+local Harvest = require("../src/shared/Harvest")
 
 local passed, failed = 0, 0
 
@@ -635,6 +636,104 @@ test("aim vectors must be finite unit vectors", function()
 	expectEq(Melee.isUnit(0 / 0, 0, 1, tol), false, "NaN")
 	expectEq(Melee.isUnit(math.huge, 0, 0, tol), false, "infinite")
 	expectNear(Melee.interval(Config.Tools.StoneAxe.AttacksPerMinute, MC.SwingDelay), 60 / 105 + 0.1, 1e-9, "interval")
+end)
+
+print("Harvest")
+
+local Nodes = Config.Harvest.Nodes
+
+-- Hits a node with the same damage until it breaks; returns the items paid and the number of hits.
+local function chop(node: Config.HarvestNode, damage: number): (number, number, number)
+	local count = node.Harvest[1].Max
+	local total, hits, last = 0, 0, 0
+	local done = 0
+	while done < node.Health do
+		local after = math.min(node.Health, done + damage)
+		last = Harvest.payout(count, node.Health, done, after)
+		total += last
+		hits += 1
+		done = after
+	end
+	return total, hits, last
+end
+
+local function toolDamage(toolId: string, material: Config.HarvestMaterial): number
+	local tool = Config.Tools[toolId]
+	return Harvest.blockDamage(tool.BlockDamage, tool.Materials[material])
+end
+
+test("block damage is truncated, at least 1, and matches 7DTD's hit counts", function()
+	expectEq(toolDamage("Fist", "Wood"), 2, "fist on wood")
+	expectEq(toolDamage("Fist", "Stone"), 1, "fist on stone")
+	expectEq(toolDamage("StoneAxe", "Earth"), 3, "axe on earth")
+	expectEq(toolDamage("StoneAxe", "Stone"), 14, "axe on stone")
+	expectEq(toolDamage("StoneShovel", "Stone"), 7, "shovel on stone")
+	expectEq(Harvest.blockDamage(2.2, 0.2), 1, "never below 1")
+	local _, smallTreeHits = chop(Nodes.TreeSmall, toolDamage("StoneAxe", "Wood"))
+	expectEq(smallTreeHits, 14, "stone axe fells a small tree in 14 hits")
+	local _, fistHits = chop(Nodes.TreeSmall, toolDamage("Fist", "Wood"))
+	expectEq(fistHits, 150, "the fist needs 150")
+	local _, axeBoulderHits = chop(Nodes.Boulder, toolDamage("StoneAxe", "Stone"))
+	expectEq(axeBoulderHits, 29, "stone axe breaks a boulder in 29 hits")
+	local _, pickBoulderHits = chop(Nodes.Boulder, toolDamage("StonePickaxe", "Stone"))
+	expectEq(pickBoulderHits, 16, "stone pickaxe in 16")
+end)
+
+test("any tool gets the whole yield; a third of it comes on the killing hit", function()
+	for _, name in { "TreeSmall", "TreeMedium", "TreeLarge", "TreeFull", "Boulder" } do
+		local node = Nodes[name]
+		local count = node.Harvest[1].Max
+		for _, toolId in { "Fist", "StoneAxe", "StoneShovel", "StonePickaxe" } do
+			local total, _, last = chop(node, toolDamage(toolId, node.Material))
+			expectEq(total, count, `{name} with {toolId}`)
+			assert(last >= count // 3, `{name} with {toolId}: the last hit pays the lump`)
+		end
+	end
+	-- A full tree pays 1 wood per 12 damage while it stands: 2 for the first stone axe hit, then the
+	-- lump of 50 on the fell.
+	expectEq(Harvest.payout(150, 1200, 0, 22), 2, "first axe hit on a full tree")
+	expectEq(Harvest.payout(150, 1200, 1188, 1200), 1 + 50, "felling hit")
+end)
+
+test("mixed hits add up, overkill pays nothing, one-hit objects pay in full", function()
+	local node = Nodes.TreeMedium
+	local total, done, i = 0, 0, 0
+	while done < node.Health do
+		i += 1
+		local after = math.min(node.Health, done + (if i % 3 == 0 then 22 else 2))
+		total += Harvest.payout(70, node.Health, done, after)
+		done = after
+	end
+	expectEq(total, 70, "fist and axe in turns")
+	expectEq(Harvest.payout(70, 600, 600, 600), 0, "hitting a broken object pays nothing")
+	expectEq(Harvest.payout(2, 1, 0, 1), 2, "grass")
+	for count = 1, 3 do
+		expectEq(Harvest.payout(count, 1, 0, 1), count, `bush rolled {count}`)
+	end
+	expectEq(Harvest.payout(0, 1, 0, 1), 0, "nothing to pay")
+end)
+
+test("every node, tree size and tool is well formed", function()
+	for name, node in Nodes do
+		assert(node.Health >= 1, `{name} health`)
+		for _, list in { node.Harvest, node.Destroy } do
+			for _, d in list do
+				assert(Config.Items[d.Id], `{name} drops unknown item {d.Id}`)
+				assert(d.Min >= 0 and d.Max >= d.Min and d.Max % 1 == 0 and d.Min % 1 == 0, `{name} drop range`)
+			end
+		end
+	end
+	local previous = 0
+	for _, size in Config.Harvest.TreeSizes do
+		assert(Nodes[size.Node], `tree size {size.Node}`)
+		assert(size.MaxScale > previous, "tree sizes ascend")
+		previous = size.MaxScale
+	end
+	for toolId, tool in Config.Tools do
+		for _, material in { "Wood", "Earth", "Stone" } do
+			assert((tool.Materials :: any)[material] > 0, `{toolId} {material} multiplier`)
+		end
+	end
 end)
 
 print(`\n{passed} passed, {failed} failed`)

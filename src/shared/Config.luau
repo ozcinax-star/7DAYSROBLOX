@@ -14,8 +14,13 @@ export type ItemDef = {
 
 export type ItemCount = { Id: string, Count: number }
 
+-- What a world object is made of, for tool damage (7DTD damage categories: earth covers dirt, grass and
+-- leaves; stone covers rock and boulders).
+export type HarvestMaterial = "Wood" | "Earth" | "Stone"
+
 -- A melee tool, or the bare fist. Numbers follow 7DTD's item stats (quality 1, no perks).
 -- Range is in metres like 7DTD's MaxRange; Config.Melee.StudsPerMeter converts it.
+-- Materials: block damage multiplier by material (7DTD DamageModifier per damage category).
 export type ToolDef = {
 	EntityDamage: number,
 	BlockDamage: number,
@@ -23,6 +28,19 @@ export type ToolDef = {
 	Range: number,
 	-- Not used until stamina exists.
 	StaminaLoss: number,
+	Materials: { [HarvestMaterial]: number },
+}
+
+-- Items a world object gives: Min-Max rolled again on every payout.
+export type Drop = { Id: string, Min: number, Max: number }
+
+-- A harvestable world object (7DTD block). Harvest drops pay two thirds while it is hit, in proportion
+-- to damage, and one third on the killing hit; Destroy drops pay once when it breaks.
+export type HarvestNode = {
+	Material: HarvestMaterial,
+	Health: number,
+	Harvest: { Drop },
+	Destroy: { Drop },
 }
 
 Config.DayNight = {
@@ -345,16 +363,86 @@ Config.Items = {
 
 -- Melee stats by item id. "Fist" is the empty hand; any held item without an entry here (wood,
 -- stone...) also hits like the fist. 7DTD item names in the comments; the stone pickaxe is ours
--- (7DTD has none): between the stone axe and the iron pickaxe (11.2 / 42 / 65 APM / 2.4 m).
+-- (7DTD has none): between the stone axe and the iron pickaxe (11.2 / 42 / 65 APM / 2.4 m), with the
+-- iron pickaxe's material multipliers.
 Config.Tools = {
 	-- meleeHandPlayer
-	Fist = { EntityDamage = 5, BlockDamage = 2.2, AttacksPerMinute = 80, Range = 2.0, StaminaLoss = 10.5 },
+	Fist = {
+		EntityDamage = 5,
+		BlockDamage = 2.2,
+		AttacksPerMinute = 80,
+		Range = 2.0,
+		StaminaLoss = 10.5,
+		Materials = { Wood = 1, Earth = 0.5, Stone = 0.5 },
+	},
 	-- meleeToolRepairT0StoneAxe
-	StoneAxe = { EntityDamage = 6, BlockDamage = 22, AttacksPerMinute = 105, Range = 2.4, StaminaLoss = 8 },
+	StoneAxe = {
+		EntityDamage = 6,
+		BlockDamage = 22,
+		AttacksPerMinute = 105,
+		Range = 2.4,
+		StaminaLoss = 8,
+		Materials = { Wood = 1, Earth = 0.15, Stone = 0.67 },
+	},
 	-- meleeToolShovelT0StoneShovel
-	StoneShovel = { EntityDamage = 9, BlockDamage = 38, AttacksPerMinute = 50, Range = 2.6, StaminaLoss = 16.2 },
-	StonePickaxe = { EntityDamage = 7, BlockDamage = 26, AttacksPerMinute = 70, Range = 2.4, StaminaLoss = 14 },
+	StoneShovel = {
+		EntityDamage = 9,
+		BlockDamage = 38,
+		AttacksPerMinute = 50,
+		Range = 2.6,
+		StaminaLoss = 16.2,
+		Materials = { Wood = 0.3, Earth = 1, Stone = 0.2 },
+	},
+	StonePickaxe = {
+		EntityDamage = 7,
+		BlockDamage = 26,
+		AttacksPerMinute = 70,
+		Range = 2.4,
+		StaminaLoss = 14,
+		Materials = { Wood = 0.2, Earth = 0.2, Stone = 1 },
+	},
 } :: { [string]: ToolDef }
+
+local function drop(id: string, min: number, max: number?): Drop
+	return { Id = id, Min = min, Max = max or min }
+end
+
+-- Gathering. Health and drops follow 7DTD 1.0-3.2 blocks.xml (block names in the comments); see
+-- docs/REFERENCE_7DTD.md, Part B sections 0-3.
+Config.Harvest = {
+	Nodes = {
+		-- Tree sizes by 7DTD tree-wood material: MtreeWoodSmall, Medium, Large, Full.
+		TreeSmall = { Material = "Wood", Health = 300, Harvest = { drop("Wood", 30) }, Destroy = {} },
+		TreeMedium = { Material = "Wood", Health = 600, Harvest = { drop("Wood", 70) }, Destroy = {} },
+		TreeLarge = { Material = "Wood", Health = 900, Harvest = { drop("Wood", 110) }, Destroy = {} },
+		TreeFull = { Material = "Wood", Health = 1200, Harvest = { drop("Wood", 150) }, Destroy = {} },
+		-- treeDeadPineLeaf, treeAzalea, plantShrub
+		Bush = { Material = "Earth", Health = 1, Harvest = { drop("Wood", 1, 3) }, Destroy = {} },
+		-- treeTallGrassDiagonal
+		Grass = { Material = "Earth", Health = 1, Harvest = { drop("PlantFiber", 2) }, Destroy = {} },
+		-- rock01-07: also picked up with the interact key.
+		LooseRock = { Material = "Stone", Health = 1, Harvest = {}, Destroy = { drop("SmallStone", 1) } },
+		-- resourceRock01-03
+		Boulder = { Material = "Stone", Health = 400, Harvest = { drop("SmallStone", 22) }, Destroy = {} },
+	} :: { [string]: HarvestNode },
+	-- Forest trees are scaled 0.8-1.3; a tree takes the first size whose MaxScale it does not exceed.
+	-- Our trees are 4-6.5 m tall against 7DTD's 4-48 m, so size follows the scale, not the height.
+	TreeSizes = {
+		{ MaxScale = 0.925, Node = "TreeSmall" },
+		{ MaxScale = 1.05, Node = "TreeMedium" },
+		{ MaxScale = 1.175, Node = "TreeLarge" },
+		{ MaxScale = math.huge, Node = "TreeFull" },
+	},
+	-- A felled tree falls away from the player for this long, then fades out (7DTD: at least 3 s, then
+	-- a 1 s fade).
+	FallSeconds = 2.5,
+	FadeSeconds = 1,
+	-- Loose rocks are picked up with the interact key from this far (studs), at most this often.
+	PickupDistance = 8,
+	PickupsPerSecond = 4,
+	-- Seconds the "inventory full" message stays on screen.
+	MessageSeconds = 2,
+}
 
 Config.Melee = {
 	-- Converts 7DTD metres to studs: a Roblox character (~5 studs) against a 1.8 m 7DTD player.
