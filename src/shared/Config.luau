@@ -105,19 +105,24 @@ Config.Horde = {
 }
 
 Config.FlowField = {
-	-- Cell size of the shared navigation grid (studs). Matches the build grid.
+	-- Cell size of the shared navigation grid (studs). Matches the build grid and terrain voxels.
 	CellSize = 4,
-	-- Half-extent of the navigable area around the origin (studs).
-	HalfExtent = 256,
-	-- How often the player-chase field is rebuilt (seconds).
+	-- Each flow field only covers a square of this half-size around its target (players, sounds),
+	-- so rebuilds stay cheap on the 2048-stud map. Zombies outside it steer straight at the target.
+	FieldRadius = 160,
+	-- How often each player's chase field is rebuilt (seconds); rebuilds are spread over frames.
 	RebuildInterval = 1,
 	-- Path cost of entering a cell that holds a player structure (zombies prefer going around,
 	-- but will break through when the detour is long).
 	StructureCellCost = 8,
 	-- Max cached flow fields toward sound points (least recently used is evicted).
 	MaxSoundFields = 4,
-	-- Within this distance the zombie steers straight at its target instead of following the field.
-	DirectSteerDistance = 6,
+	-- Max ground height difference between neighbouring cells that zombies can walk (studs).
+	MaxStepHeight = 2.5,
+	-- Parts crossing this height above the ground block navigation (walls, trunks, furniture).
+	StepHeight = 2,
+	-- Shrinks part footprints before rasterizing, so a wall touching a cell edge does not block it.
+	RasterEpsilon = 0.05,
 }
 
 Config.Network = {

@@ -18,6 +18,8 @@ local NavGrid = require(Shared.NavGrid)
 local Net = require(Shared.Net)
 local Types = require(Shared.Types)
 local ZombieProtocol = require(Shared.ZombieProtocol)
+local HeightField = require(Shared.World.HeightField)
+local WorldLayout = require(Shared.World.WorldLayout)
 
 local MapService = require(script.Parent.MapService)
 
@@ -58,6 +60,11 @@ type PlayerInfo = {
 	root: BasePart,
 }
 
+type PlayerField = {
+	field: NavGrid.Field?,
+	rebuildAt: number,
+}
+
 type SoundField = {
 	field: NavGrid.Field,
 	lastUsed: number,
@@ -74,8 +81,7 @@ export type Stats = {
 local ZombieService = {}
 
 local grid: NavGrid.NavGrid
-local playerField: NavGrid.Field? = nil
-local nextFieldRebuild = 0
+local playerFields: { [Player]: PlayerField } = {}
 local soundFields: { [number]: SoundField } = {}
 local soundFieldCount = 0
 
@@ -219,7 +225,7 @@ local function getSoundField(soundId: number, x: number, z: number, now: number)
 			soundFieldCount -= 1
 		end
 	end
-	local field = grid:buildField({ cell })
+	local field = grid:buildField({ cell }, grid:windowAround(x, z, FC.FieldRadius))
 	soundFields[soundId] = { field = field, lastUsed = now }
 	soundFieldCount += 1
 	return field
@@ -246,10 +252,12 @@ local function moveToward(zombie: Zombie, tx: number, tz: number, speed: number,
 	else
 		return
 	end
+	zombie.y = MapService.heightAt(zombie.x, zombie.z) + ZC.RootHeight
 	zombie.dirty = true
 end
 
--- Follows `field` toward a goal; steers straight when close or when the field has no answer.
+-- Follows `field` toward a goal; steers straight only in the goal cell or when the field has no path
+-- (outside its window), so a wall between zombie and target is always walked around.
 local function followField(
 	zombie: Zombie,
 	field: NavGrid.Field?,
@@ -258,10 +266,7 @@ local function followField(
 	speed: number,
 	dt: number
 )
-	local dx = goalX - zombie.x
-	local dz = goalZ - zombie.z
-	local distSq = dx * dx + dz * dz
-	if field and distSq > FC.DirectSteerDistance * FC.DirectSteerDistance then
+	if field then
 		local wx, wz = grid:nextWaypoint(field, zombie.x, zombie.z)
 		if wx and wz then
 			local sx = wx + zombie.spreadX
@@ -314,7 +319,8 @@ local function stepZombie(zombie: Zombie, players: { PlayerInfo }, now: number, 
 			return
 		end
 		setState(zombie, "Chase")
-		followField(zombie, playerField, target.x, target.z, ZC.RunSpeed, dt)
+		local entry = playerFields[target.player]
+		followField(zombie, entry and entry.field, target.x, target.z, ZC.RunSpeed, dt)
 	elseif state == "SeekSound" then
 		local dx = zombie.goalX - zombie.x
 		local dz = zombie.goalZ - zombie.z
@@ -425,7 +431,7 @@ local function spawnOne(players: { PlayerInfo }, now: number): boolean
 	local zombie: Zombie = {
 		id = id,
 		x = x,
-		y = MapService.getGroundY() + ZC.RootHeight,
+		y = MapService.heightAt(x, z) + ZC.RootHeight,
 		z = z,
 		health = ZC.MaxHealth,
 		state = "Idle",
@@ -471,15 +477,23 @@ local function processSpawnQueue(players: { PlayerInfo }, now: number)
 	end
 end
 
-local function rebuildPlayerField(players: { PlayerInfo })
-	local sources = {}
+-- Rebuilds at most one due player field per frame so rebuild cost is spread out.
+local function updatePlayerFields(players: { PlayerInfo }, now: number)
 	for _, info in players do
-		local cell = grid:cellAt(info.x, info.z)
-		if cell then
-			table.insert(sources, cell)
+		local entry = playerFields[info.player]
+		if entry == nil then
+			entry = { field = nil, rebuildAt = 0 }
+			playerFields[info.player] = entry
+		end
+		if now >= entry.rebuildAt then
+			entry.rebuildAt = now + FC.RebuildInterval
+			local cell = grid:cellAt(info.x, info.z)
+			if cell then
+				entry.field = grid:buildField({ cell }, grid:windowAround(info.x, info.z, FC.FieldRadius))
+			end
+			return
 		end
 	end
-	playerField = if #sources > 0 then grid:buildField(sources) else nil
 end
 
 local function sendSnapshots(now: number)
@@ -530,10 +544,7 @@ local function onHeartbeat()
 	local now = started
 	local players = collectPlayers()
 
-	if now >= nextFieldRebuild then
-		nextFieldRebuild = now + FC.RebuildInterval
-		rebuildPlayerField(players)
-	end
+	updatePlayerFields(players, now)
 
 	processSpawnQueue(players, now)
 
@@ -561,29 +572,69 @@ local function onHeartbeat()
 end
 
 function ZombieService.init()
-	grid = NavGrid.new(FC.CellSize, FC.HalfExtent, FC.StructureCellCost)
+	grid = NavGrid.new(FC.CellSize, WorldLayout.HalfSize, FC.StructureCellCost)
 	snapshotRemote = Net.unreliable("ZombieSnapshot")
 	removedRemote = Net.event("ZombieRemoved")
 end
 
-function ZombieService.start()
-	local obstacles = MapService.getObstacles()
-	for _, part in obstacles:GetDescendants() do
-		if part:IsA("BasePart") then
-			local cf, size = part.CFrame, part.Size
-			-- Axis-aligned footprint of the (possibly rotated) part.
-			local halfX = (math.abs(cf.RightVector.X) * size.X + math.abs(cf.UpVector.X) * size.Y + math.abs(
-				cf.LookVector.X
-			) * size.Z) / 2
-			local halfZ = (math.abs(cf.RightVector.Z) * size.X + math.abs(cf.UpVector.Z) * size.Y + math.abs(
-				cf.LookVector.Z
-			) * size.Z) / 2
-			local p = cf.Position
-			grid:blockRect(p.X - halfX, p.Z - halfZ, p.X + halfX, p.Z + halfZ)
+-- Blocks water, out-of-bounds and steep cells, then every collidable map part that stands in the way
+-- at walking height (walls, trunks, furniture). Roofs, upper floors and canopies do not block.
+local function markNavigation()
+	local heightGrid = MapService.getHeightGrid()
+	assert(heightGrid.columns == grid.width, "height grid and nav grid must share the 4-stud cells")
+	local width = grid.width
+	local heights = heightGrid.heights
+	local function heightOf(cx: number, cz: number): number
+		return buffer.readf32(heights, (cz * width + cx) * 4)
+	end
+	for cz = 0, width - 1 do
+		for cx = 0, width - 1 do
+			local index = cz * width + cx
+			local x, z = grid:cellCenter(index)
+			local h = heightOf(cx, cz)
+			local steep = (cx + 1 < width and math.abs(heightOf(cx + 1, cz) - h) > FC.MaxStepHeight)
+				or (cz + 1 < width and math.abs(heightOf(cx, cz + 1) - h) > FC.MaxStepHeight)
+			if steep or not HeightField.isPlayable(x, z) or HeightField.isWater(x, z) then
+				grid:setCost(index, NavGrid.BLOCKED)
+				if steep and cx + 1 < width then
+					grid:setCost(index + 1, NavGrid.BLOCKED)
+				end
+			end
+		end
+		if cz % 64 == 0 then
+			task.wait()
 		end
 	end
-	sightParams.FilterDescendantsInstances = { obstacles }
 
+	local count = 0
+	for _, part in MapService.getMap():GetDescendants() do
+		if part:IsA("BasePart") and part.CanCollide then
+			local cf, size = part.CFrame, part.Size
+			local right, up, look = cf.RightVector, cf.UpVector, cf.LookVector
+			local halfX = (math.abs(right.X) * size.X + math.abs(up.X) * size.Y + math.abs(look.X) * size.Z) / 2
+			local halfY = (math.abs(right.Y) * size.X + math.abs(up.Y) * size.Y + math.abs(look.Y) * size.Z) / 2
+			local halfZ = (math.abs(right.Z) * size.X + math.abs(up.Z) * size.Y + math.abs(look.Z) * size.Z) / 2
+			local p = cf.Position
+			local ground = MapService.heightAt(p.X, p.Z)
+			local walkHeight = ground + FC.StepHeight
+			if p.Y - halfY <= walkHeight and p.Y + halfY >= walkHeight then
+				local e = FC.RasterEpsilon
+				grid:blockRect(p.X - halfX + e, p.Z - halfZ + e, p.X + halfX - e, p.Z + halfZ - e)
+			end
+		end
+		count += 1
+		if count % 2000 == 0 then
+			task.wait()
+		end
+	end
+end
+
+function ZombieService.start()
+	markNavigation()
+	sightParams.FilterDescendantsInstances = { MapService.getMap(), Workspace.Terrain }
+	Players.PlayerRemoving:Connect(function(player)
+		playerFields[player] = nil
+	end)
 	RunService.Heartbeat:Connect(onHeartbeat)
 end
 
