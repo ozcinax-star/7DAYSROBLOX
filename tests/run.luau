@@ -5,6 +5,8 @@ local NavGrid = require("../src/shared/NavGrid")
 local ZombieProtocol = require("../src/shared/ZombieProtocol")
 local HeightField = require("../src/shared/World/HeightField")
 local WorldLayout = require("../src/shared/World/WorldLayout")
+local BuildingTemplates = require("../src/server/World/BuildingTemplates")
+local FloorPlan = require("../src/server/World/FloorPlan")
 
 local passed, failed = 0, 0
 
@@ -136,6 +138,206 @@ end)
 
 test("heights are deterministic", function()
 	expectEq(HeightField.heightAt(-321.5, 77.25), HeightField.heightAt(-321.5, 77.25))
+end)
+
+print("Buildings")
+
+local CELL = 4
+
+local function templateNames(): { string }
+	local names = {}
+	for name in BuildingTemplates do
+		table.insert(names, name)
+	end
+	table.sort(names)
+	return names
+end
+
+local function cellKey(row: number, col: number): number
+	return row * 1000 + col
+end
+
+-- Cells a player walks on: open floor and doorways. Furniture and stair flights block.
+local function walkable(char: string): boolean
+	return char == "." or char == "D"
+end
+
+test("templates are well formed", function()
+	for _, name in templateNames() do
+		local template = BuildingTemplates[name]
+		local rows, cols = FloorPlan.size(template.floors[1])
+		for index, plan in template.floors do
+			local where = `{name} floor {index}`
+			expectEq(#plan, rows, `{where} rows`)
+			for row, line in plan do
+				expectEq(#line, cols, `{where} row {row} length`)
+				for col = 1, cols do
+					local char = string.sub(line, col, col)
+					assert(FloorPlan.isKnown(char), `{where} ({row},{col}): unknown symbol '{char}'`)
+				end
+			end
+			for _, stair in FloorPlan.stairs(plan) do
+				local above = template.floors[index + 1]
+				assert(above, `{where}: stair without a floor above`)
+				for _, cell in stair.cells do
+					expectEq(FloorPlan.charAt(above, cell[1], cell[2]), ".", `{where}: floor above stair cell {cell[1]},{cell[2]}`)
+				end
+				local entry, exit = FloorPlan.stairEnds(stair)
+				expectEq(FloorPlan.charAt(plan, entry[1], entry[2]), ".", `{where}: stair entry`)
+				expectEq(FloorPlan.charAt(above, exit[1], exit[2]), ".", `{where}: stair exit upstairs`)
+			end
+		end
+	end
+end)
+
+test("doorways open onto free floor", function()
+	for _, name in templateNames() do
+		for index, plan in BuildingTemplates[name].floors do
+			local rows, cols = FloorPlan.size(plan)
+			for row = 1, rows do
+				for col = 1, cols do
+					if FloorPlan.charAt(plan, row, col) == "D" then
+						local a, b = FloorPlan.doorSides(plan, row, col)
+						assert(a and b, `{name} floor {index} ({row},{col}): doorway not in a straight wall`)
+						for _, side in { a, b } do
+							local char = FloorPlan.charAt(plan, side[1], side[2])
+							assert(
+								char == "." or char == " " or char == "D",
+								`{name} floor {index} ({row},{col}): doorway blocked by '{char}'`
+							)
+						end
+					end
+				end
+			end
+		end
+	end
+end)
+
+test("every floor cell and every piece of furniture can be walked to", function()
+	for _, name in templateNames() do
+		local template = BuildingTemplates[name]
+		local rows, cols = FloorPlan.size(template.floors[1])
+		-- Ground floor: enter through every walkable border cell (exterior doorways, open sheds).
+		local starts: { { number } } = {}
+		for row = 1, rows do
+			for col = 1, cols do
+				local border = row == 1 or row == rows or col == 1 or col == cols
+				if border and walkable(FloorPlan.charAt(template.floors[1], row, col)) then
+					table.insert(starts, { row, col })
+				end
+			end
+		end
+		local holes: { [number]: boolean } = {}
+		for index, plan in template.floors do
+			local where = `{name} floor {index}`
+			local function open(row: number, col: number): boolean
+				return walkable(FloorPlan.charAt(plan, row, col)) and not holes[cellKey(row, col)]
+			end
+			local reached: { [number]: boolean } = {}
+			local queue: { { number } } = {}
+			for _, cell in starts do
+				if open(cell[1], cell[2]) and not reached[cellKey(cell[1], cell[2])] then
+					reached[cellKey(cell[1], cell[2])] = true
+					table.insert(queue, cell)
+				end
+			end
+			local head = 1
+			while head <= #queue do
+				local row, col = queue[head][1], queue[head][2]
+				head += 1
+				for _, d in { { 0, -1 }, { 0, 1 }, { -1, 0 }, { 1, 0 } } do
+					local r, c = row + d[2], col + d[1]
+					if open(r, c) and not reached[cellKey(r, c)] then
+						reached[cellKey(r, c)] = true
+						table.insert(queue, { r, c })
+					end
+				end
+			end
+
+			for row = 1, rows do
+				for col = 1, cols do
+					local char = FloorPlan.charAt(plan, row, col)
+					if open(row, col) then
+						assert(reached[cellKey(row, col)], `{where} ({row},{col}): '{char}' cannot be reached`)
+					elseif FloorPlan.isFurniture(char) then
+						local touched = false
+						for _, d in { { 0, -1 }, { 0, 1 }, { -1, 0 }, { 1, 0 } } do
+							if reached[cellKey(row + d[2], col + d[1])] then
+								touched = true
+							end
+						end
+						assert(touched, `{where} ({row},{col}): '{char}' cannot be reached`)
+					end
+				end
+			end
+
+			-- The next floor is entered at the top of each stair.
+			starts, holes = {}, {}
+			for _, stair in FloorPlan.stairs(plan) do
+				local entry, exit = FloorPlan.stairEnds(stair)
+				assert(reached[cellKey(entry[1], entry[2])], `{where}: stair entry cannot be reached`)
+				table.insert(starts, exit)
+				for _, cell in stair.cells do
+					holes[cellKey(cell[1], cell[2])] = true
+				end
+			end
+		end
+	end
+end)
+
+local function footprintOf(placement: WorldLayout.BuildingPlacement): (number, number)
+	local plan = BuildingTemplates[placement.template].floors[1]
+	local width, depth = #plan[1] * CELL, #plan * CELL
+	if placement.rotation % 2 == 1 then
+		return depth, width
+	end
+	return width, depth
+end
+
+test("buildings stay on the grid, apart, and off roads and sidewalks", function()
+	local placed: { { name: string, x0: number, z0: number, x1: number, z1: number } } = {}
+	for _, p in WorldLayout.Buildings do
+		assert(BuildingTemplates[p.template], `{p.name}: unknown template {p.template}`)
+		expectEq(p.x % CELL + p.z % CELL, 0, `{p.name} corner on the 4-stud grid`)
+		local width, depth = footprintOf(p)
+		local x1, z1 = p.x + width, p.z + depth
+		for _, other in placed do
+			local overlap = p.x < other.x1 and other.x0 < x1 and p.z < other.z1 and other.z0 < z1
+			assert(not overlap, `{p.name} overlaps {other.name}`)
+		end
+		table.insert(placed, { name = p.name, x0 = p.x, z0 = p.z, x1 = x1, z1 = z1 })
+
+		local inTown = HeightField.isInTown(p.x + width / 2, p.z + depth / 2)
+		local clearance = if inTown then WorldLayout.Town.sidewalkWidth else 0
+		local e = 0.01
+		local steps = 32
+		for i = 0, steps do
+			local t = i / steps
+			local x, z = p.x + e + (width - 2 * e) * t, p.z + e + (depth - 2 * e) * t
+			for _, point in { { x, p.z + e }, { x, z1 - e }, { p.x + e, z }, { x1 - e, z } } do
+				local distance = HeightField.nearestRoad(point[1], point[2])
+				assert(
+					distance >= clearance - 1e-6,
+					`{p.name}: footprint edge at ({point[1]}, {point[2]}) is {distance} from a road`
+				)
+			end
+		end
+	end
+end)
+
+test("building footprints are flat", function()
+	for _, p in WorldLayout.Buildings do
+		local width, depth = footprintOf(p)
+		local low, high = math.huge, -math.huge
+		for z = p.z + CELL / 2, p.z + depth, CELL do
+			for x = p.x + CELL / 2, p.x + width, CELL do
+				local h = HeightField.heightAt(x, z)
+				low = math.min(low, h)
+				high = math.max(high, h)
+			end
+		end
+		assert(high - low <= 0.5, `{p.name}: ground varies by {high - low} studs under the footprint`)
+	end
 end)
 
 print("ZombieProtocol")

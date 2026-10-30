@@ -168,12 +168,12 @@ WorldLayout.Pads = {
 
 WorldLayout.Buildings = {
 	-- Main street, north side (fronts face +Z toward the highway)
-	{ template = "Market", name = "Market", x = 196, z = 124, rotation = 2, loot = "Food" },
-	{ template = "Diner", name = "Diner", x = 252, z = 136, rotation = 2, loot = "Food" },
+	{ template = "Market", name = "Market", x = 196, z = 120, rotation = 2, loot = "Food" },
+	{ template = "Diner", name = "Diner", x = 252, z = 132, rotation = 2, loot = "Food" },
 	{ template = "Clinic", name = "Clinic", x = 316, z = 124, rotation = 2, loot = "Medical" },
-	{ template = "Hardware", name = "HardwareStore", x = 368, z = 132, rotation = 2, loot = "Metal" },
-	{ template = "HouseLarge", name = "House01", x = 436, z = 136, rotation = 2, loot = "Fabric" },
-	{ template = "HouseSmall", name = "House02", x = 484, z = 140, rotation = 2, loot = "Fabric" },
+	{ template = "Hardware", name = "HardwareStore", x = 368, z = 128, rotation = 2, loot = "Metal" },
+	{ template = "HouseLarge", name = "House01", x = 436, z = 132, rotation = 2, loot = "Fabric" },
+	{ template = "HouseSmall", name = "House02", x = 484, z = 136, rotation = 2, loot = "Fabric" },
 	{ template = "GasShop", name = "GasStation", x = 100, z = 92, rotation = 2, loot = "Food" },
 	-- Main street, south side (fronts face -Z)
 	{ template = "TownHall", name = "TownHall", x = 196, z = 196, rotation = 0, loot = "Fabric" },
@@ -185,8 +185,8 @@ WorldLayout.Buildings = {
 	{ template = "HouseLarge", name = "House08", x = 436, z = 196, rotation = 0, loot = "Fabric" },
 	{ template = "HouseSmall", name = "House09", x = 492, z = 196, rotation = 0, loot = "Food" },
 	-- South avenue, north side (fronts face +Z)
-	{ template = "HouseSmall", name = "House10", x = 252, z = 268, rotation = 2, loot = "Fabric" },
-	{ template = "HouseSmall", name = "House11", x = 372, z = 268, rotation = 2, loot = "Food" },
+	{ template = "HouseSmall", name = "House10", x = 252, z = 260, rotation = 2, loot = "Fabric" },
+	{ template = "HouseSmall", name = "House11", x = 372, z = 260, rotation = 2, loot = "Food" },
 	-- South avenue, south side (fronts face -Z)
 	{ template = "HouseSmall", name = "House12", x = 196, z = 316, rotation = 0, loot = "Fabric" },
 	{ template = "HouseLarge", name = "House13", x = 240, z = 316, rotation = 0, loot = "Food" },
@@ -196,10 +196,10 @@ WorldLayout.Buildings = {
 	{ template = "HouseSmall", name = "House17", x = 128, z = 316, rotation = 0, loot = "Fabric" },
 	{ template = "HouseTwoStory", name = "House18", x = 436, z = 316, rotation = 0, loot = "Food" },
 	-- North avenue, north side (fronts face +Z)
-	{ template = "HouseLarge", name = "House19", x = 196, z = 24, rotation = 2, loot = "Fabric" },
-	{ template = "HouseSmall", name = "House20", x = 252, z = 28, rotation = 2, loot = "Food" },
-	{ template = "HouseTwoStory", name = "House21", x = 316, z = 20, rotation = 2, loot = "Fabric" },
-	{ template = "HouseSmall", name = "House22", x = 372, z = 28, rotation = 2, loot = "Fabric" },
+	{ template = "HouseLarge", name = "House19", x = 196, z = 16, rotation = 2, loot = "Fabric" },
+	{ template = "HouseSmall", name = "House20", x = 252, z = 20, rotation = 2, loot = "Food" },
+	{ template = "HouseTwoStory", name = "House21", x = 316, z = 12, rotation = 2, loot = "Fabric" },
+	{ template = "HouseSmall", name = "House22", x = 372, z = 20, rotation = 2, loot = "Fabric" },
 	{ template = "Warehouse", name = "Warehouse", x = 448, z = -4, rotation = 2, loot = "Metal" },
 	-- Forest points of interest
 	{ template = "SawmillShed", name = "Sawmill", x = -212, z = -476, rotation = 1, loot = "Wood" },

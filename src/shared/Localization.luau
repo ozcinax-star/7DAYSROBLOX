@@ -31,6 +31,15 @@ local Strings: { [string]: { [string]: string } } = {
 		DebugNoise = "Make noise",
 		DebugGodMode = "God mode on/off",
 		DebugClear = "Clear",
+
+		-- Shop signs
+		SignMarket = "MARKET",
+		SignDiner = "DINER",
+		SignClinic = "CLINIC",
+		SignHardware = "HARDWARE",
+		SignGasStation = "GAS",
+		SignTownHall = "TOWN HALL",
+		SignWarehouse = "STORAGE",
 	},
 }
 
