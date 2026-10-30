@@ -1,7 +1,8 @@
 # Zombie Survival (Roblox)
 
 Co-op zombie survival where the world gets more dangerous the more you grow. Design decisions live in
-[docs/PLAN.md](docs/PLAN.md); if code and the plan disagree, the plan wins.
+[docs/PLAN.md](docs/PLAN.md); if code and the plan disagree, the plan wins. Project history, current
+state and the next tasks are in [docs/HANDOFF.md](docs/HANDOFF.md) and [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md).
 
 ## Toolchain
 
@@ -30,6 +31,7 @@ rojo build -o build.rbxl      # full place build
 | `src/server` | `ServerScriptService.Server` | Bootstrap script + `Services/*` + `World/*` (terrain, building kit, floor plans, props) |
 | `src/client` | `StarterPlayer.StarterPlayerScripts.Client` | Bootstrap script + `Controllers/*` |
 | `tests` | not synced | Lune unit tests for pure modules |
+| `tools/studio` | not synced | Dev-only Studio MCP sync + test harness and the floor-plan checker (see `docs/HANDOFF.md`) |
 
 ### Rules
 
