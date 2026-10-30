@@ -521,7 +521,8 @@ function MapService.isReady(): boolean
 end
 
 function MapService.getMap(): Folder
-	return assert(mapFolder, "MapService not initialized")
+	-- Parenthesised: assert returns its message too, which would leak into table constructors.
+	return (assert(mapFolder, "MapService not initialized"))
 end
 
 function MapService.getBuildings(): { BuildingInfo }
@@ -533,7 +534,7 @@ function MapService.getHarvestables(): { Harvestable }
 end
 
 function MapService.getHeightGrid(): TerrainBuilder.HeightGrid
-	return assert(heightGrid, "MapService not initialized")
+	return (assert(heightGrid, "MapService not initialized"))
 end
 
 return MapService
