@@ -3,6 +3,8 @@
 
 local NavGrid = require("../src/shared/NavGrid")
 local ZombieProtocol = require("../src/shared/ZombieProtocol")
+local HeightField = require("../src/shared/World/HeightField")
+local WorldLayout = require("../src/shared/World/WorldLayout")
 
 local passed, failed = 0, 0
 
@@ -92,6 +94,48 @@ test("enclosed cells are unreachable", function()
 	expectEq(grid:distanceAt(field, grid:cellAt(0, 0) :: number), NavGrid.UNREACHABLE, "inside box")
 	local wx = grid:nextWaypoint(field, 0, 0)
 	expectEq(wx, nil, "no waypoint")
+end)
+
+test("windowed field only covers its window", function()
+	local grid = NavGrid.new(4, 64, 8)
+	local source = grid:cellAt(0, 0) :: number
+	local field = grid:buildField({ source }, grid:windowAround(0, 0, 16))
+	expectEq(grid:distanceAt(field, grid:cellAt(8, 0) :: number), 2, "inside window")
+	expectEq(grid:distanceAt(field, grid:cellAt(40, 0) :: number), NavGrid.UNREACHABLE, "outside window")
+	expectEq(grid:nextWaypoint(field, 40, 0), nil, "no waypoint outside window")
+end)
+
+test("a blocked source falls back to the nearest walkable cell", function()
+	local grid = NavGrid.new(4, 64, 8)
+	-- Target stands against furniture: its own cell is blocked.
+	grid:blockRect(0, 0, 4, 4)
+	local field = grid:buildField({ grid:cellAt(1, 1) :: number })
+	local d = grid:distanceAt(field, grid:cellAt(20, 1) :: number)
+	assert(d ~= NavGrid.UNREACHABLE, "field is not empty")
+end)
+
+print("HeightField")
+
+test("town and roads are flat", function()
+	expectNear(HeightField.heightAt(300, 180), 0, 0.01, "town centre")
+	expectNear(HeightField.heightAt(-600, 180), 0, 0.01, "highway in the forest")
+	expectEq(HeightField.surfaceAt(300, 180, 0), "Asphalt", "main street")
+	expectEq(HeightField.regionAt(300, 180), "Town")
+	expectEq(HeightField.regionAt(-600, -600), "Forest")
+end)
+
+test("lake, quarry and mountains have depth and height", function()
+	local lake = WorldLayout.Lake
+	assert(HeightField.heightAt(lake.x, lake.z) < lake.waterLevel - lake.depth / 2, "lake bed")
+	assert(HeightField.isWater(lake.x, lake.z), "lake is water")
+	local quarry = WorldLayout.Quarry
+	assert(HeightField.heightAt(quarry.x, quarry.z) < -quarry.depth / 2, "quarry floor")
+	assert(HeightField.heightAt(1000, 0) > WorldLayout.MountainHeight / 2, "mountain at the edge")
+	assert(not HeightField.isPlayable(1000, 0), "edge not playable")
+end)
+
+test("heights are deterministic", function()
+	expectEq(HeightField.heightAt(-321.5, 77.25), HeightField.heightAt(-321.5, 77.25))
 end)
 
 print("ZombieProtocol")
