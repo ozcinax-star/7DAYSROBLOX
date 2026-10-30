@@ -16,6 +16,10 @@ local VOXEL = 4
 local CHUNK = 64
 -- Below the surface layer the ground is plain dirt (rock in the mountains).
 local SURFACE_DEPTH = 4
+-- Measured in Studio: a solid column whose topmost non-empty voxel starts at b with occupancy o is
+-- meshed with its surface at b + 2 + 4 * o, so solid occupancy is computed against h - 2. Water has no
+-- such offset (surface = b + 4 * o).
+local SOLID_SURFACE_OFFSET = 2
 
 export type HeightGrid = {
 	columns: number,
@@ -112,7 +116,7 @@ function TerrainBuilder.build(grid: HeightGrid)
 					local occX = occupancy[ix]
 					for iy = 1, layers do
 						local voxelBottom = y0 + (iy - 1) * VOXEL
-						local fill = math.clamp((h - voxelBottom) / VOXEL, 0, 1)
+						local fill = math.clamp((h - SOLID_SURFACE_OFFSET - voxelBottom) / VOXEL, 0, 1)
 						if fill > 0 then
 							matX[iy][iz] = if voxelBottom + VOXEL >= h - SURFACE_DEPTH then surface else under
 							occX[iy][iz] = fill
