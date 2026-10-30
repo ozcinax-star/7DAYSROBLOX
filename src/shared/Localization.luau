@@ -24,10 +24,12 @@ local Strings: { [string]: { [string]: string } } = {
 
 		-- Debug overlay
 		DebugFps = "FPS: {value}",
-		DebugServerTick = "Server tick: {value} ms",
+		DebugServerTick = "Server tick avg/max: {value} ms",
 		DebugZombieCount = "Zombies: {value}",
 		DebugRendered = "Rendered: {value}",
 		DebugSpawn = "Spawn {value}",
+		DebugNoise = "Make noise",
+		DebugGodMode = "God mode on/off",
 		DebugClear = "Clear",
 	},
 }
