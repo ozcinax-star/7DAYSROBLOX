@@ -46,6 +46,8 @@ local Strings: { [string]: { [string]: string } } = {
 
 		-- Gathering
 		HarvestPickUp = "Pick up",
+		InventoryGain = "+{count} {item}",
+		InventoryFull = "No room for {count} {item}",
 
 		-- Items (key = "Item" .. item id)
 		ItemWood = "Wood",

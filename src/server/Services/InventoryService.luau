@@ -37,6 +37,7 @@ local InventoryService = {}
 local states: { [Player]: PlayerState } = {}
 local limiter: RateLimiter.RateLimiter
 local updateRemote: RemoteEvent
+local gainRemote: RemoteEvent
 local heldCallbacks: { HeldChangedCallback } = {}
 
 local function isSlotIndex(value: unknown, max: number): boolean
@@ -149,6 +150,7 @@ end
 function InventoryService.init()
 	limiter = RateLimiter.new(Config.Remotes.InventoryRequestsPerSecond)
 	updateRemote = Net.event("InventoryUpdate")
+	gainRemote = Net.event("InventoryGain")
 	Net.event("InventoryMove")
 	Net.event("InventorySelect")
 end
@@ -178,7 +180,7 @@ function InventoryService.changed(player: Player)
 	markDirty(player)
 end
 
--- Gives items; returns how many did not fit.
+-- Gives items and tells the player what was added (7DTD's pickup feed); returns how many did not fit.
 function InventoryService.give(
 	player: Player,
 	id: string,
@@ -193,6 +195,9 @@ function InventoryService.give(
 	local left = Inventory.add(state.inventory, id, count, source, durability)
 	if left < count then
 		markDirty(player)
+	end
+	if Config.Items[id] and count > 0 then
+		gainRemote:FireClient(player, id, count - left, left)
 	end
 	return left
 end

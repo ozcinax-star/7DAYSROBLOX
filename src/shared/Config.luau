@@ -440,8 +440,6 @@ Config.Harvest = {
 	-- Loose rocks are picked up with the interact key from this far (studs), at most this often.
 	PickupDistance = 8,
 	PickupsPerSecond = 4,
-	-- Seconds the "inventory full" message stays on screen.
-	MessageSeconds = 2,
 }
 
 Config.Melee = {
@@ -486,6 +484,9 @@ Config.Inventory = {
 	FillToolbeltFirst = false,
 	-- PLAN: the player starts empty-handed (punches a tree, picks up stones).
 	StartingItems = {} :: { ItemCount },
+	-- Pickup feed: seconds a "+N item" line stays up, and the most lines shown at once.
+	FeedSeconds = 3,
+	FeedLines = 5,
 }
 
 Config.Remotes = {
