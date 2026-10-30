@@ -48,12 +48,15 @@ local JAW = V(0.6, 0.2, 0.6)
 local JAW_HINGE = V(0, -0.45, 0.22)
 local JAW_OPEN = -0.3
 local JAW_OFFSET = V(0, -0.08, -0.32)
-local SOCKET = V(0.24, 0.2, 0.08)
+local SOCKET = V(0.22, 0.17, 0.08)
 local SOCKET_OFFSET = V(0.19, 0.1, -0.42)
-local EYE = V(0.09, 0.09, 0.05)
-local EYE_OFFSET = V(0.19, 0.1, -0.465)
-local WOUND = V(0.55, 0.45, 0.05)
+-- Small dull eyes sunk into the sockets (they barely stand out of the socket face).
+local EYE = V(0.07, 0.07, 0.04)
+local EYE_OFFSET = V(0.19, 0.08, -0.45)
+-- A slanted gash rather than a square patch.
+local WOUND = V(0.5, 0.16, 0.05)
 local WOUND_OFFSET = V(0.3, 0.2, -0.33)
+local WOUND_TILT = 0.45
 -- Resting bends (radians).
 local ELBOW_REST = 0.25
 local KNEE_REST = 0.08
@@ -365,7 +368,9 @@ function ZombieRig.pose(rig: Rig, p: Pose, parts: { BasePart }, cframes: { CFram
 		parts[n + 5] = detail[5]
 		cframes[n + 5] = head * CF(EYE_OFFSET.X * s, EYE_OFFSET.Y * s, EYE_OFFSET.Z * s)
 		parts[n + 6] = detail[6]
-		cframes[n + 6] = waist * CF(WOUND_OFFSET.X * bad * s, (TORSO.Y / 2 + WOUND_OFFSET.Y) * s, WOUND_OFFSET.Z * s)
+		cframes[n + 6] = waist
+			* CF(WOUND_OFFSET.X * bad * s, (TORSO.Y / 2 + WOUND_OFFSET.Y) * s, WOUND_OFFSET.Z * s)
+			* ANG(0, 0, WOUND_TILT * bad)
 	end
 end
 

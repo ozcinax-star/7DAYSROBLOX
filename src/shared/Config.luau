@@ -248,9 +248,10 @@ Config.ZombieVisual = {
 	ExtremityRot = 0.15,
 	-- Faces are gaunt: the head is darkened slightly and shrunk on X.
 	FaceShade = 0.88,
-	WoundColor = { 0.25, 0.28, 0.17 },
-	EyeSocketColor = { 0.08, 0.07, 0.07 },
-	EyeColor = { 0.78, 0.8, 0.72 },
+	-- Dried, dark decay; milky, clouded eyes that do not glow.
+	WoundColor = { 0.2, 0.17, 0.12 },
+	EyeSocketColor = { 0.12, 0.1, 0.09 },
+	EyeColor = { 0.52, 0.54, 0.46 },
 	-- Dirty, faded clothing.
 	ShirtColors = {
 		{ 0.55, 0.52, 0.47 },

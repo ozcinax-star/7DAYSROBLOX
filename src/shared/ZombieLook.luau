@@ -54,6 +54,10 @@ local function scale(c: Color, k: number): Color
 	return { c[1] * k, c[2] * k, c[3] * k }
 end
 
+local function brightness(c: Color): number
+	return (c[1] + c[2] + c[3]) / 3
+end
+
 -- Index of the entry that `r` (in [0, 1)) falls into, by weight.
 function ZombieLook.pickWeighted(weights: { number }, r: number): number
 	local total = 0
@@ -79,9 +83,12 @@ end
 function ZombieLook.fromId(id: number): Look
 	local toneIndex = ZombieLook.pickWeighted(toneWeights, roll(id, 1))
 	local base = VC.SkinTones[toneIndex].Color
+	-- Decay greys the skin toward RotColor taken down to the skin's own brightness, so dark skin
+	-- stays dark instead of washing out to grey.
+	local rotColor = scale(VC.RotColor, math.min(1, brightness(base) / brightness(VC.RotColor)))
 	local rot = lerp(VC.RotMin, VC.RotMax, roll(id, 2))
-	local skin = mix(base, VC.RotColor, rot)
-	local extremity = mix(base, VC.RotColor, math.min(1, rot + VC.ExtremityRot))
+	local skin = mix(base, rotColor, rot)
+	local extremity = mix(base, rotColor, math.min(1, rot + VC.ExtremityRot))
 	local shirts = VC.ShirtColors
 	local pants = VC.PantsColors
 	local deadArm = 0
@@ -92,7 +99,7 @@ function ZombieLook.fromId(id: number): Look
 		toneIndex = toneIndex,
 		skin = skin,
 		extremity = extremity,
-		face = scale(mix(base, VC.RotColor, math.min(1, rot + VC.ExtremityRot / 2)), VC.FaceShade),
+		face = scale(mix(base, rotColor, math.min(1, rot + VC.ExtremityRot / 2)), VC.FaceShade),
 		shirt = shirts[math.floor(roll(id, 3) * #shirts) + 1],
 		pants = pants[math.floor(roll(id, 4) * #pants) + 1],
 		bareArms = roll(id, 5) < VC.BareArmChance,
