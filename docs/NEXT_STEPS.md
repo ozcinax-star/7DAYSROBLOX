@@ -17,7 +17,8 @@ Yol haritası notu ve Kararlar tablosu).
 | Zombi görünümü | Bitti: 17 parçalı rig, zayıf ve çürümüş yüz, ten dağılımı, prosedürel topallama, ölünce yığılma |
 | Stres testi aracı | Bitti |
 | Envanter | Bitti: 10 + 45 slot, kaynaklı yığınlar, elde görünen alet, arayüz |
-| Vuruş, toplama, crafting, zombi loot'u, kazı | **Sıradaki iş** (aşağıda 2–6) |
+| Vuruş | Bitti: 7DTD hasar ve hızları, kafa vuruşu, aşınma, duvar kontrolü |
+| Toplama, crafting, zombi loot'u, kazı | **Sıradaki iş** (aşağıda 3–6) |
 | Gündüz-gece, tehdit hesabı, tahta duvar, kamera | **Yapılmadı** |
 | Kapı 1: 80 zombiyle orta seviye telefonda 30 FPS | **Ölçülmedi**; kullanıcı erteledi |
 | Kapı 2: 3 kişilik test grubu "bir gece daha" diyor | Henüz yapılamaz |
@@ -50,26 +51,34 @@ küçük taş ve bitki lifi 6000'lik yığın. Kalanlar:
 - 7DTD'nin taşıma yükü (fazla eşyada yavaşlama): sonra.
 - Eşya simgeleri: şimdilik renkli kare.
 
-### 2. Vuruş
+### 2. Vuruş (bitti, 31 Ekim)
 
-- Tek bir `UseTool` remote'u; yük yalnızca nişan yönü (birim vektör).
-- Sunucu doğrular: tip, NaN ve sonsuz değer, birim uzunluk, bekleme süresi (aletin dakikadaki vuruşu),
-  hız sınırı.
-- Hedefi sunucu bulur: kafadan raycast (`RespectCanCollide`), zombi için koni. Hedef zombi, ağaç,
-  çalı, kaya veya arazi olabilir.
-- Dayanıklılık: her vuruş 1 düşer. 0'da alet envanterde kalır ama kullanılamaz; küçük taşla onarılır.
-- Girdi: Input Action System (PC sol tık, gamepad R2, mobilde ekran düğmesi). Sallama animasyonu diğer
-  oyunculara yayınlanır; vurulan zombi sendeler (`ZombieRenderController.flinch` hazır).
+`6be883f`, `1b0fb72`. Kalanlar (7DTD'de var):
+- Güçlü vuruş (sağ tık): 2× veya 2,25× hasar, daha çok stamina.
+- Stamina: vuruş başına stamina; stamina yetmezse vuruş yok. Hayatta kalma istatistikleriyle birlikte.
+- Aleti küçük taşla tamir (7DTD: taş balta 1 taş, crafting kuyruğundan geçer). Crafting adımında.
+- Vuruş sesi ve ThreatService'e gürültü; isabet efekti.
+- PvP lobi seçeneği gelince oyuncuya vuruş.
 
 ### 3. Toplama
 
-- **Ağaç:** Her vuruş, verdiği hasarla orantılı Odun verir (7DTD gibi). Devrilen ağaç istemcide düşer
-  ve kaldırılır. Yol bulma hücreleri yeniden hesaplanır; `markNavigation`'daki hesap tek hücre için ortak
-  bir yardımcıya taşınır.
-- **Çalı ve ot:** Bitki lifi.
-- **Kaya:** Küçük taş. Kasaba ve şehir bölgelerinde kaya yok. Ormanda ve taş ocağında daha çok kaya.
-- **Yerden taş:** ProximityPrompt ile +1 küçük taş; belli bir süre sonra yeniden çıkar.
-- Oyuncu boş elle başlar: yumrukla ağaç keser, yerden taş toplar.
+Sayılar ve kurallar `REFERENCE_7DTD.md` Bölüm B, 0–3 ve 5.2–5.4'te.
+- **Verim kuralı:** Her kaynağın sabit toplam verimi var. Üçte ikisi vuruşlarda verilen hasarla
+  orantılı, üçte biri son vuruşta toplu gelir. İyi alet yalnızca hızlandırır. Sopa ve mızrak %25 verir.
+  Kesirli kısım oyuncu ve hedef başına sunucuda tutulur; envantere yalnızca tam sayı girer.
+- **Malzeme çarpanları** (blok hasarına): yumruk odun 1 / toprak 0,5 / taş 0,5; taş balta 1 / 0,15 /
+  0,67; taş kürek 0,3 / 1 / 0,2; taş kazma (bizim) demir kazma gibi 0,2 / 0,2 / 1. Hasar tam sayıya
+  kesilir, en az 1.
+- **Ağaç:** küçük 300 can / 30 odun, orta 600 / 70, büyük 900 / 110, tam boy 1200 / 150. Devrilince
+  1–2 tohum (tohum sonra). Devrilen ağaç oyuncudan uzağa düşer, kütük kalmaz. Yol bulma hücreleri
+  yeniden hesaplanır; `markNavigation`'daki hesap tek hücre için ortak bir yardımcıya taşınır.
+- **Ot:** 1 can, 2 bitki lifi. **Çalı:** 1 can, 1–3 odun.
+- **Yerdeki taş:** 1 can, 1 küçük taş; ProximityPrompt ile de alınır. Belli bir süre sonra yeniden çıkar.
+- **Kaya (boulder):** 400 can, 22 küçük taş. Kasaba ve şehir bölgelerinde kaya ve yerde taş yok. Ormanda
+  ve taş ocağında daha çok.
+- Oyuncu boş elle başlar: yumrukla ağaç (küçük ağaç 150 vuruş!) yerine önce ot ve yerden taş toplar,
+  taş baltayı yapar. 7DTD'nin ilk görevi de bu: 10 lif, 10 odun, 5 taş, sonra taş balta.
+- Dinleyici: `ToolService.onWorldHit(player, result, toolId, tool)`.
 
 ### 4. Crafting
 
@@ -121,54 +130,16 @@ küçük taş ve bitki lifi 6000'lik yığın. Kalanlar:
 
 ## 7DTD referans sayıları
 
-30 Ekim'de 7 Days to Die 1.0+ wiki'sinden derlendi. Uygulanınca Config'e taşınır.
+Hepsi [REFERENCE_7DTD.md](REFERENCE_7DTD.md) dosyasında; başında bizim uyarlamalarımızın tablosu var.
 
-**Tarifler** (sırt çantasında, kilit yok):
+## Sonra: 7DTD'den gelecekler
 
-| Eşya | Malzeme | Süre |
-| --- | --- | --- |
-| Taş balta | 2 küçük taş, 2 bitki lifi, 2 odun | 1,2 sn |
-| Taş kürek | 5 küçük taş, 3 bitki lifi, 3 odun | 2,2 sn |
-| Taş mızrak | 5 küçük taş, 3 bitki lifi, 3 odun | — |
-| Tahta sopa | 5 odun | — |
-| İlkel yay | 8 odun, 3 bitki lifi | — |
-| Yatak rulosu | 10 bitki lifi | — |
-| Kamp ateşi | 5 küçük taş | — |
-| Tahta çerçeve | 2 odun | — |
-
-7DTD 1.0'da kereste yok; bizde kullanıcı kararıyla var.
-
-**Kaynak verimleri:**
-
-| Kaynak | Can | Verim |
-| --- | --- | --- |
-| Küçük ağaç | 300 | toplam 30 odun |
-| Orta ağaç | 600 | 70 odun |
-| Büyük ağaç | 900 | 110 odun |
-| Tam boy ağaç | 1200 | 150 odun |
-| Kaya (boulder) | 400 | 22 küçük taş |
-| Taş arazi | 500 | 55 küçük taş |
-| Toprak | 200 | 22 kil |
-| Çakıl | 200 | 8 kum + 9 küçük taş |
-| Kum | 100 | 11 kum + 2 kil |
-| Ot | 1 | 2 bitki lifi |
-| Çalı | — | 1–3 odun |
-| Yerdeki küçük taş | — | E ile 1 küçük taş |
-
-Ağaçta odun, verilen hasara oranla her vuruşta gelir; devrilince yalnızca tohum düşer.
-
-**Aletler:**
-
-| Alet | Blok hasarı | Odun / Toprak / Taş çarpanı | Varlık hasarı | Vuruş/dk | Stamina | Dayanıklılık |
-| --- | --- | --- | --- | --- | --- | --- |
-| Yumruk | 2,2 | 1,0 / 0,5 / 0,5 | 5 | 80 | 10,5 | — |
-| Taş balta | 22 | 1,0 / 0,15 / 0,67 | 6 | 105 | 8 | 250 |
-| Taş kürek | 38 | 0,3 / 1,0 / 0,2 | 9 | 50 | 16,2 | 250 |
-| Demir kazma | 42 | 0,2 / 0,2 / 1,0 | 11,2 | 65 | — | — |
-
-- Yığın: odun, küçük taş, bitki lifi 6000 (1.0, 2.6 ve 3.2'de aynı).
-- Crafting kuyruğu 4 slot.
-- Zombi loot torbası 7DTD'de %2–4, 6×3 kap, 3600 sn ömür. Bizde %20 (kullanıcı kararı).
+- **Hayatta kalma istatistikleri:** can, stamina, yemek, su 100. Stamina saniyede 10 dolar, koşu net
+  −4,5/sn, zıplama 20. Yemek saatte 30, su 40 düşer (gerçek saat = 1 oyun günü). Can dakikada 1 dolar
+  (Roblox'un varsayılan %1/sn yenilenmesi kapatılır).
+- **Zombilerin oyuncuya girmesi:** saldıran zombi oyuncudan en az bir gövde mesafesinde durmalı.
+- **Taşıma yükü:** 45 slotun 27'si cezasız; sonrası her slot %2,6 yavaşlatır.
+- **Alet kalitesi (1–6).**
 
 ## Sonra: 2. aşamanın kalanı
 

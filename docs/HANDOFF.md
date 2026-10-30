@@ -119,7 +119,8 @@ torbası yaklaşık %20. Bu kararlar ve telefon kapısının ertelenmesi PLAN.md
 
 Kullanıcı kapsam kuralını değiştirdi: ana referans 7 Days to Die; planın özgün kararları farkı belirler
 (PLAN, Kapsam). İki araştırma ajanı 7DTD'nin oyun XML'lerinden (1.0, 2.6, 3.2) tarif, yığın ve alet
-sayılarını çıkardı; sonuçlar `docs/REFERENCE_7DTD.md` dosyasına yazılacak.
+sayılarını çıkardı; sonuçlar `docs/REFERENCE_7DTD.md` dosyasında (başında bizim uyarlamalarımızın
+tablosu var).
 
 | Commit | Ne yapıldı |
 | --- | --- |
@@ -127,6 +128,9 @@ sayılarını çıkardı; sonuçlar `docs/REFERENCE_7DTD.md` dosyasına yazılac
 | `ec74896` | Saf `Shared/Inventory` (kaynak taşıyan yığınlar, aletler yığılmaz ve aşınır), `Config.Items` ve `Config.Inventory` (7DTD: 10 + 45 slot, ham kaynak yığını 6000), 5 test |
 | `383297a` | `InventoryService` (sunucu sahibi, kare başına bir kopya, doğrulanmış ve hız sınırlı taşıma/seçme), elde görünen alet (`Modules/HeldItems`), debug `GiveKit` |
 | `859c573` | Alet kemeri ve sırt çantası arayüzü (`InventoryController`), debug panelinde "Give test items" |
+| `7234e9e` | `Inventory.add` kesirli, NaN ve sonsuz sayıları reddediyor (toplama adımı kesirli verim üretecek) |
+| `6be883f` | Vuruş: `ToolService` + `Shared/Melee` + `ToolController`; zombi canı 125 ±%15; debug "Spawn 1"; Tab kaldırıldı |
+| `1b0fb72` | Zombi 1,5 sn'de 8 vuruyor (7DTD) |
 
 ## Mevcut durum
 
@@ -136,22 +140,22 @@ sayılarını çıkardı; sonuçlar `docs/REFERENCE_7DTD.md` dosyasına yazılac
 | Binalar | 15 şablon. Mobilyalı odalar, iki katlılarda merdiven, açılmış kapılar, tabelalar. Her model `Template`, `Loot` (`Food`, `Medical`, `Metal`, `Fabric`…), `Floors` ve `Region` özelliklerini taşıyor; loot sistemi bunları kullanacak. |
 | Zombiler (`ZombieService`) | Çalışıyor. Humanoid yok. Akış alanıyla yol bulma, görerek kovalama, ses noktasına gitme, gezinme, eve girip çıkma, merdivenle üst kat, bina içinde uyuyan zombi, saldırı öncesi bekleme, sendeleme, dalgalı spawn, sunucu LOD'u (yakın 10 Hz, uzak 2 Hz), anlık görüntü yayını. API: `spawn`, `remove`, `clear`, `damage` (öldürünce true), `onDied`, `getPosition`, `hearSound`, `getStats`, `getNavGrid`. |
 | Envanter (`InventoryService` + `Shared/Inventory`) | Çalışıyor. 10 slot alet kemeri + 45 slot sırt çantası. Yeni eşya önce sırt çantasına girer. Her yığın kaynağını taşır; farklı kaynaklar birleşmez. Seçili slottaki eşya sağ elde görünür (stilize model; sallama pozu yok). API: `get`, `changed`, `give`, `room`, `take` (hep ya da hiç), `count`, `getHeld`, `wearHeld`, `onHeldChanged`. Oyuncu boş elle başlar (`StartingItems` boş). |
-| İstemci | `ZombieRenderController` + `Modules/ZombieRig`: 17 parçalı rig, prosedürel yürüyüş, interpolasyon, LOD, ceset; `flinch(id)` hazır. `InventoryController`: alttaki alet kemeri, I / Tab / gamepad Y ile sırt çantası, mobilde Bag düğmesi; tıkla-seç-bırak taşıma, sağ tık veya Split ile yarım yığın; 1–0 tuşları ve L1/R1 ile slot seçimi. `DebugOverlayController`: FPS, tick süresi, zombi sayısı; Spawn 80/120, Noise, GodMode, Kill, Give test items ve Clear düğmeleri. |
+| İstemci | `ZombieRenderController` + `Modules/ZombieRig`: 17 parçalı rig, prosedürel yürüyüş, interpolasyon, LOD, ceset; `flinch(id)` hazır. `InventoryController`: alttaki alet kemeri, I / gamepad Y ile sırt çantası, mobilde Bag düğmesi; tıkla-seç-bırak taşıma, sağ tık veya Split ile yarım yığın; 1–0 tuşları ve L1/R1 ile slot seçimi. `ToolController`: sol tık / gamepad R2 / mobilde Hit düğmesi; basılı tutunca aletin hızında vurur; nişan imlecin (serbest fare) ya da ekran ortasının altındaki noktaya; sağ omuzda prosedürel sallama; kırık alette uyarı. `DebugOverlayController`: FPS, tick süresi, zombi sayısı; Spawn 1/80/120, Noise, GodMode, Kill, Give test items ve Clear düğmeleri. |
 | Debug | Remote: `DebugCommand`. Yalnızca Studio'da veya `Config.Debug.AllowedUserIds` listesindeki hesaplarla çalışır (`11911303584` test eden hesap). Doğrulanır ve hız sınırlıdır. |
 | `DayNightService` | **Boş iskelet.** |
 | `ThreatService` | **Boş iskelet.** Config değerleri ve `Types.SoundPoint` hazır. |
 | `BuildService` | **Boş iskelet.** `Config.Build` ve `Types.BuildPieceKind` hazır. |
 | Kamera (omuz/FPS) | **Yok.** Localization anahtarları (`CameraShoulder`, `CameraFirstPerson`) ve `Config.Camera` hazır. |
-| Oyuncunun silahı veya saldırısı | **Yok.** `ZombieService.damage` var ama oyuncu zombiye vuramıyor. Sıradaki işlerde (NEXT_STEPS 2). |
-| Toplama, crafting, loot, kazı | **Sıradaki iş** (NEXT_STEPS 2–6). `ZombieService.onDied` loot için, `InventoryService.give/take/wearHeld` hepsi için hazır. |
+| Vuruş (`ToolService` + `Shared/Melee`) | Çalışıyor. İstemci yalnızca nişan yönünü yollar. Sunucu: birim vektör, hız sınırı (4/sn), aletin 7DTD aralığı (60/APM + 0,1 sn, %12 tolerans), hedefi kendi baş konumundan seçer: menzildeki en yakın zombi (silindir + baktığı yöne eğik kafa küresi), arada duvar varsa vurmaz. Hasar 7DTD: yumruk 5, taş balta 6, taş kürek 9, taş kazma 7; kafaya ×2. Alet yalnızca isabette 1 aşınır; 0'da kullanılamaz. Dünyaya isabet `onWorldHit` dinleyicilerine gider (toplama). Oyunculara vuruş yok (PvP lobi seçeneği gelince). |
+| Toplama, crafting, loot, kazı | **Sıradaki iş** (NEXT_STEPS 3–6). `ToolService.onWorldHit` toplama ve kazı için, `ZombieService.onDied` loot için, `InventoryService.give/take/wearHeld` hepsi için hazır. |
 | Perk, kayıt, monetizasyon | Bilerek yazılmadı. |
 
 ### Ölçümler
 
 Ölçümler 30–31 Ekim 2026'da PC'de, Studio içinde alındı. Telefonda ölçüm yok.
 
-- **Testler:** 27/27 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
-  Inventory 5).
+- **Testler:** 33/33 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
+  Inventory 6, Melee 5).
   Testler yalnızca Studio düzeneğiyle çalıştırıldı; Lune ile hiç çalıştırılmadı.
 - **Zombi performansı:** 80 zombiyle tick ortalaması 0,04–0,17 ms, en kötü tick genelde 1,3–1,8 ms
   (bir kez 3,9 ms). Zombi başına 17 parça.
@@ -175,6 +179,16 @@ sayılarını çıkardı; sonuçlar `docs/REFERENCE_7DTD.md` dosyasına yazılac
   baltayı 1. slota taşıma, sağ tıkla 50 odunu 25/25 bölme çalıştı. Elde balta bir tane göründü; boş
   slot seçilince kalktı. Hatalı istekler (NaN, sonsuz, metin, tablo, aralık dışı, kesirli, yığından
   büyük sayı) reddedildi. 100 taşıma isteğinin 20'si geçti (hız sınırı 20/sn).
+- **Vuruş (Play, 31 Ekim):**
+  - Toolbelt slotuna tıklamak slotu seçti, vuruş yapmadı. Dünyaya tık 1 vuruş; 3 sn basılı tutmak
+    yumrukla 5 vuruş daha.
+  - Tek zombi: 3 gövde + 13 kafa vuruşuyla (15 + 130 hasar) öldü. Kalabalıkta bir zombi 3 gövde +
+    10 kafa (115), baltayla bir başkası 10 kafa + 2 gövde (132) ile öldü. Hepsi 125 ±%15 ile tutarlı.
+  - Balta: 39 isabet → dayanıklılık 250'den 211'e; havaya 12 vuruş aşındırmadı.
+  - Duvar arkasındaki tek zombiye 4 vuruşun 0'ı geçti; duvar kalkınca 4'ü de geçti.
+  - Hatalı nişanlar (NaN, sonsuz, sıfır, 50 uzunluk, metin, tablo, CFrame, nil, sayı) reddedildi.
+    3 sn'de 51 istekten 5'i kabul edildi.
+  - Zombi saldırısı: her 1,53 sn'de 8 hasar.
 - **Konsol:** Sunucu ve istemcide 0 uyarı, 0 hata.
 
 ## Teknik notlar
@@ -241,7 +255,7 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
    local src = Http:GetAsync("http://127.0.0.1:8765/Harness.luau", true)
    Http.HttpEnabled = was
    local H = loadstring(src)()
-   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "27 passed, 0 failed"
+   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "33 passed, 0 failed"
    ```
    Düzenek place'e hiçbir şey bırakmaz.
 3. Her kod değişikliğinden sonra adım 1'deki bundle komutunu tekrar çalıştır, sonra `H.sync()`.
@@ -260,7 +274,11 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
 - `execute_luau` ayrı bir VM'de çalışır: `require(ZombieService)` başlatılmamış yeni bir kopya verir.
   Zombi spawn etmek için `Client` veri modelinden
   `game.ReplicatedStorage.Remotes.DebugCommand:FireServer("Spawn", 80)` kullan (`"Noise"`,
-  `"GodMode"`, `"Kill"`, `"GiveKit"`, `"Clear"` da var). İstemcide zombiler `workspace.ClientZombies` altında, `Pelvis`
+  `"GodMode"`, `"Kill"`, `"GiveKit"`, `"Clear"` da var; `"Spawn", 1` tek zombi verir).
+  İstemci zombi modelinin adı `Zombie{id}`; sunucunun verdiği id ile aynı.
+- İstemcide `SetAttribute` sunucuya geçmez; sunucuya değer aktarmak için kodu metin olarak yaz.
+- Vuruş ölçmek için istemcide `Remotes.ToolSwing.OnClientEvent` dinlenir (saldıran, alet, zombi id'si
+  veya 0, kafa). Kalabalıkta isabetler dağılır; tek zombiyle ölç. İstemcide zombiler `workspace.ClientZombies` altında, `Pelvis`
   parçasıyla ölçülebilir.
 - Arayüz düğmeleri `user_mouse_input` ile `instance_path` verilerek tıklanabilir (ör.
   `LocalPlayer.PlayerGui.Inventory.Backpack.Slots.Slot11`); tuşlar `user_keyboard_input` ile.
@@ -317,8 +335,12 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
   - MCP üzerinden `Lighting.Technology` okunamıyor (yetki hatası).
 - **Python konsolu cp1254 kodlamasında.** Türkçe veya Unicode yazdıran betiklerde
   `PYTHONIOENCODING=utf-8` kullan.
-- **Tab tuşu:** Roblox'ta Tab oyuncu listesini de açıp kapatabilir; envanter için denenmedi (test
-  `I` ile yapıldı).
+- **Tab tuşu:** Roblox oyuncu listesi Tab'ı oyundan önce alıyor (Play'de denendi); sırt çantası `I`.
+- **Zombiler oyuncunun içine giriyor.** 80 zombilik kalabalıkta saldıran zombilerin bir kısmı oyuncunun
+  gövdesine 0,1–1 stud kadar giriyor (sunucu konumları ölçüldü). Vuruşta "önde olma" şartı var, ama
+  görsel ve oynanış sorunu; NEXT_STEPS'te.
+- **Roblox'un varsayılan can yenilenmesi** saniyede %1 (7DTD'de dakikada 1 can). Hayatta kalma
+  istatistikleri adımında değişecek.
 - **Fare tekeri slot değiştirmiyor.** Tekerlek kamera zoom'unda; kamera adımında karar verilecek.
 - **Git yedeği yok.** Uzak depo tanımlı değil. GitHub'a göndermek dışarıya açık bir adım olduğu için
   kullanıcıya sorulmalı.

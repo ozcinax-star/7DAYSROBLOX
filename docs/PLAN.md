@@ -216,6 +216,9 @@ Lobi, PvP ve hikâye için verilmiş kararlar.
 | Kaya yerleşimi | Kasaba ve şehir bölgelerinde kırılabilir kaya ve toplanabilir taş yok | Harita |
 | Kazılabilir zemin | Var, 7DTD gibi | Yeni kapsam kuralıyla MVP'de; karşılığında bir şey çıkmadı |
 | Telefon kapısı | Ertelendi; yeni sistemlere geçilebilir | Yol haritası notu |
+| Vuruş | 7DTD sayıları: yumruk 5, taş balta 6, taş kürek 9 hasar; kafaya ×2; vuruşlar arası 60/APM + 0,1 sn; zombi 125 ±%15 can, 1,5 sn'de 8 vurur. 7DTD metresi 2,8 stud sayılır | Hedefi sunucu seçer (zombi başına silindir + öne eğik kafa küresi, duvar kontrolü). PvP lobi seçeneği gelince oyuncuya vuruş eklenir; şimdilik oyuncular vurulmaz |
+| Taş kazma istatistikleri | 7 varlık / 26 blok hasarı, 70 vuruş/dk, 2,4 m, 250 dayanıklılık | 7DTD'de karşılığı yok; taş balta ile demir kazma arasına kondu |
+| Sırt çantası tuşu | I (gamepad Y, mobilde Bag); Tab değil | Roblox oyuncu listesi Tab'ı oyundan önce alıyor (Play'de denendi) |
 
 ## Kaynaklar
 
