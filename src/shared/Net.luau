@@ -1,0 +1,71 @@
+--!strict
+-- Remote definitions. The server creates them on startup; clients wait for them.
+-- Every client -> server remote must be validated (type, range, rate) by its handler.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local FOLDER_NAME = "Remotes"
+
+local Definitions: { [string]: "RemoteEvent" | "UnreliableRemoteEvent" } = {
+	-- Server -> client: zombie position snapshots (buffer).
+	ZombieSnapshot = "UnreliableRemoteEvent",
+	-- Server -> client: ids of removed zombies ({ number }).
+	ZombieRemoved = "RemoteEvent",
+	-- Client -> server: debug command (string, number?). Studio / allowlist only.
+	DebugCommand = "RemoteEvent",
+}
+
+local Net = {}
+
+-- Attribute names shared by server and client. Stats live on ReplicatedStorage, DebugAllowed on Player.
+Net.Attributes = {
+	TickMs = "ServerTickMs",
+	TickMaxMs = "ServerTickMaxMs",
+	ServerFps = "ServerFps",
+	ZombieCount = "ZombieCount",
+	ZombieQueued = "ZombieQueued",
+	ZombieStepsPerSecond = "ZombieStepsPerSecond",
+	DebugAllowed = "DebugAllowed",
+}
+
+local function getFolder(): Folder
+	if RunService:IsServer() then
+		local folder = ReplicatedStorage:FindFirstChild(FOLDER_NAME)
+		if folder == nil then
+			local created = Instance.new("Folder")
+			created.Name = FOLDER_NAME
+			created.Parent = ReplicatedStorage
+			return created
+		end
+		return folder :: Folder
+	end
+	return ReplicatedStorage:WaitForChild(FOLDER_NAME) :: Folder
+end
+
+local function get(name: string): Instance
+	local className = Definitions[name]
+	assert(className, `[Net] unknown remote: {name}`)
+	local folder = getFolder()
+	if RunService:IsServer() then
+		local existing = folder:FindFirstChild(name)
+		if existing then
+			return existing
+		end
+		local remote = Instance.new(className)
+		remote.Name = name
+		remote.Parent = folder
+		return remote
+	end
+	return folder:WaitForChild(name)
+end
+
+function Net.event(name: string): RemoteEvent
+	return get(name) :: RemoteEvent
+end
+
+function Net.unreliable(name: string): UnreliableRemoteEvent
+	return get(name) :: UnreliableRemoteEvent
+end
+
+return Net

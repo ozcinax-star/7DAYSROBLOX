@@ -5,10 +5,12 @@
 local Services = script.Services
 
 local order = {
+	require(Services.MapService),
 	require(Services.DayNightService),
 	require(Services.ThreatService),
 	require(Services.ZombieService),
 	require(Services.BuildService),
+	require(Services.DebugService),
 }
 
 for _, service in order do
