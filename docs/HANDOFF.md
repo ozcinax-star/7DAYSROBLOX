@@ -113,6 +113,7 @@ torbası yaklaşık %20. Bu kararlar ve telefon kapısının ertelenmesi PLAN.md
 | `64346f7` | 17 parçalı zombi rig'i (`ZombieRig`), id'den türeyen görünüm (`ZombieLook`), prosedürel topallama, ölünce yığılma, mesafeye göre detay |
 | `a776e7c` | Üst katlar için ikinci yol bulma katmanı ve merdiven geçişleri; kovalama, ses, ev ziyareti ve spawn'lar iki katı da kullanıyor |
 | `79274bd` | Koyu ten çürümeyle griye dönmüyor; gözler donuk, yara eğik yırtık |
+| `d593fdf` | Saldıran zombi en yakın oyuncuya dönüyor; debug panelinde "Kill nearest zombie" (`ZombieService.nearest` + `damage`) |
 
 ## Mevcut durum
 
@@ -121,7 +122,7 @@ torbası yaklaşık %20. Bu kararlar ve telefon kapısının ertelenmesi PLAN.md
 | Harita (`MapService` + `World/*`) | Çalışıyor. 2048×2048; orman ve küçük kasaba, göl, taş ocağı, telsiz tepesi, çiftlik, kereste atölyesi, hurdalık. Arazi, 37 bina, yollar, sokak eşyaları ve orman sunucu açılışında kodla kuruluyor. |
 | Binalar | 15 şablon. Mobilyalı odalar, iki katlılarda merdiven, açılmış kapılar, tabelalar. Her model `Template`, `Loot` (`Food`, `Medical`, `Metal`, `Fabric`…), `Floors` ve `Region` özelliklerini taşıyor; loot sistemi bunları kullanacak. |
 | Zombiler (`ZombieService`) | Çalışıyor. Humanoid yok. Akış alanıyla yol bulma, görerek kovalama, ses noktasına gitme, gezinme, eve girip çıkma, merdivenle üst kat, bina içinde uyuyan zombi, saldırı öncesi bekleme, sendeleme, dalgalı spawn, sunucu LOD'u (yakın 10 Hz, uzak 2 Hz), anlık görüntü yayını. API: `spawn`, `remove`, `clear`, `damage` (öldürünce true), `onDied`, `getPosition`, `hearSound`, `getStats`, `getNavGrid`. |
-| İstemci | `ZombieRenderController` + `Modules/ZombieRig`: 17 parçalı rig, prosedürel yürüyüş, interpolasyon, LOD, ceset; `flinch(id)` hazır. `DebugOverlayController`: FPS, tick süresi, zombi sayısı; Spawn 80/120, Noise, GodMode ve Clear düğmeleri. |
+| İstemci | `ZombieRenderController` + `Modules/ZombieRig`: 17 parçalı rig, prosedürel yürüyüş, interpolasyon, LOD, ceset; `flinch(id)` hazır. `DebugOverlayController`: FPS, tick süresi, zombi sayısı; Spawn 80/120, Noise, GodMode, Kill ve Clear düğmeleri. |
 | Debug | Remote: `DebugCommand`. Yalnızca Studio'da veya `Config.Debug.AllowedUserIds` listesindeki hesaplarla çalışır (`11911303584` test eden hesap). Doğrulanır ve hız sınırlıdır. |
 | `DayNightService` | **Boş iskelet.** |
 | `ThreatService` | **Boş iskelet.** Config değerleri ve `Types.SoundPoint` hazır. |
@@ -143,6 +144,9 @@ torbası yaklaşık %20. Bu kararlar ve telefon kapısının ertelenmesi PLAN.md
 - **Üst kat:** Oyuncu House04'ün üst katında ve gürültü yaparken 60 sn'de 46 zombi yanına ulaştı;
   ForceField kalkınca 0,32 sn'de 13 vuruş geldi. Oyuncu dışarı çıkınca üst kattaki 35 zombiden 34'ü
   40 sn'de indi. TownHall'un düz çatısındayken merdivende takılan zombi yok.
+- **Saldırı yönü:** Oyuncunun yanındaki 11 zombinin 9'u ona 0–3° dönük; kalan ikisi hâlâ yürüyordu.
+- **Ölüm:** Kill sonrası ceset 1,5 sn içinde yığılıyor (baş zeminden 0,8 stud yukarıda), yaklaşık
+  6,8 sn sonra kayboluyor. `onDied` dinleyicisi henüz yok; loot adımında doğrulanacak.
 - **Harita kurulumu:** Play'de 2,6 sn, Edit önizlemesinde 4,0–4,4 sn.
 - **Parça sayısı:**
   - Haritanın tamamı 22.748 parça.
@@ -237,7 +241,7 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
 - `execute_luau` ayrı bir VM'de çalışır: `require(ZombieService)` başlatılmamış yeni bir kopya verir.
   Zombi spawn etmek için `Client` veri modelinden
   `game.ReplicatedStorage.Remotes.DebugCommand:FireServer("Spawn", 80)` kullan (`"Noise"`,
-  `"GodMode"`, `"Clear"` da var). İstemcide zombiler `workspace.ClientZombies` altında, `Pelvis`
+  `"GodMode"`, `"Kill"`, `"Clear"` da var). İstemcide zombiler `workspace.ClientZombies` altında, `Pelvis`
   parçasıyla ölçülebilir.
 - `GodMode` bir ForceField takar; `Humanoid:TakeDamage` o sırada hiç çalışmaz. Saldırıyı ölçmek için
   ForceField'ı kaldır.
@@ -280,8 +284,6 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
 
 - **Telefonda FPS hiç ölçülmedi.** Aşama 1'in kapısı (kullanıcı erteledi). Bina parça sayısı hedefin
   üstünde; zombi başına parça sayısı 17'ye çıktı.
-- **Saldıran zombi oyuncuya dönmez.** İstemcide yüz yönü son yürüme yönünden gelir; oyuncu zombinin
-  yanına geçerse zombi yan dönük vurur. İstenirse istemcide en yakın oyuncuya döndürülebilir.
 - **Araç zinciri hiç çalıştırılmadı.** README'deki `stylua --check`, `selene src` ve `lune run tests/run`
   komutları bu makinede hiç koşmadı. İlk çalıştırmada format ve lint düzeltmeleri çıkabilir.
   `tests/run.luau`'nun gerçek Lune'da da geçtiği doğrulanmalı.
