@@ -425,7 +425,7 @@ local function spawnOne(players: { PlayerInfo }, now: number): boolean
 	local zombie: Zombie = {
 		id = id,
 		x = x,
-		y = ZC.GroundY,
+		y = MapService.getGroundY() + ZC.RootHeight,
 		z = z,
 		health = ZC.MaxHealth,
 		state = "Idle",

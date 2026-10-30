@@ -85,8 +85,8 @@ Config.Zombie = {
 	SeparationRadius = 2.5,
 	-- Fraction of the overlap resolved per server step (0-1).
 	SeparationStrength = 0.4,
-	-- Height of the zombie root above the ground (grey-box map is flat).
-	GroundY = 3,
+	-- Height of the zombie root (torso centre) above the ground surface detected by MapService.
+	RootHeight = 3,
 	-- Server LOD: zombies within NearDistance of any player tick at NearHz, the rest at FarHz.
 	NearDistance = 80,
 	NearHz = 10,
