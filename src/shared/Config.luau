@@ -4,6 +4,16 @@
 
 local Config = {}
 
+-- An item. Stack: most per slot. Color: placeholder icon colour (0-1 RGB) until icons exist.
+-- Durability: tools only, uses when new; tools never stack.
+export type ItemDef = {
+	Stack: number,
+	Color: { number },
+	Durability: number?,
+}
+
+export type ItemCount = { Id: string, Count: number }
+
 Config.DayNight = {
 	-- One full day + night cycle, in real seconds (PLAN: 10-12 min).
 	CycleSeconds = 11 * 60,
@@ -307,10 +317,35 @@ Config.Camera = {
 	DefaultMode = "Shoulder",
 }
 
+-- Items. Stack sizes and durabilities follow 7 Days to Die 1.0+ (item id in each comment); Lumber and
+-- the stone pickaxe are ours (PLAN, Kararlar).
+Config.Items = {
+	Wood = { Stack = 6000, Color = { 0.55, 0.38, 0.22 } }, -- resourceWood
+	SmallStone = { Stack = 6000, Color = { 0.56, 0.56, 0.54 } }, -- resourceRockSmall
+	PlantFiber = { Stack = 6000, Color = { 0.55, 0.63, 0.3 } }, -- resourceYuccaFibers
+	Lumber = { Stack = 6000, Color = { 0.8, 0.62, 0.4 } },
+	StoneAxe = { Stack = 1, Durability = 250, Color = { 0.45, 0.42, 0.38 } }, -- meleeToolRepairT0StoneAxe
+	StoneShovel = { Stack = 1, Durability = 250, Color = { 0.5, 0.46, 0.4 } }, -- meleeToolShovelT0StoneShovel
+	StonePickaxe = { Stack = 1, Durability = 250, Color = { 0.42, 0.42, 0.44 } },
+} :: { [string]: ItemDef }
+
+Config.Inventory = {
+	-- 7DTD: a 10-slot toolbelt (keys 1-0) and a 5 x 9 backpack.
+	ToolbeltSlots = 10,
+	BackpackSlots = 45,
+	-- New items fill the backpack before empty toolbelt slots, so the toolbelt keeps what the player
+	-- put there.
+	FillToolbeltFirst = false,
+	-- PLAN: the player starts empty-handed (punches a tree, picks up stones).
+	StartingItems = {} :: { ItemCount },
+}
+
 Config.Remotes = {
 	-- Per-player rate limits (requests per second) for client -> server remotes.
 	BuildRequestsPerSecond = 6,
 	DebugRequestsPerSecond = 2,
+	-- Moves while sorting the backpack and slot changes from number keys come in quick bursts.
+	InventoryRequestsPerSecond = 20,
 }
 
 Config.Debug = {
@@ -325,6 +360,15 @@ Config.Debug = {
 	NoiseRadius = 200,
 	-- The debug "kill" command kills the zombie nearest to the player within this distance (studs).
 	KillRadius = 12,
+	-- Items given by the debug "give kit" command.
+	TestKit = {
+		{ Id = "StoneAxe", Count = 1 },
+		{ Id = "StoneShovel", Count = 1 },
+		{ Id = "StonePickaxe", Count = 1 },
+		{ Id = "Wood", Count = 50 },
+		{ Id = "SmallStone", Count = 20 },
+		{ Id = "PlantFiber", Count = 20 },
+	} :: { ItemCount },
 }
 
 return Config

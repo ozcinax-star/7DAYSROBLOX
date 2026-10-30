@@ -9,6 +9,7 @@ local BuildingTemplates = require("../src/server/World/BuildingTemplates")
 local FloorPlan = require("../src/server/World/FloorPlan")
 local Config = require("../src/shared/Config")
 local ZombieLook = require("../src/shared/ZombieLook")
+local Inventory = require("../src/shared/Inventory")
 
 local passed, failed = 0, 0
 
@@ -424,6 +425,98 @@ test("weighted pick covers the whole range", function()
 	expectEq(ZombieLook.pickWeighted({ 1, 3 }, 0.2), 1, "inside the first weight")
 	expectEq(ZombieLook.pickWeighted({ 1, 3 }, 0.3), 2, "inside the second weight")
 	expectEq(ZombieLook.pickWeighted({ 1, 3 }, 0.999), 2, "highest roll")
+end)
+
+print("Inventory")
+
+test("items fill existing stacks, then empty slots, and report what did not fit", function()
+	local inv = Inventory.new(2, 2)
+	local stack = Inventory.stackSize("Wood")
+	expectEq(Inventory.add(inv, "Wood", stack + 3, "Loot"), 0, "first add fits")
+	expectEq(Inventory.add(inv, "Wood", 2, "Loot"), 0, "tops up the partial stack")
+	expectEq(Inventory.count(inv, "Wood"), stack + 5, "count")
+	local used = 0
+	for _, slot in inv.slots do
+		if slot then
+			used += 1
+		end
+	end
+	expectEq(used, 2, "two slots used")
+	expectEq(Inventory.add(inv, "Wood", stack * 3, "Loot"), 5, "leftover when full")
+	expectEq(Inventory.room(inv, "Wood", "Loot"), 0, "no room left")
+end)
+
+test("tools never stack and keep their own durability", function()
+	local inv = Inventory.new(2, 2)
+	local full = (Inventory.def("StoneAxe") :: any).Durability
+	expectEq(Inventory.add(inv, "StoneAxe", 2, "Craft"), 0, "two axes")
+	local filled = {}
+	for index, slot in inv.slots do
+		if slot then
+			table.insert(filled, index)
+		end
+	end
+	expectEq(#filled, 2, "one axe per slot")
+	local first, second = filled[1], filled[2]
+	expectEq((inv.slots[first] :: any).count, 1, "single")
+	expectEq(Inventory.wear(inv, first, 3), full - 3, "worn")
+	expectEq((inv.slots[second] :: any).durability, full, "the other axe is untouched")
+	expectEq(Inventory.wear(inv, first, full * 2), 0, "durability stops at zero")
+	expectEq(Inventory.count(inv, "StoneAxe"), 2, "broken tools are kept")
+	local empty = if inv.slots[1] then 3 else 1
+	expectEq(Inventory.wear(inv, empty, 1), nil, "no tool in an empty slot")
+end)
+
+test("stacks from different sources stay apart", function()
+	local inv = Inventory.new(1, 3)
+	Inventory.add(inv, "Wood", 5, "Loot")
+	Inventory.add(inv, "Wood", 5, "Pass")
+	local sources = {}
+	for _, slot in inv.slots do
+		if slot then
+			table.insert(sources, slot.source)
+		end
+	end
+	expectEq(#sources, 2, "two stacks")
+	assert(sources[1] ~= sources[2], "different sources")
+end)
+
+test("removal is all or nothing, backpack first, and returns the sources", function()
+	local inv = Inventory.new(1, 2)
+	inv.slots[1] = { id = "Wood", count = 4, source = "Loot" }
+	inv.slots[3] = { id = "Wood", count = 3, source = "Pass" }
+	local ok = Inventory.remove(inv, "Wood", 8)
+	expectEq(ok, false, "not enough")
+	expectEq(Inventory.count(inv, "Wood"), 7, "nothing taken")
+	local ok2, removed = Inventory.remove(inv, "Wood", 5)
+	expectEq(ok2, true, "enough")
+	expectEq(inv.slots[3], false, "backpack stack used up first")
+	expectEq((inv.slots[1] :: any).count, 2, "toolbelt keeps the rest")
+	expectEq(#removed, 2, "two source stacks")
+	expectEq(removed[1].source, "Pass", "first removed source")
+	local ok3 = Inventory.removeAll(inv, { Wood = 1, SmallStone = 1 })
+	expectEq(ok3, false, "missing ingredient")
+	expectEq(Inventory.count(inv, "Wood"), 2, "removeAll took nothing")
+end)
+
+test("moving splits, merges, swaps and rejects bad requests", function()
+	local inv = Inventory.new(2, 2)
+	inv.slots[1] = { id = "Wood", count = 10, source = "Loot" }
+	inv.slots[2] = { id = "SmallStone", count = 4, source = "Loot" }
+	expectEq(Inventory.move(inv, 1, 3, 4), true, "split into an empty slot")
+	expectEq((inv.slots[1] :: any).count, 6, "split source")
+	expectEq((inv.slots[3] :: any).count, 4, "split target")
+	expectEq(Inventory.move(inv, 3, 1), true, "merge back")
+	expectEq(inv.slots[3], false, "merged away")
+	expectEq((inv.slots[1] :: any).count, 10, "merged count")
+	expectEq(Inventory.move(inv, 1, 2), true, "swap whole stacks")
+	expectEq((inv.slots[1] :: any).id, "SmallStone", "swapped")
+	expectEq(Inventory.move(inv, 1, 2, 2), false, "part of a stack cannot swap")
+	expectEq(Inventory.move(inv, 1, 9), false, "out of range")
+	expectEq(Inventory.move(inv, 0 / 0, 2), false, "NaN index")
+	expectEq(Inventory.move(inv, 2, 4, 0), false, "zero count")
+	expectEq(Inventory.move(inv, 2, 4, 1.5), false, "fractional count")
+	expectEq(Inventory.move(inv, 4, 3), false, "empty source")
 end)
 
 print(`\n{passed} passed, {failed} failed`)
