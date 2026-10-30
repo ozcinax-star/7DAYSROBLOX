@@ -51,6 +51,7 @@ rojo build -o build.rbxl      # full place build
 | `ThreatService` | Noise + Trace meters, sound points, 5 threat tiers |
 | `ZombieService` | Humanoid-free zombies: flow-field movement on a ground and an upper-floor layer joined by stairs, house visits, indoor sleepers, server LOD, snapshot replication, `damage` / `onDied` |
 | `BuildService` | 4-stud grid, wooden wall, part HP, 2000 part cap |
+| `InventoryService` | Server-owned inventories (10-slot toolbelt + 45-slot backpack, 7DTD sizes), validated move / select remotes, the active item shown in the right hand (`Modules/HeldItems`) |
 
 ### World modules (`src/server/World`)
 
@@ -69,4 +70,5 @@ furniture and stair in every template can be walked to. `BuildingKit.build` also
 upper-floor cells in world space; templates have at most two floors.
 
 Not in the prototype (reserved): `LootService`, `CraftingService`, `PerkService`, `SaveService`,
-`MonetizationService`. Item ownership will carry its source (`Types.ItemSource`) as the plan requires.
+`MonetizationService`. Every inventory stack carries its source (`Types.ItemSource`) as the plan
+requires; stacks of the same item from different sources never merge (`Shared/Inventory`).

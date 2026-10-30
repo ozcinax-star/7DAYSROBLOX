@@ -31,7 +31,23 @@ local Strings: { [string]: { [string]: string } } = {
 		DebugNoise = "Make noise",
 		DebugGodMode = "God mode on/off",
 		DebugKill = "Kill nearest zombie",
+		DebugGiveKit = "Give test items",
 		DebugClear = "Clear",
+
+		-- Inventory
+		InventoryBackpack = "Backpack",
+		InventoryClose = "Close",
+		InventorySplit = "Split",
+		InventoryBag = "Bag",
+
+		-- Items (key = "Item" .. item id)
+		ItemWood = "Wood",
+		ItemSmallStone = "Small Stone",
+		ItemPlantFiber = "Plant Fibers",
+		ItemLumber = "Lumber",
+		ItemStoneAxe = "Stone Axe",
+		ItemStoneShovel = "Stone Shovel",
+		ItemStonePickaxe = "Stone Pickaxe",
 
 		-- Shop signs
 		SignMarket = "MARKET",
