@@ -189,7 +189,8 @@ Config.Remotes = {
 
 Config.Debug = {
 	-- Debug commands are allowed in Studio, or for these UserIds in live servers.
-	AllowedUserIds = {} :: { number },
+	-- 11911303584: project owner (tester), needed to run the stress test on a phone.
+	AllowedUserIds = { 11911303584 } :: { number },
 	StressCounts = { 80, 120 },
 	-- Interval of the FPS / server tick overlay refresh (seconds).
 	StatsInterval = 0.5,
