@@ -56,6 +56,17 @@ local function onCommand(player: Player, command: unknown, value: unknown)
 			field.Visible = false
 			field.Parent = character
 		end
+	elseif command == "Kill" then
+		-- Target picked by the server around the character, like a melee hit will be.
+		local character = player.Character
+		local root = character and character.PrimaryPart
+		if root == nil then
+			return
+		end
+		local id = ZombieService.nearest(root.Position, Config.Debug.KillRadius)
+		if id then
+			ZombieService.damage(id, Config.Zombie.MaxHealth, player)
+		end
 	elseif command == "Noise" then
 		-- Position comes from the server's view of the character, never from the client.
 		local character = player.Character

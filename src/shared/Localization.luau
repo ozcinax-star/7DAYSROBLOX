@@ -30,6 +30,7 @@ local Strings: { [string]: { [string]: string } } = {
 		DebugSpawn = "Spawn {value}",
 		DebugNoise = "Make noise",
 		DebugGodMode = "God mode on/off",
+		DebugKill = "Kill nearest zombie",
 		DebugClear = "Clear",
 
 		-- Shop signs

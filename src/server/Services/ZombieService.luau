@@ -1365,6 +1365,21 @@ function ZombieService.onDied(callback: DiedCallback)
 	table.insert(diedCallbacks, callback)
 end
 
+-- Id of the zombie closest to `position` (3D, root height) within `radius` studs, or nil.
+function ZombieService.nearest(position: Vector3, radius: number): number?
+	local best: number? = nil
+	local bestSq = radius * radius
+	for id, zombie in zombies do
+		local dx, dy, dz = zombie.x - position.X, zombie.y - position.Y, zombie.z - position.Z
+		local d = dx * dx + dy * dy + dz * dz
+		if d <= bestSq then
+			bestSq = d
+			best = id
+		end
+	end
+	return best
+end
+
 -- Current server position of a zombie (root height), or nil if it does not exist.
 function ZombieService.getPosition(id: number): Vector3?
 	local zombie = zombies[id]

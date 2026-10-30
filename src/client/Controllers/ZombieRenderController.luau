@@ -9,6 +9,7 @@
 -- Killed zombies collapse and lie still for a while before they are removed; every zombie keeps its
 -- positional sound updated, so attacks from behind are still heard.
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -171,6 +172,24 @@ end
 
 local partBuffer: { BasePart } = {}
 local cframeBuffer: { CFrame } = {}
+-- Character root positions of this frame; an attacking zombie turns to face the nearest one.
+local targets: { Vector3 } = {}
+
+local function faceNearestTarget(view: View)
+	local best: Vector3? = nil
+	local bestSq = VC.AttackFaceDistance * VC.AttackFaceDistance
+	for _, p in targets do
+		local dx, dz = p.X - view.x, p.Z - view.z
+		local d = dx * dx + dz * dz
+		if d < bestSq then
+			bestSq = d
+			best = p
+		end
+	end
+	if best and bestSq > 1e-4 then
+		view.targetYaw = math.atan2(-(best.X - view.x), -(best.Z - view.z))
+	end
+end
 
 -- Advances interpolation, gait phase and turning. Runs every frame for every zombie (cheap math).
 local function advance(view: View, now: number, dt: number)
@@ -184,6 +203,9 @@ local function advance(view: View, now: number, dt: number)
 		pose.moving = false
 	end
 	local attacking = pose.state == "AttackPlayer" or pose.state == "AttackStructure"
+	if pose.state == "AttackPlayer" then
+		faceNearestTarget(view)
+	end
 	local gaitTarget = if pose.moving then 1 elseif attacking then VC.AttackGait else 0
 	local blend = math.min(1, dt * VC.GaitBlendRate)
 	pose.gait += (gaitTarget - pose.gait) * blend
@@ -238,6 +260,14 @@ local function onRender(dt: number)
 
 	table.clear(partBuffer)
 	table.clear(cframeBuffer)
+	table.clear(targets)
+	for _, player in Players:GetPlayers() do
+		local character = player.Character
+		local root = character and character.PrimaryPart
+		if root then
+			table.insert(targets, root.Position)
+		end
+	end
 	local rendered = 0
 	frame += 1
 

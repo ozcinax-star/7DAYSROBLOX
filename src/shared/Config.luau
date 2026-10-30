@@ -188,6 +188,8 @@ Config.ZombieVisual = {
 	MaxInterpolation = 0.6,
 	-- Body turn rate toward the walking direction (radians/s).
 	TurnRate = 3.5,
+	-- An attacking zombie turns toward the nearest character within this distance (studs).
+	AttackFaceDistance = 6,
 
 	-- Shamble gait. Strides per second at ReferenceSpeed, scaled with the actual speed so the feet
 	-- do not skate.
@@ -321,6 +323,8 @@ Config.Debug = {
 	-- Strength and radius of the debug "make noise" command.
 	NoiseStrength = 50,
 	NoiseRadius = 200,
+	-- The debug "kill" command kills the zombie nearest to the player within this distance (studs).
+	KillRadius = 12,
 }
 
 return Config
