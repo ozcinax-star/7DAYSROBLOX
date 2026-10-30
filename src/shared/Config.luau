@@ -107,10 +107,11 @@ Config.Zombie = {
 	AttackRange = 3.6,
 	-- A target more than this far above or below the zombie (another floor, a roof) cannot be hit.
 	AttackHeightTolerance = 3,
-	AttackDamage = 10,
+	-- 7DTD: a common zombie hits for 8 every 1.5 s by day (1.1 s at night, once day/night exists).
+	AttackDamage = 8,
 	-- Arms-out reach before the first grab lands; the client plays the lunge at the same moment.
 	AttackWindup = 0.6,
-	AttackCooldown = 1.4,
+	AttackCooldown = 1.5,
 	-- A hit zombie staggers and stops moving for this long.
 	HitStunSeconds = 0.35,
 	-- Wandering zombies near a building sometimes walk in through a door, linger inside, and walk
