@@ -67,7 +67,11 @@ local function isCount(value: unknown, max: number): boolean
 	return typeof(value) == "number" and value == value and value % 1 == 0 and value >= 1 and value <= max
 end
 
-local function queueOf(player: Player): { Job }
+-- The player's queue, or nil once they have left (a late request must not recreate it).
+local function queueOf(player: Player): { Job }?
+	if InventoryService.get(player) == nil then
+		return nil
+	end
 	local queue = queues[player]
 	if queue == nil then
 		queue = {}
@@ -79,7 +83,7 @@ end
 -- Sends the player their queue; the client counts the first job down from `progress` at `sentAt`.
 local function send(player: Player)
 	local views: { JobView } = {}
-	for _, job in queueOf(player) do
+	for _, job in queues[player] or {} do
 		table.insert(views, {
 			kind = job.kind,
 			id = job.id,
@@ -168,7 +172,7 @@ local function onQueue(player: Player, recipeId: unknown, count: unknown)
 		return
 	end
 	local queue = queueOf(player)
-	if #queue >= CC.QueueSlots then
+	if queue == nil or #queue >= CC.QueueSlots then
 		return
 	end
 	local recipe = Config.Recipes[recipeId]
@@ -198,7 +202,7 @@ local function onCancel(player: Player, index: unknown)
 		return
 	end
 	local queue = queueOf(player)
-	if not isCount(index, #queue) then
+	if queue == nil or not isCount(index, #queue) then
 		return
 	end
 	if refund(player, queue[index :: number]) then
@@ -212,7 +216,7 @@ local function onRepair(player: Player, slot: unknown)
 		return
 	end
 	local queue = queueOf(player)
-	if #queue >= CC.QueueSlots then
+	if queue == nil or #queue >= CC.QueueSlots then
 		return
 	end
 	local stack = InventoryService.peekSlot(player, slot)
