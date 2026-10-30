@@ -252,7 +252,7 @@ local function moveToward(zombie: Zombie, tx: number, tz: number, speed: number,
 	else
 		return
 	end
-	zombie.y = MapService.heightAt(zombie.x, zombie.z) + ZC.RootHeight
+	zombie.y = MapService.groundAt(zombie.x, zombie.z) + ZC.RootHeight
 	zombie.dirty = true
 end
 
@@ -431,7 +431,7 @@ local function spawnOne(players: { PlayerInfo }, now: number): boolean
 	local zombie: Zombie = {
 		id = id,
 		x = x,
-		y = MapService.heightAt(x, z) + ZC.RootHeight,
+		y = MapService.groundAt(x, z) + ZC.RootHeight,
 		z = z,
 		health = ZC.MaxHealth,
 		state = "Idle",

@@ -140,6 +140,16 @@ function TerrainBuilder.build(grid: HeightGrid)
 	end
 end
 
+-- Index of the 4-stud column containing (x, z), or nil outside the grid.
+function TerrainBuilder.columnAt(grid: HeightGrid, x: number, z: number): number?
+	local cx = (x + grid.half) // VOXEL
+	local cz = (z + grid.half) // VOXEL
+	if cx < 0 or cz < 0 or cx >= grid.columns or cz >= grid.columns then
+		return nil
+	end
+	return cz * grid.columns + cx
+end
+
 -- Bilinear ground height from the sampled grid (matches the terrain surface).
 function TerrainBuilder.heightAt(grid: HeightGrid, x: number, z: number): number
 	local columns = grid.columns

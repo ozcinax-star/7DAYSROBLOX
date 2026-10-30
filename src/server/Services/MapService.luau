@@ -23,6 +23,11 @@ local LAMP_SPACING = 40
 local LAMP_SIDE_OFFSET = 4
 local POLE_SPACING = 64
 local POLE_SIDE_OFFSET = 18
+-- A lamp that would stand in front of a doorway moves along the road by one of these offsets.
+local LAMP_SHIFTS = { 0, 8, -8 }
+-- Street furniture keeps this distance from the cell in front of an exterior doorway, so the
+-- doorway stays open for players and the zombie navigation grid.
+local DOOR_CLEARANCE = 6
 -- Distance of the mailbox / bin from the house front and from its centre line.
 local FRONT_OFFSET = 4
 local MAILBOX_SIDE = 8
@@ -38,11 +43,20 @@ local LAKE_TREE_CLEARANCE = 1.3
 local BATCH = 150
 local SPAWN_SIZE = Vector3.new(8, 1, 8)
 
+-- Terrain surfaces that stay as they are under a building's apron.
+local KEEP_SURFACES = { Asphalt = true, Pavement = true }
+-- Column size of the height grid.
+local COLUMN = 4
+
 local mapFolder: Folder? = nil
 local heightGrid: TerrainBuilder.HeightGrid? = nil
+-- Ground-floor walking height per height-grid column inside building footprints.
+local floorTops: { [number]: number } = {}
 local ready = false
 
 type Circle = { x: number, z: number, radius: number }
+
+local doorFronts: { Circle } = {}
 
 local function folder(name: string, parent: Instance): Folder
 	local f = Instance.new("Folder")
@@ -51,8 +65,21 @@ local function folder(name: string, parent: Instance): Folder
 	return f
 end
 
+-- Terrain height at (x, z).
 function MapService.heightAt(x: number, z: number): number
 	return TerrainBuilder.heightAt(assert(heightGrid, "MapService not initialized"), x, z)
+end
+
+-- Walking height at (x, z): the terrain, or a building's ground floor where one stands.
+function MapService.groundAt(x: number, z: number): number
+	local grid = assert(heightGrid, "MapService not initialized")
+	local ground = TerrainBuilder.heightAt(grid, x, z)
+	local column = TerrainBuilder.columnAt(grid, x, z)
+	local floorTop = if column then floorTops[column] else nil
+	if floorTop and floorTop > ground then
+		return floorTop
+	end
+	return ground
 end
 
 local function yieldEvery(counter: number)
@@ -61,13 +88,46 @@ local function yieldEvery(counter: number)
 	end
 end
 
+-- Calls visit(column) for every height-grid column whose centre lies in the placement's footprint.
+local function forFootprint(placement: WorldLayout.BuildingPlacement, visit: (number) -> ())
+	local grid = assert(heightGrid, "MapService not initialized")
+	local width, depth = BuildingKit.footprint(placement.template, placement.rotation)
+	for z = placement.z + COLUMN / 2, placement.z + depth, COLUMN do
+		for x = placement.x + COLUMN / 2, placement.x + width, COLUMN do
+			local column = TerrainBuilder.columnAt(grid, x, z)
+			if column then
+				visit(column)
+			end
+		end
+	end
+end
+
+-- Bare ground (or pavement) under every building, so terrain grass never grows through a floor.
+local function layAprons(grid: TerrainBuilder.HeightGrid)
+	for _, placement in WorldLayout.Buildings do
+		local apron = BuildingKit.apron(placement.template)
+		forFootprint(placement, function(column)
+			if not KEEP_SURFACES[grid.surfaces[column + 1]] then
+				grid.surfaces[column + 1] = apron
+			end
+		end)
+	end
+end
+
 local function buildBuildings(parent: Instance, keepOut: { Circle })
 	local count = 0
 	for _, placement in WorldLayout.Buildings do
 		local width, depth = BuildingKit.footprint(placement.template, placement.rotation)
 		local cx, cz = placement.x + width / 2, placement.z + depth / 2
-		local model = BuildingKit.build(placement, MapService.heightAt(cx, cz), parent)
+		local baseY = MapService.heightAt(cx, cz)
+		local model, fronts = BuildingKit.build(placement, baseY, parent)
+		for _, front in fronts do
+			table.insert(doorFronts, { x = front.X, z = front.Z, radius = DOOR_CLEARANCE })
+		end
 		model:SetAttribute("Region", HeightField.regionAt(cx, cz))
+		forFootprint(placement, function(column)
+			floorTops[column] = baseY + BuildingKit.FloorTop
+		end)
 		table.insert(keepOut, {
 			x = cx,
 			z = cz,
@@ -132,9 +192,25 @@ local function alongRoad(road: WorldLayout.Road, spacing: number, place: (number
 	end
 end
 
+local function insideAny(circles: { Circle }, x: number, z: number): boolean
+	for _, c in circles do
+		local dx, dz = x - c.x, z - c.z
+		if dx * dx + dz * dz < c.radius * c.radius then
+			return true
+		end
+	end
+	return false
+end
+
 local function placeRoadside(kind: string, x: number, z: number, yaw: number, parent: Instance): boolean
-	-- Skip spots that land on another road, in the lake or outside the playable area.
-	if not HeightField.isPlayable(x, z) or HeightField.isWater(x, z) or HeightField.nearestRoad(x, z) < 1 then
+	-- Skip spots that land on another road, in the lake, outside the playable area or in front of a
+	-- doorway.
+	if
+		not HeightField.isPlayable(x, z)
+		or HeightField.isWater(x, z)
+		or HeightField.nearestRoad(x, z) < 1
+		or insideAny(doorFronts, x, z)
+	then
 		return false
 	end
 	PropKit.build(kind, x, MapService.heightAt(x, z) - GROUND_SINK, z, yaw, 1, kind, parent)
@@ -152,11 +228,15 @@ local function buildStreetDressing(parent: Instance)
 				end
 				for _, side in { -1, 1 } do
 					local offset = road.width / 2 + LAMP_SIDE_OFFSET
-					local px, pz = x - uz * offset * side, z + ux * offset * side
 					local yaw = math.deg(math.atan2(-uz * side, ux * side))
-					if placeRoadside("StreetLamp", px, pz, yaw, parent) then
-						count += 1
-						yieldEvery(count)
+					for _, shift in LAMP_SHIFTS do
+						local px = x - uz * offset * side + ux * shift
+						local pz = z + ux * offset * side + uz * shift
+						if placeRoadside("StreetLamp", px, pz, yaw, parent) then
+							count += 1
+							yieldEvery(count)
+							break
+						end
 					end
 				end
 			end)
@@ -175,16 +255,6 @@ local function buildStreetDressing(parent: Instance)
 			end)
 		end
 	end
-end
-
-local function insideAny(circles: { Circle }, x: number, z: number): boolean
-	for _, c in circles do
-		local dx, dz = x - c.x, z - c.z
-		if dx * dx + dz * dz < c.radius * c.radius then
-			return true
-		end
-	end
-	return false
 end
 
 local function canGrow(x: number, z: number, keepOut: { Circle }): boolean
@@ -274,6 +344,7 @@ function MapService.init()
 
 	local grid = TerrainBuilder.sample()
 	heightGrid = grid
+	layAprons(grid)
 	TerrainBuilder.build(grid)
 
 	local keepOut: { Circle } = {}
