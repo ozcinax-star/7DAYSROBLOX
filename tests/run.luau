@@ -10,6 +10,7 @@ local FloorPlan = require("../src/server/World/FloorPlan")
 local Config = require("../src/shared/Config")
 local ZombieLook = require("../src/shared/ZombieLook")
 local Inventory = require("../src/shared/Inventory")
+local Melee = require("../src/shared/Melee")
 
 local passed, failed = 0, 0
 
@@ -530,6 +531,110 @@ test("moving splits, merges, swaps and rejects bad requests", function()
 	expectEq(Inventory.move(inv, 2, 4, 0), false, "zero count")
 	expectEq(Inventory.move(inv, 2, 4, 1.5), false, "fractional count")
 	expectEq(Inventory.move(inv, 4, 3), false, "empty source")
+end)
+
+print("Melee")
+
+local MC = Config.Melee
+local SHAPE: Melee.Shape = {
+	bottom = MC.HitBottom,
+	top = MC.HitTop,
+	radius = MC.HitRadius,
+	headHeight = MC.HeadHeight,
+	headRadius = MC.HeadRadius,
+	headLean = MC.HeadLean,
+}
+
+-- A zombie root at (x, y, z) facing the attacker at the origin, or facing `fx, fz`.
+local function zombie(id: number, x: number, y: number, z: number, fx: number?, fz: number?): Melee.Body
+	if fx and fz then
+		return { id = id, x = x, y = y, z = z, fx = fx, fz = fz }
+	end
+	local length = math.sqrt(x * x + z * z)
+	return { id = id, x = x, y = y, z = z, fx = -x / length, fz = -z / length }
+end
+
+-- A swing from (ox, oy, oz) toward (tx, ty, tz).
+local function swingAt(ox: number, oy: number, oz: number, tx: number, ty: number, tz: number): Melee.Ray
+	local dx, dy, dz = tx - ox, ty - oy, tz - oz
+	local length = math.sqrt(dx * dx + dy * dy + dz * dz)
+	return { ox = ox, oy = oy, oz = oz, dx = dx / length, dy = dy / length, dz = dz / length, range = 7 }
+end
+
+-- A swing from a head at (0, 4.5, 0) along +X (tilted by dy) with a 7-stud reach.
+local function swing(dy: number?): Melee.Ray
+	local y = dy or 0
+	local length = math.sqrt(1 + y * y)
+	return { ox = 0, oy = 4.5, oz = 0, dx = 1 / length, dy = y / length, dz = 0, range = 7 }
+end
+
+local function never(_: Melee.Hit): boolean
+	return false
+end
+
+test("a swing hits the zombie straight ahead and reports the head", function()
+	-- Root 3 studs above the ground at y = 0; the head leans toward the attacker.
+	local body = zombie(1, 4, 3, 0)
+	local hit = Melee.pick(swing(), { body }, SHAPE, never)
+	assert(hit, "hit")
+	expectEq(hit.id, 1, "id")
+	expectNear(hit.distance, 4, 0.01, "distance to the axis")
+	expectEq(hit.head, true, "head height")
+	local low = Melee.pick(swing(-0.5), { body }, SHAPE, never)
+	assert(low, "aimed lower")
+	expectEq(low.head, false, "body hit")
+end)
+
+test("a lunging zombie's head counts from above, its pelvis does not", function()
+	-- Measured in Play: attacker's head 2.31 above the zombie root, zombie 3.02 away and lunging;
+	-- its head is drawn 1.02 above the root and 0.92 toward the attacker.
+	local body = zombie(1, 3.02, 0, 0)
+	local atHead = Melee.pick(swingAt(0, 2.31, 0, 2.1, 1.02, 0), { body }, SHAPE, never)
+	assert(atHead, "head aim hits")
+	expectEq(atHead.head, true, "head")
+	local atPelvis = Melee.pick(swingAt(0, 2.31, 0, 3.02, -0.7, 0), { body }, SHAPE, never)
+	assert(atPelvis, "pelvis aim hits")
+	expectEq(atPelvis.head, false, "body")
+	local fromBehind = Melee.pick(swingAt(0, 2.31, 0, 2.1, 1.02, 0), { zombie(2, 3.02, 0, 0, 1, 0) }, SHAPE, never)
+	assert(fromBehind, "a zombie facing away is still hit")
+	expectEq(fromBehind.head, false, "its head leans away from the swing")
+end)
+
+test("zombies out of reach, beside the swing or a floor above are missed", function()
+	expectEq(Melee.pick(swing(), { zombie(1, 9, 3, 0) }, SHAPE, never), nil, "beyond reach")
+	expectEq(Melee.pick(swing(), { zombie(2, 4, 3, 3) }, SHAPE, never), nil, "to the side")
+	expectEq(Melee.pick(swing(), { zombie(3, 3, 15, 0) }, SHAPE, never), nil, "upstairs")
+	expectEq(Melee.pick(swing(), { zombie(4, -3, 3, 0) }, SHAPE, never), nil, "behind")
+	expectEq(Melee.pick(swing(), { zombie(5, -0.5, 3, 0.3) }, SHAPE, never), nil, "pressed behind")
+	expectEq(Melee.pick(swing(1.5), { zombie(6, 3, 3, 0) }, SHAPE, never), nil, "swing over the head")
+	local close = Melee.pick(swing(), { zombie(7, 0.6, 3, 0) }, SHAPE, never)
+	assert(close, "pressed against the front still counts")
+end)
+
+test("the nearest zombie is hit unless a wall blocks it", function()
+	local bodies = { zombie(1, 6, 3, 0.5), zombie(2, 3, 3, -0.5) }
+	local hit = Melee.pick(swing(), bodies, SHAPE, never)
+	assert(hit, "hit")
+	expectEq(hit.id, 2, "nearer zombie")
+	local wallAt = 4
+	local function wall(h: Melee.Hit): boolean
+		return h.distance > wallAt
+	end
+	local blocked = Melee.pick(swing(), bodies, SHAPE, wall)
+	assert(blocked, "the nearer one is in front of the wall")
+	expectEq(blocked.id, 2, "still the nearer zombie")
+	expectEq(Melee.pick(swing(), { bodies[1] }, SHAPE, wall), nil, "zombie behind the wall")
+end)
+
+test("aim vectors must be finite unit vectors", function()
+	local tol = MC.AimTolerance
+	expectEq(Melee.isUnit(0, 0, -1, tol), true, "unit")
+	expectEq(Melee.isUnit(0.6, 0, 0.8, tol), true, "unit diagonal")
+	expectEq(Melee.isUnit(0, 0, 0, tol), false, "zero")
+	expectEq(Melee.isUnit(0, 50, 0, tol), false, "too long")
+	expectEq(Melee.isUnit(0 / 0, 0, 1, tol), false, "NaN")
+	expectEq(Melee.isUnit(math.huge, 0, 0, tol), false, "infinite")
+	expectNear(Melee.interval(Config.Tools.StoneAxe.AttacksPerMinute, MC.SwingDelay), 60 / 105 + 0.1, 1e-9, "interval")
 end)
 
 print(`\n{passed} passed, {failed} failed`)

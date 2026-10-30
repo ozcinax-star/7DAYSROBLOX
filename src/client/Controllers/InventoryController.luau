@@ -1,5 +1,5 @@
 --!strict
--- InventoryController: toolbelt along the bottom of the screen and a backpack panel (Tab / I,
+-- InventoryController: toolbelt along the bottom of the screen and a backpack panel (I,
 -- gamepad Y, or the Bag button on touch). The server owns the inventory; this controller only shows
 -- the copy it receives and sends move / select requests.
 --
@@ -452,10 +452,22 @@ local function bindInput()
 	action("SlotPrevious", { Enum.KeyCode.ButtonL1 }, function()
 		selectSlot((selected - 2) % IC.ToolbeltSlots + 1)
 	end)
-	action("ToggleBackpack", { Enum.KeyCode.Tab, Enum.KeyCode.I, Enum.KeyCode.ButtonY }, function()
+	-- Not Tab (7DTD's key): the Roblox player list takes it before the game sees it (tested in Play).
+	action("ToggleBackpack", { Enum.KeyCode.I, Enum.KeyCode.ButtonY }, function()
 		setBackpackOpen(not backpackOpen)
 	end)
 	context.Parent = gui
+end
+
+-- True while the backpack panel is open; gameplay input (swinging) is ignored then.
+function InventoryController.isBackpackOpen(): boolean
+	return backpackOpen
+end
+
+-- The stack in the active toolbelt slot as the server last sent it, or nil for an empty hand.
+function InventoryController.getHeld(): Inventory.Stack?
+	local slot = slots[selected]
+	return if slot then slot else nil
 end
 
 function InventoryController.init()

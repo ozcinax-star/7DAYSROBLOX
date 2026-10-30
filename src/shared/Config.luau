@@ -14,6 +14,17 @@ export type ItemDef = {
 
 export type ItemCount = { Id: string, Count: number }
 
+-- A melee tool, or the bare fist. Numbers follow 7DTD's item stats (quality 1, no perks).
+-- Range is in metres like 7DTD's MaxRange; Config.Melee.StudsPerMeter converts it.
+export type ToolDef = {
+	EntityDamage: number,
+	BlockDamage: number,
+	AttacksPerMinute: number,
+	Range: number,
+	-- Not used until stamina exists.
+	StaminaLoss: number,
+}
+
 Config.DayNight = {
 	-- One full day + night cycle, in real seconds (PLAN: 10-12 min).
 	CycleSeconds = 11 * 60,
@@ -66,7 +77,9 @@ Config.Threat = {
 }
 
 Config.Zombie = {
-	MaxHealth = 100,
+	-- 7DTD: a common ("slim") zombie has 125 health, randomised by +-15% per zombie.
+	MaxHealth = 125,
+	HealthSpread = 0.15,
 	-- Non-horde zombies are slow walkers (The Walking Dead style): a player walking at 16 studs/s
 	-- outpaces them; the danger is numbers and being cornered. Speeds in studs/s.
 	ChaseSpeed = 5,
@@ -329,6 +342,52 @@ Config.Items = {
 	StonePickaxe = { Stack = 1, Durability = 250, Color = { 0.42, 0.42, 0.44 } },
 } :: { [string]: ItemDef }
 
+-- Melee stats by item id. "Fist" is the empty hand; any held item without an entry here (wood,
+-- stone...) also hits like the fist. 7DTD item names in the comments; the stone pickaxe is ours
+-- (7DTD has none): between the stone axe and the iron pickaxe (11.2 / 42 / 65 APM / 2.4 m).
+Config.Tools = {
+	-- meleeHandPlayer
+	Fist = { EntityDamage = 5, BlockDamage = 2.2, AttacksPerMinute = 80, Range = 2.0, StaminaLoss = 10.5 },
+	-- meleeToolRepairT0StoneAxe
+	StoneAxe = { EntityDamage = 6, BlockDamage = 22, AttacksPerMinute = 105, Range = 2.4, StaminaLoss = 8 },
+	-- meleeToolShovelT0StoneShovel
+	StoneShovel = { EntityDamage = 9, BlockDamage = 38, AttacksPerMinute = 50, Range = 2.6, StaminaLoss = 16.2 },
+	StonePickaxe = { EntityDamage = 7, BlockDamage = 26, AttacksPerMinute = 70, Range = 2.4, StaminaLoss = 14 },
+} :: { [string]: ToolDef }
+
+Config.Melee = {
+	-- Converts 7DTD metres to studs: a Roblox character (~5 studs) against a 1.8 m 7DTD player.
+	StudsPerMeter = 2.8,
+	-- 7DTD: player hits to the head deal double damage (HeadshotDamageModifier +100%).
+	HeadshotMultiplier = 2,
+	-- Zombie hit volume around its root (torso centre): an upright cylinder from the feet to the top
+	-- of the hunched head. The radius is wider than the body because clients draw zombies slightly
+	-- behind the server.
+	HitBottom = -3,
+	HitTop = 2.1,
+	HitRadius = 1.3,
+	-- Head sphere, measured on the client rig: the head centre sits 1.35 above the root and 0.4 ahead
+	-- while walking, 1.0 above and 0.9 ahead in the attack lunge.
+	HeadHeight = 1.15,
+	HeadRadius = 0.55,
+	HeadLean = 0.75,
+	-- A zombie counts as blocked when a wall is closer than its axis minus this distance (about the
+	-- torso's half depth, so a zombie pressed against the far side of a thin wall stays hidden).
+	BodyRadius = 0.5,
+	-- The aim direction must be a unit vector within this length tolerance.
+	AimTolerance = 0.05,
+	-- 7DTD: seconds between swings are 60 / AttacksPerMinute plus this delay.
+	SwingDelay = 0.1,
+	-- Swings may arrive this much earlier than the tool's interval (network jitter).
+	CooldownTolerance = 0.12,
+	-- Longest swing animation; faster tools swing in 90% of their interval.
+	SwingMaxSeconds = 0.5,
+	-- How far the client looks for what is under the crosshair or cursor (studs).
+	AimDistance = 300,
+	-- Seconds the "broken tool" message stays on screen.
+	MessageSeconds = 1.6,
+}
+
 Config.Inventory = {
 	-- 7DTD: a 10-slot toolbelt (keys 1-0) and a 5 x 9 backpack.
 	ToolbeltSlots = 10,
@@ -346,13 +405,16 @@ Config.Remotes = {
 	DebugRequestsPerSecond = 2,
 	-- Moves while sorting the backpack and slot changes from number keys come in quick bursts.
 	InventoryRequestsPerSecond = 20,
+	-- The fastest tool swings under 2 times a second; the cooldown is checked separately.
+	UseToolRequestsPerSecond = 4,
 }
 
 Config.Debug = {
 	-- Debug commands are allowed in Studio, or for these UserIds in live servers.
 	-- 11911303584: project owner (tester), needed to run the stress test on a phone.
 	AllowedUserIds = { 11911303584 } :: { number },
-	StressCounts = { 80, 120 },
+	-- Spawn button counts: 1 for melee tests, 80 and 120 for stress tests.
+	StressCounts = { 1, 80, 120 },
 	-- Interval of the FPS / server tick overlay refresh (seconds).
 	StatsInterval = 0.5,
 	-- Strength and radius of the debug "make noise" command.

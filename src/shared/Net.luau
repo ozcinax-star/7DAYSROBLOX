@@ -20,6 +20,10 @@ local Definitions: { [string]: "RemoteEvent" | "UnreliableRemoteEvent" } = {
 	InventoryMove = "RemoteEvent",
 	-- Client -> server: choose the active toolbelt slot (number).
 	InventorySelect = "RemoteEvent",
+	-- Client -> server: swing the held tool (aim direction: unit Vector3 from the head).
+	UseTool = "RemoteEvent",
+	-- Server -> client: a swing happened (player, tool id or "Fist", hit zombie id or 0, head hit).
+	ToolSwing = "UnreliableRemoteEvent",
 }
 
 local Net = {}

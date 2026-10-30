@@ -22,6 +22,7 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Melee = require(Shared.Melee)
 local NavGrid = require(Shared.NavGrid)
 local Net = require(Shared.Net)
 local Types = require(Shared.Types)
@@ -928,7 +929,7 @@ local function spawnOne(players: { PlayerInfo }, now: number): boolean
 		x = x,
 		y = floor + ZC.RootHeight,
 		z = z,
-		health = ZC.MaxHealth,
+		health = ZC.MaxHealth * (1 + randomRange(-ZC.HealthSpread, ZC.HealthSpread)),
 		state = "Idle",
 		speedFactor = 1 + randomRange(-ZC.SpeedJitter, ZC.SpeedJitter),
 		dormant = dormant,
@@ -1378,6 +1379,42 @@ function ZombieService.nearest(position: Vector3, radius: number): number?
 		end
 	end
 	return best
+end
+
+-- Direction a zombie faces, as its client draws it: toward the player it chases or attacks,
+-- otherwise toward its goal point; 0, 0 while it stands still.
+local function facing(zombie: Zombie): (number, number)
+	local tx, tz = zombie.goalX, zombie.goalZ
+	local target = zombie.targetPlayer
+	if target and (zombie.state == "Chase" or zombie.state == "AttackPlayer") then
+		local character = target.Character
+		local root = character and character.PrimaryPart
+		if root then
+			tx, tz = root.Position.X, root.Position.Z
+		end
+	elseif zombie.state == "Idle" or zombie.dormant then
+		return 0, 0
+	end
+	local dx, dz = tx - zombie.x, tz - zombie.z
+	local length = math.sqrt(dx * dx + dz * dz)
+	if length < 1e-3 then
+		return 0, 0
+	end
+	return dx / length, dz / length
+end
+
+-- Every zombie whose root is within `radius` studs of `position`, as plain numbers for Shared/Melee.
+function ZombieService.bodiesNear(position: Vector3, radius: number): { Melee.Body }
+	local bodies: { Melee.Body } = {}
+	local radiusSq = radius * radius
+	for id, zombie in zombies do
+		local dx, dy, dz = zombie.x - position.X, zombie.y - position.Y, zombie.z - position.Z
+		if dx * dx + dy * dy + dz * dz <= radiusSq then
+			local fx, fz = facing(zombie)
+			table.insert(bodies, { id = id, x = zombie.x, y = zombie.y, z = zombie.z, fx = fx, fz = fz })
+		end
+	end
+	return bodies
 end
 
 -- Current server position of a zombie (root height), or nil if it does not exist.

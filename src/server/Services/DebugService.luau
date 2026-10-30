@@ -66,7 +66,7 @@ local function onCommand(player: Player, command: unknown, value: unknown)
 		end
 		local id = ZombieService.nearest(root.Position, Config.Debug.KillRadius)
 		if id then
-			ZombieService.damage(id, Config.Zombie.MaxHealth, player)
+			ZombieService.damage(id, math.huge, player)
 		end
 	elseif command == "GiveKit" then
 		for _, entry in Config.Debug.TestKit do

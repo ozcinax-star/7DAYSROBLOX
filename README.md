@@ -51,6 +51,7 @@ rojo build -o build.rbxl      # full place build
 | `ThreatService` | Noise + Trace meters, sound points, 5 threat tiers |
 | `ZombieService` | Humanoid-free zombies: flow-field movement on a ground and an upper-floor layer joined by stairs, house visits, indoor sleepers, server LOD, snapshot replication, `damage` / `onDied` |
 | `BuildService` | 4-stud grid, wooden wall, part HP, 2000 part cap |
+| `ToolService` | Melee swings with the held tool or the fist: validated aim, 7DTD swing rate, server-side target pick (`Shared/Melee`: zombie cylinder + head sphere, line of sight), damage, wear, swing broadcast; world hits go to `onWorldHit` listeners |
 | `InventoryService` | Server-owned inventories (10-slot toolbelt + 45-slot backpack, 7DTD sizes), validated move / select remotes, the active item shown in the right hand (`Modules/HeldItems`) |
 
 ### World modules (`src/server/World`)

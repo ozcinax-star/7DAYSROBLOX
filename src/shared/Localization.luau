@@ -40,6 +40,10 @@ local Strings: { [string]: { [string]: string } } = {
 		InventorySplit = "Split",
 		InventoryBag = "Bag",
 
+		-- Tools
+		ToolUse = "Hit",
+		ToolBroken = "{item} is broken",
+
 		-- Items (key = "Item" .. item id)
 		ItemWood = "Wood",
 		ItemSmallStone = "Small Stone",
