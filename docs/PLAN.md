@@ -76,7 +76,8 @@ MVP tek bir soruyu cevaplamalı: "Tehdit sistemi oyunculara tekrar döndürüyor
 | İnşa kademeleri | Tahta, Taş | Beton, Demir | Çelik (en sert ve dayanıklı) |
 | İnşa parçaları | Duvar, kapı, pencere, zemin, merdiven, sandık, çalışma masası, tahta parmaklık | Jeneratör, ışık, tuzaklar, demir parmaklık ve çubuklar | Taret, elektrik ağı |
 | Zombi türleri | Normal, Hızlı, Ses-duyarlı | Ağır/Zırhlı, Bölge özel | Boss enfekteler |
-| Kaynaklar | Odun, Taş, Metal hurdası, Kumaş, Yiyecek, Medikal | Elektronik, Mekanik | Nadir askerî parçalar |
+| Kaynaklar | Odun, Kereste, Küçük taş, Bitki lifi, Metal hurdası, Kumaş, Yiyecek, Medikal | Elektronik, Mekanik | Nadir askerî parçalar |
+| Toplama ve arazi | Ağaç kesme, çalı ve ot, kaya kırma, yerden taş toplama, kazılabilir zemin | Maden damarları (demir, kömür) | Yapısal arazi çökmesi |
 | Perkler | Scavenger, Builder, Combat (her biri 3 kademe) | Medic, Engineer | Perk sinerjileri |
 | Gece/Horde | Gündüz-gece, horde varsayılan 7. gece (lobi kurulurken 5–10) | Hava olayları (sis = görüş azalır) | Mevsimsel etkinlikler |
 | Tehdit | Gürültü + İz, 5 kademe, ortam ipuçları | Karşı önlem eşyaları | Bölge çapında dünya tehdidi |
@@ -97,6 +98,7 @@ Sunucu otoriter, istemci yalnızca görüntüler: hasar, loot, inşa ve tehdit h
 - Görüş alanı ve LOD: istemci yalnızca kamera görüş alanındaki ve yakındaki zombilerin modelini ve animasyonunu oynatır; görüş dışındakiler animasyonsuz kalır ama sesleri çalmaya devam eder, yoksa arkadan gelen saldırı sessiz olur. Sunucuda uzak zombiler daha seyrek güncellenir (ör. yakın 10 Hz, uzak 2 Hz).
 - Yol bulma: PathfindingService pahalı; tek hedefe giden sürü için akış alanı (flow field) veya ortak yol + bireysel sapma kullan.
 - Üsse saldırı: zombi en yakın en zayıf yapı parçasını hedefler; bu kural üs tasarımını anlamlı kılar.
+- Binalar: zombiler kapılardan girip çıkar, merdivenle üst kata çıkar. Üst katlar ikinci bir yol bulma katmanıdır; merdivenler iki katmanı bağlar. Hiçbir kat güvenli sığınak değildir.
 
 **İnşa sistemi**
 
@@ -164,6 +166,8 @@ Global olmak ilk günden üç şey demek: İngilizce kaynak metin, doğru içeri
 
 Her aşama bir geçiş kriteriyle kapanır; kriter tutmazsa bir sonrakine geçilmez.
 
+**Değişiklik (30 Ekim 2026, kullanıcı kararı):** 1. aşamanın telefon kapısı ertelendi. 2. aşamadan toplama, crafting ve zombi loot'u öne alındı; zombi davranışı ve görünümü bunlardan önce bitirildi. Güncel sıra NEXT_STEPS.md'de.
+
 1. **Prototip.** Gri kutu harita, 1 zombi türü, tahta duvar, gündüz-gece, ilk tehdit hesabı.
    - Kapı: 80 zombiyle orta seviye telefonda 30 FPS; 3 kişilik test grubu "bir gece daha" diyor.
 2. **Çekirdek döngü.** Loot, crafting, taş kademe, 3 zombi türü, horde gecesi, tehdit ipuçları ve karşı önlemler.
@@ -200,6 +204,14 @@ Lobi, PvP ve hikâye için verilmiş kararlar.
 | Ses takibi | Zombiler yeni ses duyana kadar ilk yüksek sese ilerler | Tehdit sistemi, Gürültü |
 | Horde | Varsayılan 7. gece; lobi kurulurken 5–10; oyuncu başına 20 zombi | Temel kararlar ve Teknik mimari |
 | İnşa kademeleri | Tahta → Taş → Beton → Demir → Çelik (en dayanıklı) | Kapsam |
+| Zombi hareketi | Horde dışı zombiler yavaş ve sarsılarak yürür (The Walking Dead); kollarını öne uzatarak saldırır | Yürüyen oyuncu kaçabilir; tehlike sayıdan ve sıkışmaktan gelir. Hızlar Config'de |
+| Zombiler ve binalar | Zombiler evlere girip çıkar ve merdivenle üst kata çıkar. Spawn'ların düşük bir kısmı (varsayılan %10) bina içinde uyuyan zombidir | Üst kat güvenli sığınak değil. Uyuyan zombi görünce, duyunca ya da çarpılınca uyanır |
+| Zombi görünümü | Zayıf, çürümüş yüz ve görünen deri; stilize, kan yok. Ten dağılımı küçük bir ABD kasabası gibi: %70 açık, %16 buğday, %14 koyu/siyah | Sanat stili satırıyla uyumlu. Oranlar Config'den ayarlanır |
+| Zombi loot'u | Ölen zombi yaklaşık %20 ihtimalle loot torbası bırakır | 7DTD'de %2–4; oturumlar kısa olduğu için daha cömert. Oran Config'de |
+| Toplama ve crafting | 7DTD referans alınır. Oyuncu boş elle başlar: ağaca vurur, yerden taş toplar. Ağaç Odun verir; Kereste envanterde Odun'dan yapılır ve inşa parçalarında kullanılır. Çalı ve ot bitki lifi verir. Taş balta ve taş kürek 7DTD tarifleriyle; 7DTD'de olmayan taş kazma kullanıcının isteğiyle eklendi | Kaynaklar satırı. Tarif sayıları NEXT_STEPS'te, uygulanınca Config'de |
+| Kaya yerleşimi | Kasaba ve şehir bölgelerinde kırılabilir kaya ve toplanabilir taş yok | Harita |
+| Kazılabilir zemin | Var | Kapsam kuralı gereği MVP'den neyin çıkacağı kullanıcı kararı bekliyor (NEXT_STEPS) |
+| Telefon kapısı | Ertelendi; yeni sistemlere geçilebilir | Yol haritası notu |
 
 ## Kaynaklar
 

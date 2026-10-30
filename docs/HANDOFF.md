@@ -2,7 +2,7 @@
 
 Bağlamı olmayan yeni bir oturum işe buradan başlar. Sıradaki işler [NEXT_STEPS.md](NEXT_STEPS.md)
 dosyasında, tasarım kararları [PLAN.md](PLAN.md) dosyasında, kod yapısı [../README.md](../README.md)
-dosyasında. Bu not 30 Ekim 2026'daki uzun çalışma oturumunu (birkaç kez sıkıştırılmış tek oturum) özetler.
+dosyasında. Bu not 30–31 Ekim 2026'daki iki uzun çalışma oturumunu (birkaç kez sıkıştırılmış) özetler.
 
 ## Proje ve roller
 
@@ -96,29 +96,53 @@ Kullanıcı geri bildirimleri:
   - Ben bir öneride bulundum: Play başlarken eski önizlemeyi kendiliğinden silen bir değişiklik. Kullanıcı
     henüz yanıt vermedi.
 
+### 3. Bölüm: zombi davranışı ve görünümü (31 Ekim)
+
+Kullanıcının isteği (özet): horde dışı zombiler The Walking Dead gibi yavaş ve sarsılarak yürüsün;
+evlere girip çıksın, düşük ihtimalle evde spawn olsun; kollarını öne uzatarak saldırsın; yüzleri zayıf
+ve çürümüş olsun; ten çoğunlukla beyaz, Afrika kökenli nüfus oranında siyah/esmer olsun; ölünce loot
+bıraksın. Ardından ağaç kesme, yerden taş, kırılabilir kaya (kasabada yok), kazılabilir zemin ve 7DTD'ye
+yakın crafting (taş balta, kazma, kürek) gelsin.
+
+Kullanıcının seçimleri: üst kat yol bulması "şimdi"; Odun + Kereste; 7DTD gibi bitki lifi; zombi loot
+torbası yaklaşık %20. Bu kararlar ve telefon kapısının ertelenmesi PLAN.md'nin Kararlar tablosunda.
+
+| Commit | Ne yapıldı |
+| --- | --- |
+| `c2f4b14` | Yavaş yürüyüş, eve girip çıkma (bina başına kapı akış alanları), bina içinde uyuyan zombi, saldırı öncesi bekleme, yükseklik kontrolü, vurulunca sendeleme; `damage`, `onDied`, `getPosition` |
+| `64346f7` | 17 parçalı zombi rig'i (`ZombieRig`), id'den türeyen görünüm (`ZombieLook`), prosedürel topallama, ölünce yığılma, mesafeye göre detay |
+| `a776e7c` | Üst katlar için ikinci yol bulma katmanı ve merdiven geçişleri; kovalama, ses, ev ziyareti ve spawn'lar iki katı da kullanıyor |
+| `79274bd` | Koyu ten çürümeyle griye dönmüyor; gözler donuk, yara eğik yırtık |
+
 ## Mevcut durum
 
 | Alan | Durum |
 | --- | --- |
 | Harita (`MapService` + `World/*`) | Çalışıyor. 2048×2048; orman ve küçük kasaba, göl, taş ocağı, telsiz tepesi, çiftlik, kereste atölyesi, hurdalık. Arazi, 37 bina, yollar, sokak eşyaları ve orman sunucu açılışında kodla kuruluyor. |
 | Binalar | 15 şablon. Mobilyalı odalar, iki katlılarda merdiven, açılmış kapılar, tabelalar. Her model `Template`, `Loot` (`Food`, `Medical`, `Metal`, `Fabric`…), `Floors` ve `Region` özelliklerini taşıyor; loot sistemi bunları kullanacak. |
-| Zombiler (`ZombieService`) | Çalışıyor. Humanoid yok. Akış alanıyla yol bulma, görerek kovalama, ses noktasına gitme, gezinme, oyuncuya saldırı, dalgalı spawn, sunucu LOD'u (yakın 10 Hz, uzak 2 Hz), anlık görüntü yayını. API: `spawn`, `remove`, `clear`, `damage`, `hearSound`, `getStats`, `getNavGrid`. |
-| İstemci | `ZombieRenderController`: çizim, interpolasyon, LOD. `DebugOverlayController`: FPS, tick süresi, zombi sayısı; Spawn 80/120, Noise, GodMode ve Clear düğmeleri. |
+| Zombiler (`ZombieService`) | Çalışıyor. Humanoid yok. Akış alanıyla yol bulma, görerek kovalama, ses noktasına gitme, gezinme, eve girip çıkma, merdivenle üst kat, bina içinde uyuyan zombi, saldırı öncesi bekleme, sendeleme, dalgalı spawn, sunucu LOD'u (yakın 10 Hz, uzak 2 Hz), anlık görüntü yayını. API: `spawn`, `remove`, `clear`, `damage` (öldürünce true), `onDied`, `getPosition`, `hearSound`, `getStats`, `getNavGrid`. |
+| İstemci | `ZombieRenderController` + `Modules/ZombieRig`: 17 parçalı rig, prosedürel yürüyüş, interpolasyon, LOD, ceset; `flinch(id)` hazır. `DebugOverlayController`: FPS, tick süresi, zombi sayısı; Spawn 80/120, Noise, GodMode ve Clear düğmeleri. |
 | Debug | Remote: `DebugCommand`. Yalnızca Studio'da veya `Config.Debug.AllowedUserIds` listesindeki hesaplarla çalışır (`11911303584` test eden hesap). Doğrulanır ve hız sınırlıdır. |
 | `DayNightService` | **Boş iskelet.** |
 | `ThreatService` | **Boş iskelet.** Config değerleri ve `Types.SoundPoint` hazır. |
 | `BuildService` | **Boş iskelet.** `Config.Build` ve `Types.BuildPieceKind` hazır. |
 | Kamera (omuz/FPS) | **Yok.** Localization anahtarları (`CameraShoulder`, `CameraFirstPerson`) ve `Config.Camera` hazır. |
-| Oyuncunun silahı veya saldırısı | **Yok.** `ZombieService.damage` var ama oyuncu zombiye vuramıyor. |
-| Loot, crafting, perk, kayıt, monetizasyon | Bilerek yazılmadı. Yalnızca `Types.ItemSource` ve binaların `Loot` özelliği yer tutuyor. |
+| Oyuncunun silahı veya saldırısı | **Yok.** `ZombieService.damage` var ama oyuncu zombiye vuramıyor. Sıradaki işlerde (NEXT_STEPS 2). |
+| Envanter, toplama, crafting, loot, kazı | **Sıradaki iş** (NEXT_STEPS 1–6). `ZombieService.onDied` loot için hazır. |
+| Perk, kayıt, monetizasyon | Bilerek yazılmadı. |
 
 ### Ölçümler
 
-Ölçümler 30 Ekim 2026'da PC'de, Studio içinde alındı. Telefonda ölçüm yok.
+Ölçümler 30–31 Ekim 2026'da PC'de, Studio içinde alındı. Telefonda ölçüm yok.
 
-- **Testler:** 18/18 geçiyor (NavGrid 7, HeightField 3, Buildings 5, ZombieProtocol 3). Testler yalnızca
-  Studio düzeneğiyle çalıştırıldı; Lune ile hiç çalıştırılmadı.
-- **Zombi performansı:** 80 zombiyle sunucu 60 fps, tick ortalaması 0,05 ms, en kötü tick 1,36 ms.
+- **Testler:** 22/22 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3).
+  Testler yalnızca Studio düzeneğiyle çalıştırıldı; Lune ile hiç çalıştırılmadı.
+- **Zombi performansı:** 80 zombiyle tick ortalaması 0,04–0,17 ms, en kötü tick genelde 1,3–1,8 ms
+  (bir kez 3,9 ms). Zombi başına 17 parça.
+- **Eve girme:** Kasabada 80 zombinin 22–24'ü (%28–30) herhangi bir anda bina içinde.
+- **Üst kat:** Oyuncu House04'ün üst katında ve gürültü yaparken 60 sn'de 46 zombi yanına ulaştı;
+  ForceField kalkınca 0,32 sn'de 13 vuruş geldi. Oyuncu dışarı çıkınca üst kattaki 35 zombiden 34'ü
+  40 sn'de indi. TownHall'un düz çatısındayken merdivende takılan zombi yok.
 - **Harita kurulumu:** Play'de 2,6 sn, Edit önizlemesinde 4,0–4,4 sn.
 - **Parça sayısı:**
   - Haritanın tamamı 22.748 parça.
@@ -152,11 +176,15 @@ bilgiler.
 - **Bina ölçüleri:** Izgara 4 stud. Duvarlar hücre merkez çizgisinde durur. Zeminin üstü
   `baseY + 1.0` (`FloorTop`), kat yüksekliği 12 (`FloorHeight`).
 - **Merdivenler:** Görünmez bir rampa (WedgePart) üzerine kurulu. Raycast ile ölçüldü: alt uç 2,25,
-  üst uç 13,25.
-- **Yol bulma ızgarası (NavGrid) 2 boyutlu.** Zemin yüksekliğini 2 stud aşan çarpışmalı her parça
-  hücresini kapatır. Süs parçaları çarpışmasızdır.
-  - **Zombiler merdiven çıkamaz; üst katlara ulaşamaz.** Bu bilinen bir eksik; NEXT_STEPS'te karar
-    bekliyor.
+  üst uç 13,25. Rampanın yerel +Z'si yükseliş yönüdür.
+- **Yol bulma iki katmanlı.** Zemin katmanında zemin yüksekliğini 2 stud aşan çarpışmalı her parça
+  hücresini kapatır; süs parçaları çarpışmasızdır. Üst kat katmanı kapalı başlar: `BuildingKit` kat
+  planından üst kat hücrelerini ve kapı aralıklarını verir, bunlar açılır, sonra üst yürüme
+  yüksekliğini kesen parçalar (duvar, mobilya, merdiven boşluğu korkuluğu) kapatılır.
+  - Kapı aralıkları (`D`) `isFloorCell`'e girmez; üst katta ayrıca açılmazlarsa odalar kopar. Bu hata
+    bir kez yaşandı.
+  - Şablonlar en fazla iki katlı; `ZombieService` bunu `assert` ile kontrol eder.
+  - Merdiven uçlarından biri kapalıysa açılışta `warn` yazılır ve o merdiven kullanılmaz.
 - **Kapı önleri:** `BuildingKit.build` bir Model ve her dış kapının önündeki noktaları döndürür.
   `MapService` lambaları bu noktalardan en az 6 stud uzak tutar.
 - **Şablon değiştirince:** `python tools/studio/plancheck.py src/server/World/BuildingTemplates.luau`
@@ -190,7 +218,7 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
    local src = Http:GetAsync("http://127.0.0.1:8765/Harness.luau", true)
    Http.HttpEnabled = was
    local H = loadstring(src)()
-   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "18 passed, 0 failed"
+   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "22 passed, 0 failed"
    ```
    Düzenek place'e hiçbir şey bırakmaz.
 3. Her kod değişikliğinden sonra adım 1'deki bundle komutunu tekrar çalıştır, sonra `H.sync()`.
@@ -206,10 +234,21 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
   `LogService:GetLogHistory()` ile oku. Oyun kodu hiçbir şey yazdırmaz; boş çıktı "uyarı ve hata yok"
   demektir. Bu, kasıtlı bir `warn` ile denendi: iki yöntem de yakaladı.
 - Bitince `start_stop_play(false)` ile durdur.
+- `execute_luau` ayrı bir VM'de çalışır: `require(ZombieService)` başlatılmamış yeni bir kopya verir.
+  Zombi spawn etmek için `Client` veri modelinden
+  `game.ReplicatedStorage.Remotes.DebugCommand:FireServer("Spawn", 80)` kullan (`"Noise"`,
+  `"GodMode"`, `"Clear"` da var). İstemcide zombiler `workspace.ClientZombies` altında, `Pelvis`
+  parçasıyla ölçülebilir.
+- `GodMode` bir ForceField takar; `Humanoid:TakeDamage` o sırada hiç çalışmaz. Saldırıyı ölçmek için
+  ForceField'ı kaldır.
 
 ### Ekran görüntüsü
 
-- `screen_capture` Play modunda beyaz çıkıyor. Görüntü için haritayı Edit modunda kur:
+- `screen_capture` Play modunda beyaz çıkıyor; 31 Ekim'de Edit modunda çalıştı.
+- **Zombi önizlemesi:** Edit modunda `H.load(<StarterPlayer altındaki ZombieRig>)` ile
+  `Rig.build(id)`, `Rig.newPose(id)` ve `Rig.pose(...)` çağrılıp birkaç rig `workspace` altına bir
+  klasöre konur, yüksekte (y≈1000) bir zemin parçasıyla çekilir, sonra klasör silinir.
+- Görüntü için haritayı Edit modunda kur:
   ```lua
   H.load(game.ServerScriptService.Server.Services.MapService).init()
   ```
@@ -239,8 +278,10 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
 
 ## Bilinen sorunlar ve tuzaklar
 
-- **Telefonda FPS hiç ölçülmedi.** Aşama 1'in kapısı. Bina parça sayısı hedefin üstünde.
-- **Zombiler üst katlara çıkamaz.** Yol bulma ızgarası 2 boyutlu.
+- **Telefonda FPS hiç ölçülmedi.** Aşama 1'in kapısı (kullanıcı erteledi). Bina parça sayısı hedefin
+  üstünde; zombi başına parça sayısı 17'ye çıktı.
+- **Saldıran zombi oyuncuya dönmez.** İstemcide yüz yönü son yürüme yönünden gelir; oyuncu zombinin
+  yanına geçerse zombi yan dönük vurur. İstenirse istemcide en yakın oyuncuya döndürülebilir.
 - **Araç zinciri hiç çalıştırılmadı.** README'deki `stylua --check`, `selene src` ve `lune run tests/run`
   komutları bu makinede hiç koşmadı. İlk çalıştırmada format ve lint düzeltmeleri çıkabilir.
   `tests/run.luau`'nun gerçek Lune'da da geçtiği doğrulanmalı.

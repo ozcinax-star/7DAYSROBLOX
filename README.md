@@ -27,9 +27,9 @@ rojo build -o build.rbxl      # full place build
 
 | Path | Roblox location | Contents |
 | --- | --- | --- |
-| `src/shared` | `ReplicatedStorage.Shared` | `Config` (all balance numbers), `Localization` (all UI text), `Types`, `NavGrid`, `World/` (map layout, height field) |
+| `src/shared` | `ReplicatedStorage.Shared` | `Config` (all balance numbers), `Localization` (all UI text), `Types`, `NavGrid`, `ZombieProtocol` (snapshot encoding), `ZombieLook` (zombie appearance from its id), `World/` (map layout, height field) |
 | `src/server` | `ServerScriptService.Server` | Bootstrap script + `Services/*` + `World/*` (terrain, building kit, floor plans, props) |
-| `src/client` | `StarterPlayer.StarterPlayerScripts.Client` | Bootstrap script + `Controllers/*` |
+| `src/client` | `StarterPlayer.StarterPlayerScripts.Client` | Bootstrap script + `Controllers/*` + `Modules/*` (`ZombieRig`: jointed zombie body and its procedural shamble) |
 | `tests` | not synced | Lune unit tests for pure modules |
 | `tools/studio` | not synced | Dev-only Studio MCP sync + test harness and the floor-plan checker (see `docs/HANDOFF.md`) |
 
@@ -49,7 +49,7 @@ rojo build -o build.rbxl      # full place build
 | `MapService` | Builds the 2048×2048 map (Forest + Small Town) at startup; terrain height (`heightAt`) and walking height including building floors (`groundAt`) |
 | `DayNightService` | Day/night clock, day counter, horde night (default 7, lobby picks 5–10) |
 | `ThreatService` | Noise + Trace meters, sound points, 5 threat tiers |
-| `ZombieService` | Humanoid-free zombies, flow-field movement, server LOD, snapshot replication |
+| `ZombieService` | Humanoid-free zombies: flow-field movement on a ground and an upper-floor layer joined by stairs, house visits, indoor sleepers, server LOD, snapshot replication, `damage` / `onDied` |
 | `BuildService` | 4-stud grid, wooden wall, part HP, 2000 part cap |
 
 ### World modules (`src/server/World`)
@@ -65,7 +65,8 @@ rojo build -o build.rbxl      # full place build
 
 Building rules: walls stand on cell centre lines, every doorway and floor cell stays walkable for the
 zombie navigation grid (trims are decor), and the Lune tests check that every floor cell, piece of
-furniture and stair in every template can be walked to.
+furniture and stair in every template can be walked to. `BuildingKit.build` also returns the stairs and
+upper-floor cells in world space; templates have at most two floors.
 
 Not in the prototype (reserved): `LootService`, `CraftingService`, `PerkService`, `SaveService`,
 `MonetizationService`. Item ownership will carry its source (`Types.ItemSource`) as the plan requires.
