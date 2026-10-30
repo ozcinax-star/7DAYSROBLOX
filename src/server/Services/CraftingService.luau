@@ -5,7 +5,8 @@
 -- uses its share and a cancel gives the rest back. A finished item that does not fit waits in the
 -- queue until there is room, so nothing is lost. Repairs use the same queue: the tool and its repair
 -- items go into the job and the tool comes back repaired, into its old slot when that is still free.
--- A cancel whose refund does not fit is refused (until dropped loot bags exist), so nothing is lost.
+-- What a cancel cannot give back drops in a loot bag at the player's feet; with no character to drop
+-- it at, a cancel that does not all fit is refused, so nothing is lost.
 --
 -- Queues live only as long as the player is in the server (no saving yet).
 
@@ -23,6 +24,7 @@ local Types = require(Shared.Types)
 
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local InventoryService = require(script.Parent.InventoryService)
+local LootService = require(script.Parent.LootService)
 
 local CC = Config.Crafting
 local SOURCE: Types.ItemSource = "Craft"
@@ -96,7 +98,9 @@ local function send(player: Player)
 	updateRemote:FireClient(player, views, Workspace:GetServerTimeNow())
 end
 
--- Gives back everything a job still holds; false, with nothing changed, when it does not all fit.
+-- Gives back everything a job still holds (the tool into its old slot when that is free); what does
+-- not fit drops in a bag at the player's feet. Without a character it is all or nothing, and false
+-- means nothing changed.
 local function refund(player: Player, job: Job): boolean
 	local returns: { Inventory.Return } = {}
 	local tool = job.tool
@@ -106,7 +110,27 @@ local function refund(player: Player, job: Job): boolean
 	for _, stack in job.pool do
 		table.insert(returns, { stack = stack, slot = nil })
 	end
-	return InventoryService.giveBack(player, returns)
+	local character = player.Character
+	local root = character and character.PrimaryPart
+	if root == nil then
+		return InventoryService.giveBack(player, returns)
+	end
+	local dropped: { Inventory.Stack } = {}
+	for _, entry in returns do
+		local stack = entry.stack
+		local slot = entry.slot
+		local left = 0
+		if slot == nil or not InventoryService.putSlot(player, slot, table.clone(stack)) then
+			left = InventoryService.give(player, stack.id, stack.count, stack.source, stack.durability)
+		end
+		if left > 0 then
+			table.insert(dropped, { id = stack.id, count = left, source = stack.source, durability = stack.durability })
+		end
+	end
+	if #dropped > 0 then
+		LootService.drop(root.Position, dropped, true)
+	end
+	return true
 end
 
 -- Hands over one finished craft or the repaired tool; false when it does not fit yet.

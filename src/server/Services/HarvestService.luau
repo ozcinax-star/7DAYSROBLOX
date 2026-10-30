@@ -2,7 +2,8 @@
 -- HarvestService: gathering (7DTD). A swing that hits a tree, bush, grass, boulder or loose rock deals
 -- the tool's block damage for that material. Harvest drops pay out while the object is hit and
 -- Destroy drops when it breaks (Shared/Harvest). Everyone hitting the same object shares its damage,
--- like a 7DTD block. Loose rocks can also be picked up with the interact key.
+-- like a 7DTD block. Loose rocks can also be picked up with the interact key. What has no room in the
+-- inventory drops in a loot bag at the player's feet (7DTD drops it on the ground).
 --
 -- A felled tree stops colliding at once, frees the zombie navigation cells under it, and falls away
 -- from the player who felled it (clients animate the fall), then is removed. Nothing grows back:
@@ -19,6 +20,7 @@ local Types = require(Shared.Types)
 
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local InventoryService = require(script.Parent.InventoryService)
+local LootService = require(script.Parent.LootService)
 local MapService = require(script.Parent.MapService)
 local ToolService = require(script.Parent.ToolService)
 local ZombieService = require(script.Parent.ZombieService)
@@ -52,8 +54,14 @@ local function roll(drop: Config.Drop): number
 end
 
 local function give(player: Player, id: string, count: number)
-	if count > 0 then
-		InventoryService.give(player, id, count, SOURCE)
+	if count <= 0 then
+		return
+	end
+	local left = InventoryService.give(player, id, count, SOURCE)
+	local character = player.Character
+	local root = character and character.PrimaryPart
+	if left > 0 and root then
+		LootService.drop(root.Position, { { id = id, count = left, source = SOURCE } }, true)
 	end
 end
 
