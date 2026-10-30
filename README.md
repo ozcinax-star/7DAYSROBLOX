@@ -26,8 +26,8 @@ rojo build -o build.rbxl      # full place build
 
 | Path | Roblox location | Contents |
 | --- | --- | --- |
-| `src/shared` | `ReplicatedStorage.Shared` | `Config` (all balance numbers), `Localization` (all UI text), `Types` |
-| `src/server` | `ServerScriptService.Server` | Bootstrap script + `Services/*` |
+| `src/shared` | `ReplicatedStorage.Shared` | `Config` (all balance numbers), `Localization` (all UI text), `Types`, `NavGrid`, `World/` (map layout, height field) |
+| `src/server` | `ServerScriptService.Server` | Bootstrap script + `Services/*` + `World/*` (terrain, building kit, floor plans, props) |
 | `src/client` | `StarterPlayer.StarterPlayerScripts.Client` | Bootstrap script + `Controllers/*` |
 | `tests` | not synced | Lune unit tests for pure modules |
 
@@ -44,6 +44,7 @@ rojo build -o build.rbxl      # full place build
 
 | Service | Responsibility |
 | --- | --- |
+| `MapService` | Builds the 2048×2048 map (Forest + Small Town) at startup; ground height lookup |
 | `DayNightService` | Day/night clock, day counter, horde night (default 7, lobby picks 5–10) |
 | `ThreatService` | Noise + Trace meters, sound points, 5 threat tiers |
 | `ZombieService` | Humanoid-free zombies, flow-field movement, server LOD, snapshot replication |
