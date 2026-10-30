@@ -49,6 +49,9 @@ Net.Attributes = {
 	ZombieQueued = "ZombieQueued",
 	ZombieStepsPerSecond = "ZombieStepsPerSecond",
 	DebugAllowed = "DebugAllowed",
+	-- World clock (DayNightService): server time of the dawn of day 1, and the horde night interval.
+	ClockEpoch = "ClockEpoch",
+	HordeEvery = "HordeEvery",
 }
 
 local function getFolder(): Folder

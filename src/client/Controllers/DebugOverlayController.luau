@@ -128,6 +128,9 @@ function DebugOverlayController.start()
 	makeButton(buttons, order + 5, Localization.get("DebugClear"), function()
 		debugRemote:FireServer("Clear")
 	end)
+	makeButton(buttons, order + 6, Localization.get("DebugSkipPhase"), function()
+		debugRemote:FireServer("SkipPhase")
+	end)
 
 	local player = Players.LocalPlayer
 	local function refreshAllowed()

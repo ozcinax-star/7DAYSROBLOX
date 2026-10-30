@@ -30,6 +30,7 @@ local ZombieProtocol = require(Shared.ZombieProtocol)
 local HeightField = require(Shared.World.HeightField)
 local WorldLayout = require(Shared.World.WorldLayout)
 
+local DayNightService = require(script.Parent.DayNightService)
 local MapService = require(script.Parent.MapService)
 local BuildingKit = require(script.Parent.Parent.World.BuildingKit)
 
@@ -745,7 +746,8 @@ local function stepZombie(zombie: Zombie, players: { PlayerInfo }, now: number, 
 				setState(zombie, "AttackPlayer")
 			end
 			if now >= zombie.nextAttack then
-				zombie.nextAttack = now + ZC.AttackCooldown
+				zombie.nextAttack = now
+					+ (if DayNightService.isNight() then ZC.AttackCooldownNight else ZC.AttackCooldown)
 				target.humanoid:TakeDamage(ZC.AttackDamage)
 			end
 			return

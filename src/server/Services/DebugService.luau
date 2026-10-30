@@ -12,6 +12,7 @@ local Config = require(Shared.Config)
 local Net = require(Shared.Net)
 
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
+local DayNightService = require(script.Parent.DayNightService)
 local InventoryService = require(script.Parent.InventoryService)
 local ZombieService = require(script.Parent.ZombieService)
 
@@ -42,6 +43,8 @@ local function onCommand(player: Player, command: unknown, value: unknown)
 		ZombieService.spawn(value)
 	elseif command == "Clear" then
 		ZombieService.clear()
+	elseif command == "SkipPhase" then
+		DayNightService.skipPhase()
 	elseif command == "GodMode" then
 		-- Invisible ForceField: Humanoid:TakeDamage ignores characters that have one.
 		local character = player.Character

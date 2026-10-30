@@ -1,0 +1,115 @@
+--!strict
+-- DayNightController: runs the world clock locally from the server's start time (Shared/DayClock)
+-- and sets the lighting every frame: the sun follows the clock, nights are dark, and a horde night
+-- tints the world red (7DTD's blood moon). A small label in the top-right corner shows the day and
+-- the hour; on a horde day the day shows in red, like 7DTD's day counter.
+
+local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
+local DayClock = require(Shared.DayClock)
+local Localization = require(Shared.Localization)
+local Net = require(Shared.Net)
+
+-- Lighting at full day and deep night; between them it follows the sun's height.
+local DAY_BRIGHTNESS = 2
+local NIGHT_BRIGHTNESS = 0.3
+local DAY_AMBIENT = Color3.fromRGB(110, 110, 115)
+local NIGHT_AMBIENT = Color3.fromRGB(28, 32, 46)
+local DAY_OUTDOOR = Color3.fromRGB(128, 128, 132)
+local NIGHT_OUTDOOR = Color3.fromRGB(34, 38, 58)
+-- Sun height (unit direction Y) where dusk starts and where full night is reached.
+local DUSK_SUN_Y = 0.15
+local NIGHT_SUN_Y = -0.1
+local HORDE_TINT = Color3.fromRGB(255, 170, 160)
+local HORDE_SATURATION = -0.15
+-- Clock label.
+local LABEL_WIDTH = 200
+local LABEL_HEIGHT = 24
+local LABEL_MARGIN = 12
+local TEXT_COLOR = Color3.new(1, 1, 1)
+local HORDE_COLOR = Color3.fromRGB(235, 70, 60)
+
+local DayNightController = {}
+
+local tint: ColorCorrectionEffect
+local clockLabel: TextLabel
+local hordeLabel: TextLabel
+
+local function attribute(name: string, default: number): number
+	local value = ReplicatedStorage:GetAttribute(name)
+	return if typeof(value) == "number" then value else default
+end
+
+local function formatTime(clockTime: number): string
+	local minutes = math.floor(clockTime * 60) % (24 * 60)
+	return string.format("%02d:%02d", minutes // 60, minutes % 60)
+end
+
+local function buildGui(playerGui: PlayerGui)
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "Clock"
+	gui.ResetOnSpawn = false
+	gui.IgnoreGuiInset = false
+	clockLabel = Instance.new("TextLabel")
+	clockLabel.Name = "Clock"
+	clockLabel.AnchorPoint = Vector2.new(1, 0)
+	clockLabel.Position = UDim2.new(1, -LABEL_MARGIN, 0, LABEL_MARGIN)
+	clockLabel.Size = UDim2.fromOffset(LABEL_WIDTH, LABEL_HEIGHT)
+	clockLabel.BackgroundTransparency = 1
+	clockLabel.Font = Enum.Font.GothamBold
+	clockLabel.TextSize = 18
+	clockLabel.TextColor3 = TEXT_COLOR
+	clockLabel.TextStrokeTransparency = 0.5
+	clockLabel.TextXAlignment = Enum.TextXAlignment.Right
+	clockLabel.Parent = gui
+	hordeLabel = clockLabel:Clone()
+	hordeLabel.Name = "Horde"
+	hordeLabel.Position = UDim2.new(1, -LABEL_MARGIN, 0, LABEL_MARGIN + LABEL_HEIGHT)
+	hordeLabel.TextSize = 15
+	hordeLabel.TextColor3 = HORDE_COLOR
+	hordeLabel.Text = Localization.get("HordeNight")
+	hordeLabel.Visible = false
+	hordeLabel.Parent = gui
+	gui.Parent = playerGui
+end
+
+local function update()
+	local epoch = attribute(Net.Attributes.ClockEpoch, Workspace:GetServerTimeNow())
+	local every = attribute(Net.Attributes.HordeEvery, Config.DayNight.HordeNightDefault)
+	local state = DayClock.at(Workspace:GetServerTimeNow() - epoch)
+	Lighting.ClockTime = state.clockTime
+
+	local sunY = Lighting:GetSunDirection().Y
+	local light = math.clamp((sunY - NIGHT_SUN_Y) / (DUSK_SUN_Y - NIGHT_SUN_Y), 0, 1)
+	Lighting.Brightness = NIGHT_BRIGHTNESS + (DAY_BRIGHTNESS - NIGHT_BRIGHTNESS) * light
+	Lighting.Ambient = NIGHT_AMBIENT:Lerp(DAY_AMBIENT, light)
+	Lighting.OutdoorAmbient = NIGHT_OUTDOOR:Lerp(DAY_OUTDOOR, light)
+
+	local hordeDay = DayClock.isHordeDay(state.day, every)
+	local hordeNight = hordeDay and state.phase == "Night"
+	local redness = if hordeNight then 1 - light else 0
+	tint.TintColor = Color3.new(1, 1, 1):Lerp(HORDE_TINT, redness)
+	tint.Saturation = HORDE_SATURATION * redness
+
+	clockLabel.Text = Localization.get("HudClock", { day = state.day, time = formatTime(state.clockTime) })
+	clockLabel.TextColor3 = if hordeDay then HORDE_COLOR else TEXT_COLOR
+	hordeLabel.Visible = hordeNight
+end
+
+function DayNightController.init() end
+
+function DayNightController.start()
+	tint = Instance.new("ColorCorrectionEffect")
+	tint.Name = "DayNightTint"
+	tint.Parent = Lighting
+	buildGui(Players.LocalPlayer:WaitForChild("PlayerGui") :: PlayerGui)
+	RunService.PreRender:Connect(update)
+end
+
+return DayNightController

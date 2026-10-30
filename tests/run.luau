@@ -14,6 +14,7 @@ local Melee = require("../src/shared/Melee")
 local Harvest = require("../src/shared/Harvest")
 local Crafting = require("../src/shared/Crafting")
 local Loot = require("../src/shared/Loot")
+local DayClock = require("../src/shared/DayClock")
 
 local passed, failed = 0, 0
 
@@ -904,6 +905,43 @@ test("loot picks follow their weights and stay in range", function()
 	for _, id in Config.Loot.ZombieTools do
 		assert(Config.Items[id] and Config.Items[id].Durability, `{id} is not a tool`)
 	end
+end)
+
+print("DayClock")
+
+test("the clock runs from dawn to dusk by day and wraps midnight by night", function()
+	local DC = Config.DayNight
+	local dayLength = DC.CycleSeconds * DC.DayFraction
+	local nightLength = DC.CycleSeconds - dayLength
+	local dawn = DayClock.at(0)
+	expectEq(dawn.day, 1, "day 1")
+	expectEq(dawn.phase, "Day", "dawn is day")
+	expectNear(dawn.clockTime, DC.DayStartClockTime, 1e-9, "dawn hour")
+	expectNear(dawn.phaseLeft, dayLength, 1e-9, "whole day left")
+	local start = DayClock.at(DayClock.secondsAt(DC.StartClockTime))
+	expectNear(start.clockTime, DC.StartClockTime, 1e-9, "start hour")
+	local dusk = DayClock.at(dayLength)
+	expectEq(dusk.phase, "Night", "dusk is night")
+	expectNear(dusk.clockTime, DC.NightStartClockTime, 1e-9, "dusk hour")
+	expectNear(dusk.phaseLeft, nightLength, 1e-9, "whole night left")
+	local late = DayClock.at(DC.CycleSeconds - 1e-6)
+	expectEq(late.day, 1, "a night belongs to the day it starts on")
+	expectNear(late.clockTime, DC.DayStartClockTime, 1e-3, "night ends at dawn")
+	local nextDay = DayClock.at(DC.CycleSeconds * 2 + 1)
+	expectEq(nextDay.day, 3, "day 3")
+	expectEq(nextDay.phase, "Day", "day 3 morning")
+	local midnight = DayClock.at(dayLength + nightLength * (24 - DC.NightStartClockTime)
+		/ (24 - DC.NightStartClockTime + DC.DayStartClockTime))
+	expectNear(midnight.clockTime % 24, 0, 1e-6, "midnight")
+	expectEq(DayClock.at(-5).day, 1, "negative time clamps to dawn")
+end)
+
+test("horde nights come every n-th day", function()
+	expectEq(DayClock.isHordeDay(7, 7), true, "day 7")
+	expectEq(DayClock.isHordeDay(14, 7), true, "day 14")
+	expectEq(DayClock.isHordeDay(6, 7), false, "day 6")
+	expectEq(DayClock.isHordeDay(5, 5), true, "every 5")
+	expectEq(DayClock.isHordeDay(3, 0), false, "never")
 end)
 
 print(`\n{passed} passed, {failed} failed`)

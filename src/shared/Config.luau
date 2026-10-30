@@ -68,6 +68,8 @@ Config.DayNight = {
 	-- Lighting.ClockTime at the start of the day phase and at the start of the night phase.
 	DayStartClockTime = 6,
 	NightStartClockTime = 18.5,
+	-- A new world starts on day 1 at this hour.
+	StartClockTime = 8,
 	-- Horde night is chosen once when the lobby is created and never changes afterwards.
 	HordeNightDefault = 7,
 	HordeNightMin = 5,
@@ -142,11 +144,12 @@ Config.Zombie = {
 	AttackRange = 3.6,
 	-- A target more than this far above or below the zombie (another floor, a roof) cannot be hit.
 	AttackHeightTolerance = 3,
-	-- 7DTD: a common zombie hits for 8 every 1.5 s by day (1.1 s at night, once day/night exists).
+	-- 7DTD: a common zombie hits for 8 every 1.5 s by day and every 1.1 s at night.
 	AttackDamage = 8,
 	-- Arms-out reach before the first grab lands; the client plays the lunge at the same moment.
 	AttackWindup = 0.6,
 	AttackCooldown = 1.5,
+	AttackCooldownNight = 1.1,
 	-- A hit zombie staggers and stops moving for this long.
 	HitStunSeconds = 0.35,
 	-- Wandering zombies near a building sometimes walk in through a door, linger inside, and walk

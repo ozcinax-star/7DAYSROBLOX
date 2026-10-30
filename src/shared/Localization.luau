@@ -17,6 +17,7 @@ local Strings: { [string]: { [string]: string } } = {
 		PhaseDay = "Day {day}",
 		PhaseNight = "Night {day}",
 		HordeNight = "Horde night",
+		HudClock = "Day {day}  {time}",
 
 		-- Camera
 		CameraShoulder = "Shoulder",
@@ -33,6 +34,7 @@ local Strings: { [string]: { [string]: string } } = {
 		DebugKill = "Kill nearest zombie",
 		DebugGiveKit = "Give test items",
 		DebugClear = "Clear",
+		DebugSkipPhase = "Skip to next phase",
 
 		-- Inventory
 		InventoryBackpack = "Backpack",
