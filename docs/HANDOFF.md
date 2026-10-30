@@ -115,6 +115,19 @@ torbası yaklaşık %20. Bu kararlar ve telefon kapısının ertelenmesi PLAN.md
 | `79274bd` | Koyu ten çürümeyle griye dönmüyor; gözler donuk, yara eğik yırtık |
 | `d593fdf` | Saldıran zombi en yakın oyuncuya dönüyor; debug panelinde "Kill nearest zombie" (`ZombieService.nearest` + `damage`) |
 
+### 4. Bölüm: 7DTD ana referans ve envanter (31 Ekim)
+
+Kullanıcı kapsam kuralını değiştirdi: ana referans 7 Days to Die; planın özgün kararları farkı belirler
+(PLAN, Kapsam). İki araştırma ajanı 7DTD'nin oyun XML'lerinden (1.0, 2.6, 3.2) tarif, yığın ve alet
+sayılarını çıkardı; sonuçlar `docs/REFERENCE_7DTD.md` dosyasına yazılacak.
+
+| Commit | Ne yapıldı |
+| --- | --- |
+| `c6c62e3` | PLAN ve NEXT_STEPS: 7DTD ana referans |
+| `ec74896` | Saf `Shared/Inventory` (kaynak taşıyan yığınlar, aletler yığılmaz ve aşınır), `Config.Items` ve `Config.Inventory` (7DTD: 10 + 45 slot, ham kaynak yığını 6000), 5 test |
+| `383297a` | `InventoryService` (sunucu sahibi, kare başına bir kopya, doğrulanmış ve hız sınırlı taşıma/seçme), elde görünen alet (`Modules/HeldItems`), debug `GiveKit` |
+| `859c573` | Alet kemeri ve sırt çantası arayüzü (`InventoryController`), debug panelinde "Give test items" |
+
 ## Mevcut durum
 
 | Alan | Durum |
@@ -122,21 +135,23 @@ torbası yaklaşık %20. Bu kararlar ve telefon kapısının ertelenmesi PLAN.md
 | Harita (`MapService` + `World/*`) | Çalışıyor. 2048×2048; orman ve küçük kasaba, göl, taş ocağı, telsiz tepesi, çiftlik, kereste atölyesi, hurdalık. Arazi, 37 bina, yollar, sokak eşyaları ve orman sunucu açılışında kodla kuruluyor. |
 | Binalar | 15 şablon. Mobilyalı odalar, iki katlılarda merdiven, açılmış kapılar, tabelalar. Her model `Template`, `Loot` (`Food`, `Medical`, `Metal`, `Fabric`…), `Floors` ve `Region` özelliklerini taşıyor; loot sistemi bunları kullanacak. |
 | Zombiler (`ZombieService`) | Çalışıyor. Humanoid yok. Akış alanıyla yol bulma, görerek kovalama, ses noktasına gitme, gezinme, eve girip çıkma, merdivenle üst kat, bina içinde uyuyan zombi, saldırı öncesi bekleme, sendeleme, dalgalı spawn, sunucu LOD'u (yakın 10 Hz, uzak 2 Hz), anlık görüntü yayını. API: `spawn`, `remove`, `clear`, `damage` (öldürünce true), `onDied`, `getPosition`, `hearSound`, `getStats`, `getNavGrid`. |
-| İstemci | `ZombieRenderController` + `Modules/ZombieRig`: 17 parçalı rig, prosedürel yürüyüş, interpolasyon, LOD, ceset; `flinch(id)` hazır. `DebugOverlayController`: FPS, tick süresi, zombi sayısı; Spawn 80/120, Noise, GodMode, Kill ve Clear düğmeleri. |
+| Envanter (`InventoryService` + `Shared/Inventory`) | Çalışıyor. 10 slot alet kemeri + 45 slot sırt çantası. Yeni eşya önce sırt çantasına girer. Her yığın kaynağını taşır; farklı kaynaklar birleşmez. Seçili slottaki eşya sağ elde görünür (stilize model; sallama pozu yok). API: `get`, `changed`, `give`, `room`, `take` (hep ya da hiç), `count`, `getHeld`, `wearHeld`, `onHeldChanged`. Oyuncu boş elle başlar (`StartingItems` boş). |
+| İstemci | `ZombieRenderController` + `Modules/ZombieRig`: 17 parçalı rig, prosedürel yürüyüş, interpolasyon, LOD, ceset; `flinch(id)` hazır. `InventoryController`: alttaki alet kemeri, I / Tab / gamepad Y ile sırt çantası, mobilde Bag düğmesi; tıkla-seç-bırak taşıma, sağ tık veya Split ile yarım yığın; 1–0 tuşları ve L1/R1 ile slot seçimi. `DebugOverlayController`: FPS, tick süresi, zombi sayısı; Spawn 80/120, Noise, GodMode, Kill, Give test items ve Clear düğmeleri. |
 | Debug | Remote: `DebugCommand`. Yalnızca Studio'da veya `Config.Debug.AllowedUserIds` listesindeki hesaplarla çalışır (`11911303584` test eden hesap). Doğrulanır ve hız sınırlıdır. |
 | `DayNightService` | **Boş iskelet.** |
 | `ThreatService` | **Boş iskelet.** Config değerleri ve `Types.SoundPoint` hazır. |
 | `BuildService` | **Boş iskelet.** `Config.Build` ve `Types.BuildPieceKind` hazır. |
 | Kamera (omuz/FPS) | **Yok.** Localization anahtarları (`CameraShoulder`, `CameraFirstPerson`) ve `Config.Camera` hazır. |
 | Oyuncunun silahı veya saldırısı | **Yok.** `ZombieService.damage` var ama oyuncu zombiye vuramıyor. Sıradaki işlerde (NEXT_STEPS 2). |
-| Envanter, toplama, crafting, loot, kazı | **Sıradaki iş** (NEXT_STEPS 1–6). `ZombieService.onDied` loot için hazır. |
+| Toplama, crafting, loot, kazı | **Sıradaki iş** (NEXT_STEPS 2–6). `ZombieService.onDied` loot için, `InventoryService.give/take/wearHeld` hepsi için hazır. |
 | Perk, kayıt, monetizasyon | Bilerek yazılmadı. |
 
 ### Ölçümler
 
 Ölçümler 30–31 Ekim 2026'da PC'de, Studio içinde alındı. Telefonda ölçüm yok.
 
-- **Testler:** 22/22 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3).
+- **Testler:** 27/27 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
+  Inventory 5).
   Testler yalnızca Studio düzeneğiyle çalıştırıldı; Lune ile hiç çalıştırılmadı.
 - **Zombi performansı:** 80 zombiyle tick ortalaması 0,04–0,17 ms, en kötü tick genelde 1,3–1,8 ms
   (bir kez 3,9 ms). Zombi başına 17 parça.
@@ -156,6 +171,10 @@ torbası yaklaşık %20. Bu kararlar ve telefon kapısının ertelenmesi PLAN.md
 - **Yol bulma:** 923 zemin hücresi denetlendi, sorun çıkmadı.
 - **Bina zemin taraması:** Taban içi her 2 stud'da, dışı 1–12 stud mesafede halka hâlinde tarandı. 37 binanın hiçbirinde arazi
   tabandan çıkmıyor, duvar dibine yükselen yamaç ve alt kısımda boşluk yok, taban altında çimen yok.
+- **Envanter (Play, 31 Ekim):** GiveKit eşyaları sırt çantasının ilk 6 slotuna koydu. Fareyle
+  baltayı 1. slota taşıma, sağ tıkla 50 odunu 25/25 bölme çalıştı. Elde balta bir tane göründü; boş
+  slot seçilince kalktı. Hatalı istekler (NaN, sonsuz, metin, tablo, aralık dışı, kesirli, yığından
+  büyük sayı) reddedildi. 100 taşıma isteğinin 20'si geçti (hız sınırı 20/sn).
 - **Konsol:** Sunucu ve istemcide 0 uyarı, 0 hata.
 
 ## Teknik notlar
@@ -222,7 +241,7 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
    local src = Http:GetAsync("http://127.0.0.1:8765/Harness.luau", true)
    Http.HttpEnabled = was
    local H = loadstring(src)()
-   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "22 passed, 0 failed"
+   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "27 passed, 0 failed"
    ```
    Düzenek place'e hiçbir şey bırakmaz.
 3. Her kod değişikliğinden sonra adım 1'deki bundle komutunu tekrar çalıştır, sonra `H.sync()`.
@@ -241,14 +260,20 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
 - `execute_luau` ayrı bir VM'de çalışır: `require(ZombieService)` başlatılmamış yeni bir kopya verir.
   Zombi spawn etmek için `Client` veri modelinden
   `game.ReplicatedStorage.Remotes.DebugCommand:FireServer("Spawn", 80)` kullan (`"Noise"`,
-  `"GodMode"`, `"Kill"`, `"Clear"` da var). İstemcide zombiler `workspace.ClientZombies` altında, `Pelvis`
+  `"GodMode"`, `"Kill"`, `"GiveKit"`, `"Clear"` da var). İstemcide zombiler `workspace.ClientZombies` altında, `Pelvis`
   parçasıyla ölçülebilir.
+- Arayüz düğmeleri `user_mouse_input` ile `instance_path` verilerek tıklanabilir (ör.
+  `LocalPlayer.PlayerGui.Inventory.Backpack.Slots.Slot11`); tuşlar `user_keyboard_input` ile.
+- Slot düğmelerindeki `Name` etiketi `.Name` özelliğinin gölgesinde kalır: test betiğinde
+  `slot:FindFirstChild("Name")` kullan.
 - `GodMode` bir ForceField takar; `Humanoid:TakeDamage` o sırada hiç çalışmaz. Saldırıyı ölçmek için
   ForceField'ı kaldır.
 
 ### Ekran görüntüsü
 
 - `screen_capture` Play modunda beyaz çıkıyor; 31 Ekim'de Edit modunda çalıştı.
+- **Elde alet önizlemesi:** Edit modunda `Players:CreateHumanoidModelFromDescription` ile R15 rig
+  kurulur, `H.load(...Modules.HeldItems).build(id, rig.RightHand, grip)` ile alet takılır.
 - **Zombi önizlemesi:** Edit modunda `H.load(<StarterPlayer altındaki ZombieRig>)` ile
   `Rig.build(id)`, `Rig.newPose(id)` ve `Rig.pose(...)` çağrılıp birkaç rig `workspace` altına bir
   klasöre konur, yüksekte (y≈1000) bir zemin parçasıyla çekilir, sonra klasör silinir.
@@ -292,5 +317,8 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
   - MCP üzerinden `Lighting.Technology` okunamıyor (yetki hatası).
 - **Python konsolu cp1254 kodlamasında.** Türkçe veya Unicode yazdıran betiklerde
   `PYTHONIOENCODING=utf-8` kullan.
+- **Tab tuşu:** Roblox'ta Tab oyuncu listesini de açıp kapatabilir; envanter için denenmedi (test
+  `I` ile yapıldı).
+- **Fare tekeri slot değiştirmiyor.** Tekerlek kamera zoom'unda; kamera adımında karar verilecek.
 - **Git yedeği yok.** Uzak depo tanımlı değil. GitHub'a göndermek dışarıya açık bir adım olduğu için
   kullanıcıya sorulmalı.

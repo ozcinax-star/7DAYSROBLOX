@@ -16,7 +16,8 @@ Yol haritası notu ve Kararlar tablosu).
 | Zombi davranışı | Bitti: yavaş sarsılan yürüyüş, eve girip çıkma, merdivenle üst kat, bina içinde uyuyan zombi, saldırı öncesi kol uzatma, vurulunca sendeleme |
 | Zombi görünümü | Bitti: 17 parçalı rig, zayıf ve çürümüş yüz, ten dağılımı, prosedürel topallama, ölünce yığılma |
 | Stres testi aracı | Bitti |
-| Envanter, toplama, crafting, vuruş, zombi loot'u, kazı | **Sıradaki iş** (aşağıda 1–6) |
+| Envanter | Bitti: 10 + 45 slot, kaynaklı yığınlar, elde görünen alet, arayüz |
+| Vuruş, toplama, crafting, zombi loot'u, kazı | **Sıradaki iş** (aşağıda 2–6) |
 | Gündüz-gece, tehdit hesabı, tahta duvar, kamera | **Yapılmadı** |
 | Kapı 1: 80 zombiyle orta seviye telefonda 30 FPS | **Ölçülmedi**; kullanıcı erteledi |
 | Kapı 2: 3 kişilik test grubu "bir gece daha" diyor | Henüz yapılamaz |
@@ -41,15 +42,13 @@ Cevaplananlar: oyuncu zombiye aletle vuracak (bu planın 2. maddesi); zombiler �
 Sıra kullanıcının isteğindeki sırayı izler. Her madde ayrı commit'lenir; her maddeden sonra kullanıcıya
 tam test adımları yazılır.
 
-### 1. Envanter
+### 1. Envanter (bitti, 31 Ekim)
 
-- **Config:** `Config.Items` (yığın boyutu, alet istatistikleri; sayılar aşağıdaki 7DTD tablosundan).
-- **Saf modül:** `Shared/Inventory` (ekle, çıkar, yığınla, slot taşı) ve Lune testleri.
-- **Sunucu:** `InventoryService`. Envanter sunucuda; yalnızca sahibine yayınlanır. Her yığın kaynağını
-  taşır (`Types.ItemSource`).
-- **İstemci:** 8 slotluk hotbar ve sırt çantası arayüzü. Seçili alet ele kaynaklı görünür. CoreGui
-  sırt çantası kapatılır. Metinler Localization'dan.
-- **Kontroller:** PC 1–8 ve fare tekeri, mobilde hotbar'a dokunma, gamepad L1/R1.
+`ec74896`, `383297a`, `859c573`. 7DTD boyutları: 10 slot alet kemeri, 45 slot (5×9) sırt çantası; odun,
+küçük taş ve bitki lifi 6000'lik yığın. Kalanlar:
+- Fare tekeriyle slot değiştirme: tekerlek kamera zoom'unda; kamera adımında karar.
+- 7DTD'nin taşıma yükü (fazla eşyada yavaşlama): sonra.
+- Eşya simgeleri: şimdilik renkli kare.
 
 ### 2. Vuruş
 
@@ -167,6 +166,7 @@ Ağaçta odun, verilen hasara oranla her vuruşta gelir; devrilince yalnızca to
 | Taş kürek | 38 | 0,3 / 1,0 / 0,2 | 9 | 50 | 16,2 | 250 |
 | Demir kazma | 42 | 0,2 / 0,2 / 1,0 | 11,2 | 65 | — | — |
 
+- Yığın: odun, küçük taş, bitki lifi 6000 (1.0, 2.6 ve 3.2'de aynı).
 - Crafting kuyruğu 4 slot.
 - Zombi loot torbası 7DTD'de %2–4, 6×3 kap, 3600 sn ömür. Bizde %20 (kullanıcı kararı).
 
