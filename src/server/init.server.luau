@@ -9,6 +9,7 @@ local order = {
 	require(Services.DayNightService),
 	require(Services.ThreatService),
 	require(Services.ZombieService),
+	require(Services.InventoryService),
 	require(Services.BuildService),
 	require(Services.DebugService),
 }

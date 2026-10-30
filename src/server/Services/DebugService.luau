@@ -12,6 +12,7 @@ local Config = require(Shared.Config)
 local Net = require(Shared.Net)
 
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
+local InventoryService = require(script.Parent.InventoryService)
 local ZombieService = require(script.Parent.ZombieService)
 
 local DebugService = {}
@@ -66,6 +67,10 @@ local function onCommand(player: Player, command: unknown, value: unknown)
 		local id = ZombieService.nearest(root.Position, Config.Debug.KillRadius)
 		if id then
 			ZombieService.damage(id, Config.Zombie.MaxHealth, player)
+		end
+	elseif command == "GiveKit" then
+		for _, entry in Config.Debug.TestKit do
+			InventoryService.give(player, entry.Id, entry.Count, "Loot")
 		end
 	elseif command == "Noise" then
 		-- Position comes from the server's view of the character, never from the client.

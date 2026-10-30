@@ -14,6 +14,12 @@ local Definitions: { [string]: "RemoteEvent" | "UnreliableRemoteEvent" } = {
 	ZombieRemoved = "RemoteEvent",
 	-- Client -> server: debug command (string, number?). Studio / allowlist only.
 	DebugCommand = "RemoteEvent",
+	-- Server -> client: the player's own inventory ({ Inventory.Slot }) and active toolbelt slot (number).
+	InventoryUpdate = "RemoteEvent",
+	-- Client -> server: move items between own slots (from: number, to: number, count: number?).
+	InventoryMove = "RemoteEvent",
+	-- Client -> server: choose the active toolbelt slot (number).
+	InventorySelect = "RemoteEvent",
 }
 
 local Net = {}
