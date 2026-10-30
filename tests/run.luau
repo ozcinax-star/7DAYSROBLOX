@@ -7,6 +7,8 @@ local HeightField = require("../src/shared/World/HeightField")
 local WorldLayout = require("../src/shared/World/WorldLayout")
 local BuildingTemplates = require("../src/server/World/BuildingTemplates")
 local FloorPlan = require("../src/server/World/FloorPlan")
+local Config = require("../src/shared/Config")
+local ZombieLook = require("../src/shared/ZombieLook")
 
 local passed, failed = 0, 0
 
@@ -372,6 +374,41 @@ test("malformed packet is rejected", function()
 	local packet = buffer.create(12)
 	buffer.writeu16(packet, 8, 5)
 	expectEq(ZombieProtocol.decode(packet, 8, function() end), nil, "decode")
+end)
+
+print("ZombieLook")
+
+test("a zombie looks the same on every client", function()
+	local a = ZombieLook.fromId(1234)
+	local b = ZombieLook.fromId(1234)
+	expectEq(a.toneIndex, b.toneIndex, "tone")
+	expectEq(a.height, b.height, "height")
+	expectEq(a.limpSide, b.limpSide, "limp side")
+	expectEq(a.shirt, b.shirt, "shirt")
+end)
+
+test("skin tones follow their spawn weights", function()
+	local tones = Config.ZombieVisual.SkinTones
+	local total = 0
+	for _, tone in tones do
+		total += tone.Weight
+	end
+	local counts = table.create(#tones, 0)
+	local samples = 20000
+	for id = 1, samples do
+		local index = ZombieLook.fromId(id).toneIndex
+		counts[index] += 1
+	end
+	for index, tone in tones do
+		expectNear(counts[index] / samples, tone.Weight / total, 0.02, `tone {index} share`)
+	end
+end)
+
+test("weighted pick covers the whole range", function()
+	expectEq(ZombieLook.pickWeighted({ 1, 3 }, 0), 1, "lowest roll")
+	expectEq(ZombieLook.pickWeighted({ 1, 3 }, 0.2), 1, "inside the first weight")
+	expectEq(ZombieLook.pickWeighted({ 1, 3 }, 0.3), 2, "inside the second weight")
+	expectEq(ZombieLook.pickWeighted({ 1, 3 }, 0.999), 2, "highest roll")
 end)
 
 print(`\n{passed} passed, {failed} failed`)

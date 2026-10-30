@@ -165,26 +165,108 @@ Config.Network = {
 }
 
 Config.ZombieVisual = {
-	-- Grey-box body part sizes (studs).
-	TorsoSize = { 2, 2, 1 },
-	HeadSize = { 1.2, 1.2, 1.2 },
-	LimbSize = { 0.9, 2, 0.9 },
-	Color = { 0.36, 0.48, 0.32 },
-	-- Client LOD distances (studs).
+	-- Client LOD distances (studs). Within DetailDistance the face and wounds are shown; within
+	-- AnimateDistance the body is animated every frame, beyond it every FarAnimateEveryFrames frames.
 	RenderDistance = 260,
+	DetailDistance = 45,
 	AnimateDistance = 70,
+	FarAnimateEveryFrames = 3,
 	-- Zombies this close always update even if they are off screen (peripheral vision, camera turns).
 	AlwaysUpdateDistance = 15,
-	-- Off-screen zombies are re-posed (without animation) once every N frames.
+	-- Off-screen zombies are re-posed once every N frames.
 	OffscreenUpdateEveryFrames = 6,
 	-- Interpolation duration bounds between two server samples (seconds).
 	MinInterpolation = 0.08,
 	MaxInterpolation = 0.6,
-	-- Procedural walk cycle.
-	StrideFrequency = 1.6,
-	ArmSwingRadians = 0.35,
-	LegSwingRadians = 0.6,
-	ArmRaiseRadians = 1.4,
+	-- Body turn rate toward the walking direction (radians/s).
+	TurnRate = 3.5,
+
+	-- Shamble gait. Strides per second at ReferenceSpeed, scaled with the actual speed so the feet
+	-- do not skate.
+	StrideFrequency = 0.8,
+	ReferenceSpeed = 3,
+	MinStrideFrequency = 0.45,
+	MaxStrideFrequency = 1.4,
+	-- Gait amplitude while grabbing in place (0 = still, 1 = full walk) and how fast the gait blends
+	-- between walking and standing (per second).
+	AttackGait = 0.35,
+	GaitBlendRate = 4,
+	LegSwingRadians = 0.42,
+	KneeBendRadians = 0.75,
+	-- Lean of the whole body toward the limping leg, and the dip when weight lands on it.
+	LimpLeanRadians = 0.12,
+	LimpDip = 0.28,
+	BodySwayRadians = 0.09,
+	BobHeight = 0.1,
+	-- Forward lurch of the upper body on every step (radians).
+	LurchRadians = 0.07,
+	HeadLollRadians = 0.18,
+	-- Arms hang and swing loosely while idle or wandering; reach forward while chasing or attacking.
+	ArmHangSwingRadians = 0.22,
+	ArmReachRadians = 1.3,
+	ArmReachBobRadians = 0.14,
+	-- Extra torso pitch and arm lift at the moment a grab lands.
+	AttackLungeRadians = 0.35,
+	AttackArmLiftRadians = 0.35,
+	-- Short head/torso jerks: average seconds between twitches and their strength.
+	TwitchInterval = 3,
+	TwitchRadians = 0.35,
+
+	-- Per-zombie body shape ranges (picked from the zombie id, identical on every client).
+	HeightScaleMin = 0.92,
+	HeightScaleMax = 1.08,
+	HunchMin = 0.18,
+	HunchMax = 0.45,
+	LimpMin = 0.15,
+	LimpMax = 0.85,
+	HeadTiltMax = 0.35,
+	-- Chance of one arm hanging dead instead of reaching.
+	DeadArmChance = 0.25,
+
+	-- Skin tones (r, g, b in 0-1) and spawn weights. Default weights follow a small US town: mostly
+	-- light skin, olive/tan and black/dark-brown skin in proportion to the population.
+	SkinTones = {
+		{ Color = { 0.93, 0.8, 0.69 }, Weight = 0.38 },
+		{ Color = { 0.86, 0.69, 0.55 }, Weight = 0.32 },
+		{ Color = { 0.72, 0.53, 0.38 }, Weight = 0.16 },
+		{ Color = { 0.45, 0.31, 0.22 }, Weight = 0.08 },
+		{ Color = { 0.3, 0.2, 0.14 }, Weight = 0.06 },
+	},
+	-- Decay pulls the skin toward RotColor by a per-zombie amount; hands, forearms and the face rot
+	-- a little more (ExtremityRot). Stylized per PLAN: grey-green decay, no red gore.
+	RotColor = { 0.5, 0.55, 0.45 },
+	RotMin = 0.25,
+	RotMax = 0.5,
+	ExtremityRot = 0.15,
+	-- Faces are gaunt: the head is darkened slightly and shrunk on X.
+	FaceShade = 0.88,
+	WoundColor = { 0.25, 0.28, 0.17 },
+	EyeSocketColor = { 0.08, 0.07, 0.07 },
+	EyeColor = { 0.78, 0.8, 0.72 },
+	-- Dirty, faded clothing.
+	ShirtColors = {
+		{ 0.55, 0.52, 0.47 },
+		{ 0.36, 0.42, 0.5 },
+		{ 0.45, 0.25, 0.22 },
+		{ 0.3, 0.36, 0.3 },
+		{ 0.62, 0.58, 0.46 },
+		{ 0.22, 0.22, 0.24 },
+		{ 0.5, 0.42, 0.3 },
+	},
+	PantsColors = {
+		{ 0.24, 0.29, 0.38 },
+		{ 0.42, 0.37, 0.28 },
+		{ 0.2, 0.2, 0.21 },
+		{ 0.33, 0.31, 0.27 },
+	},
+	-- Chance that sleeves / trouser legs are torn away and rotten skin shows.
+	BareArmChance = 0.45,
+	BareShinChance = 0.25,
+	-- Death: collapse time, then the body lies still before it is removed.
+	DeathFallSeconds = 0.8,
+	CorpseSeconds = 6,
+	-- Hit flinch of a struck zombie (seconds).
+	FlinchSeconds = 0.3,
 	-- Groan audio; empty string disables sound until an asset is chosen.
 	GroanSoundId = "",
 	GroanIntervalMin = 4,

@@ -1,11 +1,13 @@
 --!strict
--- ZombieRenderController: builds client-side zombie models from server snapshots and interpolates
--- between samples. LOD:
+-- ZombieRenderController: builds client-side zombie bodies (ZombieRig) from server snapshots,
+-- interpolates between samples and drives the shamble. LOD:
 --   * beyond RenderDistance: model is unparented (sound keeps playing)
---   * on screen (or very close) and within AnimateDistance: full procedural walk cycle
---   * on screen beyond AnimateDistance: moved as a static pose
---   * off screen: parts are not moved at all
--- Every zombie keeps its positional sound updated, so attacks from behind are still heard.
+--   * on screen (or very close) within DetailDistance: full body with face and wound details
+--   * on screen within AnimateDistance: body animated every frame, details hidden
+--   * on screen beyond AnimateDistance: animated every FarAnimateEveryFrames frames
+--   * off screen: re-posed every OffscreenUpdateEveryFrames frames
+-- Killed zombies collapse and lie still for a while before they are removed; every zombie keeps its
+-- positional sound updated, so attacks from behind are still heard.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -16,17 +18,22 @@ local Config = require(Shared.Config)
 local Net = require(Shared.Net)
 local ZombieProtocol = require(Shared.ZombieProtocol)
 
+local ZombieRig = require(script.Parent.Parent.Modules.ZombieRig)
+
 local VC = Config.ZombieVisual
+local ZC = Config.Zombie
 local NC = Config.Network
 
 local TWO_PI = math.pi * 2
 -- Movement below this many studs between samples counts as standing still.
 local MOVE_EPSILON = 0.05
+-- Corpses fade out over their last second.
+local CORPSE_FADE = 1
 
 type View = {
 	id: number,
-	model: Model,
-	parts: { BasePart },
+	rig: ZombieRig.Rig,
+	pose: ZombieRig.Pose,
 	fromX: number,
 	fromY: number,
 	fromZ: number,
@@ -39,66 +46,31 @@ type View = {
 	x: number,
 	y: number,
 	z: number,
-	yaw: number,
-	phase: number,
-	moving: boolean,
-	state: string,
+	targetYaw: number,
+	speed: number,
+	stateSince: number,
+	flinchAt: number,
 	shown: boolean,
 	attachment: Attachment?,
 	sound: Sound?,
 	nextGroan: number,
+	-- Set when the zombie was killed: time of death.
+	diedAt: number?,
 }
 
 local ZombieRenderController = {}
 
 local views: { [number]: View } = {}
+-- Killed zombies keep animating here until removed; their ids may be reused by the server meanwhile.
+local corpses: { View } = {}
 local container: Folder
 local renderedCount = 0
 local frame = 0
 
-local function vec(v: { number }): Vector3
-	return Vector3.new(v[1], v[2], v[3])
-end
-
-local TORSO = vec(VC.TorsoSize)
-local HEAD = vec(VC.HeadSize)
-local LIMB = vec(VC.LimbSize)
-local COLOR = Color3.new(VC.Color[1], VC.Color[2], VC.Color[3])
-
--- Joint offsets relative to the torso centre.
-local HEAD_OFFSET = CFrame.new(0, TORSO.Y / 2 + HEAD.Y / 2, 0)
-local LEFT_SHOULDER = CFrame.new(-(TORSO.X + LIMB.X) / 2, TORSO.Y / 2, 0)
-local RIGHT_SHOULDER = CFrame.new((TORSO.X + LIMB.X) / 2, TORSO.Y / 2, 0)
-local LEFT_HIP = CFrame.new(-LIMB.X / 2, -TORSO.Y / 2, 0)
-local RIGHT_HIP = CFrame.new(LIMB.X / 2, -TORSO.Y / 2, 0)
-local LIMB_HANG = CFrame.new(0, -LIMB.Y / 2, 0)
-
-local function makePart(name: string, size: Vector3, parent: Instance): Part
-	local part = Instance.new("Part")
-	part.Name = name
-	part.Size = size
-	part.Color = COLOR
-	part.Material = Enum.Material.SmoothPlastic
-	part.Anchored = true
-	part.CanCollide = false
-	part.CanQuery = false
-	part.CanTouch = false
-	part.CastShadow = false
-	part.Parent = parent
-	return part
-end
-
 local function createView(id: number, x: number, y: number, z: number, state: string, now: number): View
-	local model = Instance.new("Model")
-	model.Name = `Zombie{id}`
-	local parts = {
-		makePart("Torso", TORSO, model),
-		makePart("Head", HEAD, model),
-		makePart("LeftArm", LIMB, model),
-		makePart("RightArm", LIMB, model),
-		makePart("LeftLeg", LIMB, model),
-		makePart("RightLeg", LIMB, model),
-	}
+	local rig = ZombieRig.build(id)
+	local pose = ZombieRig.newPose(id)
+	pose.state = state
 
 	local attachment: Attachment? = nil
 	local sound: Sound? = nil
@@ -117,8 +89,8 @@ local function createView(id: number, x: number, y: number, z: number, state: st
 
 	return {
 		id = id,
-		model = model,
-		parts = parts,
+		rig = rig,
+		pose = pose,
 		fromX = x,
 		fromY = y,
 		fromZ = z,
@@ -131,19 +103,20 @@ local function createView(id: number, x: number, y: number, z: number, state: st
 		x = x,
 		y = y,
 		z = z,
-		yaw = 0,
-		phase = math.random() * TWO_PI,
-		moving = false,
-		state = state,
+		targetYaw = pose.yaw,
+		speed = 0,
+		stateSince = now,
+		flinchAt = -math.huge,
 		shown = false,
 		attachment = attachment,
 		sound = sound,
 		nextGroan = now + VC.GroanIntervalMin + math.random() * (VC.GroanIntervalMax - VC.GroanIntervalMin),
+		diedAt = nil,
 	}
 end
 
 local function destroyView(view: View)
-	view.model:Destroy()
+	view.rig.model:Destroy()
 	if view.attachment then
 		view.attachment:Destroy()
 	end
@@ -158,43 +131,96 @@ local function onSample(id: number, x: number, y: number, z: number, state: stri
 	end
 	local dx = x - view.toX
 	local dz = z - view.toZ
-	view.moving = dx * dx + dz * dz > MOVE_EPSILON * MOVE_EPSILON
-	if view.moving then
-		view.yaw = math.atan2(-dx, -dz)
+	local moved = math.sqrt(dx * dx + dz * dz)
+	local duration = math.clamp(now - view.lastSample, VC.MinInterpolation, VC.MaxInterpolation)
+	view.pose.moving = moved > MOVE_EPSILON
+	if view.pose.moving then
+		view.targetYaw = math.atan2(-dx, -dz)
+		view.speed = moved / duration
+	else
+		view.speed = 0
 	end
 	view.fromX, view.fromY, view.fromZ = view.x, view.y, view.z
 	view.toX, view.toY, view.toZ = x, y, z
 	view.t0 = now
-	view.duration = math.clamp(now - view.lastSample, VC.MinInterpolation, VC.MaxInterpolation)
+	view.duration = duration
 	view.lastSample = now
-	view.state = state
+	if view.pose.state ~= state then
+		view.pose.state = state
+		view.stateSince = now
+	end
+end
+
+local function onKilled(id: number, now: number)
+	local view = views[id]
+	if view == nil then
+		return
+	end
+	views[id] = nil
+	view.diedAt = now
+	view.pose.moving = false
+	view.pose.state = "Idle"
+	-- Corpses keep their face visible up close; the details follow the normal LOD afterwards.
+	table.insert(corpses, view)
+end
+
+-- Shortest signed angle from a to b.
+local function angleDelta(a: number, b: number): number
+	return (b - a + math.pi) % TWO_PI - math.pi
 end
 
 local partBuffer: { BasePart } = {}
 local cframeBuffer: { CFrame } = {}
 
-local function poseInto(view: View, animate: boolean)
-	local root = CFrame.new(view.x, view.y, view.z) * CFrame.Angles(0, view.yaw, 0)
-	local swing = if animate and view.moving then math.sin(view.phase) else 0
-	local armSwing = swing * VC.ArmSwingRadians
-	local legSwing = swing * VC.LegSwingRadians
-	if view.state == "AttackPlayer" or view.state == "AttackStructure" then
-		armSwing = if animate then math.sin(view.phase * 2) * VC.ArmSwingRadians * 2 else 0
+-- Advances interpolation, gait phase and turning. Runs every frame for every zombie (cheap math).
+local function advance(view: View, now: number, dt: number)
+	local alpha = math.clamp((now - view.t0) / view.duration, 0, 1)
+	view.x = view.fromX + (view.toX - view.fromX) * alpha
+	view.y = view.fromY + (view.toY - view.fromY) * alpha
+	view.z = view.fromZ + (view.toZ - view.fromZ) * alpha
+	local pose = view.pose
+	if pose.moving and now - view.lastSample > VC.MaxInterpolation then
+		-- No sample for a while (far LOD or packet loss): stand until the server says otherwise.
+		pose.moving = false
 	end
-	local parts = view.parts
-	local n = #partBuffer
-	partBuffer[n + 1] = parts[1]
-	cframeBuffer[n + 1] = root
-	partBuffer[n + 2] = parts[2]
-	cframeBuffer[n + 2] = root * HEAD_OFFSET
-	partBuffer[n + 3] = parts[3]
-	cframeBuffer[n + 3] = root * LEFT_SHOULDER * CFrame.Angles(VC.ArmRaiseRadians + armSwing, 0, 0) * LIMB_HANG
-	partBuffer[n + 4] = parts[4]
-	cframeBuffer[n + 4] = root * RIGHT_SHOULDER * CFrame.Angles(VC.ArmRaiseRadians - armSwing, 0, 0) * LIMB_HANG
-	partBuffer[n + 5] = parts[5]
-	cframeBuffer[n + 5] = root * LEFT_HIP * CFrame.Angles(legSwing, 0, 0) * LIMB_HANG
-	partBuffer[n + 6] = parts[6]
-	cframeBuffer[n + 6] = root * RIGHT_HIP * CFrame.Angles(-legSwing, 0, 0) * LIMB_HANG
+	local attacking = pose.state == "AttackPlayer" or pose.state == "AttackStructure"
+	local gaitTarget = if pose.moving then 1 elseif attacking then VC.AttackGait else 0
+	local blend = math.min(1, dt * VC.GaitBlendRate)
+	pose.gait += (gaitTarget - pose.gait) * blend
+	local frequency
+	if pose.moving then
+		frequency = math.clamp(
+			VC.StrideFrequency * view.speed / VC.ReferenceSpeed,
+			VC.MinStrideFrequency,
+			VC.MaxStrideFrequency
+		)
+	elseif attacking then
+		frequency = VC.MinStrideFrequency
+	else
+		frequency = VC.MinStrideFrequency * 0.5
+	end
+	pose.phase = (pose.phase + dt * frequency * TWO_PI) % (TWO_PI * 2)
+	local turn = angleDelta(pose.yaw, view.targetYaw)
+	local maxTurn = VC.TurnRate * dt
+	pose.yaw += math.clamp(turn, -maxTurn, maxTurn)
+	pose.x = view.x
+	pose.ground = view.y - ZC.RootHeight
+	pose.z = view.z
+	pose.now = now
+	pose.stateTime = now - view.stateSince
+	pose.flinch = math.max(0, 1 - (now - view.flinchAt) / VC.FlinchSeconds)
+end
+
+local function updateSound(view: View, now: number, distSq: number, soundSq: number)
+	local attachment = view.attachment
+	if attachment and distSq <= soundSq then
+		attachment.WorldPosition = Vector3.new(view.x, view.y, view.z)
+		local sound = view.sound
+		if sound and now >= view.nextGroan then
+			sound:Play()
+			view.nextGroan = now + VC.GroanIntervalMin + math.random() * (VC.GroanIntervalMax - VC.GroanIntervalMin)
+		end
+	end
 end
 
 local function onRender(dt: number)
@@ -205,6 +231,7 @@ local function onRender(dt: number)
 	end
 	local camPos = camera.CFrame.Position
 	local renderSq = VC.RenderDistance * VC.RenderDistance
+	local detailSq = VC.DetailDistance * VC.DetailDistance
 	local animateSq = VC.AnimateDistance * VC.AnimateDistance
 	local alwaysSq = VC.AlwaysUpdateDistance * VC.AlwaysUpdateDistance
 	local soundSq = VC.SoundRange * VC.SoundRange
@@ -215,40 +242,24 @@ local function onRender(dt: number)
 	frame += 1
 
 	for _, view in views do
-		local alpha = math.clamp((now - view.t0) / view.duration, 0, 1)
-		view.x = view.fromX + (view.toX - view.fromX) * alpha
-		view.y = view.fromY + (view.toY - view.fromY) * alpha
-		view.z = view.fromZ + (view.toZ - view.fromZ) * alpha
-		if view.moving and alpha < 1 then
-			view.phase = (view.phase + dt * VC.StrideFrequency * TWO_PI) % (TWO_PI * 2)
-		end
+		advance(view, now, dt)
 
 		local dx = view.x - camPos.X
 		local dy = view.y - camPos.Y
 		local dz = view.z - camPos.Z
 		local distSq = dx * dx + dy * dy + dz * dz
+		updateSound(view, now, distSq, soundSq)
 
-		local attachment = view.attachment
-		if attachment and distSq <= soundSq then
-			attachment.WorldPosition = Vector3.new(view.x, view.y, view.z)
-			local sound = view.sound
-			if sound and now >= view.nextGroan then
-				sound:Play()
-				view.nextGroan = now
-					+ VC.GroanIntervalMin
-					+ math.random() * (VC.GroanIntervalMax - VC.GroanIntervalMin)
-			end
-		end
-
+		local model = view.rig.model
 		if distSq > renderSq then
 			if view.shown then
-				view.model.Parent = nil
+				model.Parent = nil
 				view.shown = false
 			end
 		else
 			local justShown = not view.shown
 			if justShown then
-				view.model.Parent = container
+				model.Parent = container
 				view.shown = true
 			end
 			local visible = distSq <= alwaysSq
@@ -256,13 +267,35 @@ local function onRender(dt: number)
 				local _, onScreen = camera:WorldToViewportPoint(Vector3.new(view.x, view.y, view.z))
 				visible = onScreen
 			end
+			local slot = frame + view.id
 			if visible then
 				rendered += 1
-				poseInto(view, distSq <= animateSq)
-			elseif justShown or (frame + view.id) % VC.OffscreenUpdateEveryFrames == 0 then
-				-- Off screen: static pose at a reduced rate so models never linger where they were.
-				poseInto(view, false)
+				ZombieRig.setDetailVisible(view.rig, distSq <= detailSq)
+				if justShown or distSq <= animateSq or slot % VC.FarAnimateEveryFrames == 0 then
+					ZombieRig.pose(view.rig, view.pose, partBuffer, cframeBuffer)
+				end
+			elseif justShown or slot % VC.OffscreenUpdateEveryFrames == 0 then
+				ZombieRig.setDetailVisible(view.rig, false)
+				ZombieRig.pose(view.rig, view.pose, partBuffer, cframeBuffer)
 			end
+		end
+	end
+
+	local lifetime = VC.DeathFallSeconds + VC.CorpseSeconds
+	for index = #corpses, 1, -1 do
+		local view = corpses[index]
+		local age = now - (view.diedAt :: number)
+		if age >= lifetime or not view.shown then
+			destroyView(view)
+			table.remove(corpses, index)
+		else
+			advance(view, now, 0)
+			view.pose.death = math.min(1, age / VC.DeathFallSeconds)
+			local fade = math.clamp((age - (lifetime - CORPSE_FADE)) / CORPSE_FADE, 0, 1)
+			if fade > 0 then
+				ZombieRig.setTransparency(view.rig, fade)
+			end
+			ZombieRig.pose(view.rig, view.pose, partBuffer, cframeBuffer)
 		end
 	end
 
@@ -285,19 +318,43 @@ function ZombieRenderController.start()
 		end
 		ZombieProtocol.decode(packet, NC.PositionScale, onSample)
 	end)
-	Net.event("ZombieRemoved").OnClientEvent:Connect(function(ids: unknown)
-		if typeof(ids) ~= "table" then
-			return
+	Net.event("ZombieRemoved").OnClientEvent:Connect(function(removed: unknown, killed: unknown)
+		local now = os.clock()
+		if typeof(killed) == "table" then
+			for _, id in killed :: { any } do
+				if typeof(id) == "number" then
+					onKilled(id, now)
+				end
+			end
 		end
-		for _, id in ids :: { any } do
-			local view = views[id]
-			if view then
-				destroyView(view)
-				views[id] = nil
+		if typeof(removed) == "table" then
+			for _, id in removed :: { any } do
+				local view = views[id]
+				if view then
+					destroyView(view)
+					views[id] = nil
+				end
 			end
 		end
 	end)
 	RunService.PreRender:Connect(onRender)
+end
+
+-- Plays the hit flinch on a zombie (local feedback for the attacking player).
+function ZombieRenderController.flinch(id: number)
+	local view = views[id]
+	if view then
+		view.flinchAt = os.clock()
+	end
+end
+
+-- Interpolated position of a zombie as currently drawn, or nil.
+function ZombieRenderController.getPosition(id: number): Vector3?
+	local view = views[id]
+	if view == nil then
+		return nil
+	end
+	return Vector3.new(view.x, view.y, view.z)
 end
 
 function ZombieRenderController.getRenderedCount(): number
