@@ -11,6 +11,7 @@ local order = {
 	require(Services.ZombieService),
 	require(Services.InventoryService),
 	require(Services.ToolService),
+	require(Services.HarvestService),
 	require(Services.BuildService),
 	require(Services.DebugService),
 }

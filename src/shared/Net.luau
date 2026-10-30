@@ -24,6 +24,8 @@ local Definitions: { [string]: "RemoteEvent" | "UnreliableRemoteEvent" } = {
 	UseTool = "RemoteEvent",
 	-- Server -> client: a swing happened (player, tool id or "Fist", hit zombie id or 0, head hit).
 	ToolSwing = "UnreliableRemoteEvent",
+	-- Server -> client: a tree was felled (tree model, trunk base Vector3, horizontal unit fall direction).
+	TreeFelled = "RemoteEvent",
 }
 
 local Net = {}

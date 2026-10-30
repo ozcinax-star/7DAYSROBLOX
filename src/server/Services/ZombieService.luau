@@ -175,6 +175,12 @@ export type Stats = {
 local ZombieService = {}
 
 local grid: NavGrid.NavGrid
+-- Ground cell costs from the terrain alone (water, bounds, slopes), before map parts block cells; nil
+-- until the navigation is marked. Reopening cells starts from here.
+local terrainCost: buffer? = nil
+local overlapParams = OverlapParams.new()
+overlapParams.FilterType = Enum.RaycastFilterType.Include
+overlapParams.RespectCanCollide = true
 -- Upper floors of every building in one layer (footprints never overlap); levels[GROUND] is `grid`.
 local upperGrid: NavGrid.NavGrid
 local levels: { NavGrid.NavGrid } = {}
@@ -1153,6 +1159,9 @@ local function markNavigation()
 			task.wait()
 		end
 	end
+	local terrainOnly = buffer.create(grid.cellCount)
+	buffer.copy(terrainOnly, 0, grid.cost)
+	terrainCost = terrainOnly
 
 	local count = 0
 	for _, part in MapService.getMap():GetDescendants() do
@@ -1473,6 +1482,34 @@ function ZombieService.getStats(): Stats
 	}
 	tickMsMax = 0
 	return stats
+end
+
+-- Marks the ground cells under a world rectangle again after map parts there stopped colliding (a
+-- felled tree, a broken boulder): each cell gets its terrain cost back, then every map part still
+-- standing there blocks it as at start. Building door fields built at start keep their old view.
+function ZombieService.reopenArea(minX: number, minZ: number, maxX: number, maxZ: number)
+	local terrain = terrainCost
+	if terrain == nil then
+		return
+	end
+	local size, half = grid.cellSize, grid.halfExtent
+	local x0 = math.max(0, math.floor((minX + half) / size))
+	local z0 = math.max(0, math.floor((minZ + half) / size))
+	local x1 = math.min(grid.width - 1, math.ceil((maxX + half) / size) - 1)
+	local z1 = math.min(grid.width - 1, math.ceil((maxZ + half) / size) - 1)
+	for cz = z0, z1 do
+		for cx = x0, x1 do
+			local index = cz * grid.width + cx
+			grid:setCost(index, buffer.readu8(terrain, index))
+		end
+	end
+	local center = Vector3.new((x0 + x1 + 1) * size / 2 - half, 0, (z0 + z1 + 1) * size / 2 - half)
+	local extent = Vector3.new((x1 - x0 + 1) * size, WorldLayout.HalfSize * 2, (z1 - z0 + 1) * size)
+	overlapParams.FilterDescendantsInstances = { MapService.getMap() }
+	for _, part in Workspace:GetPartBoundsInBox(CFrame.new(center), extent, overlapParams) do
+		local p, halfX, halfY, halfZ = partBounds(part)
+		blockAtHeight(grid, p, halfX, halfY, halfZ, MapService.heightAt(p.X, p.Z) + FC.StepHeight)
+	end
 end
 
 function ZombieService.getNavGrid(): NavGrid.NavGrid

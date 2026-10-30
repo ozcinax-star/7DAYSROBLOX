@@ -44,6 +44,9 @@ local Strings: { [string]: { [string]: string } } = {
 		ToolUse = "Hit",
 		ToolBroken = "{item} is broken",
 
+		-- Gathering
+		HarvestPickUp = "Pick up",
+
 		-- Items (key = "Item" .. item id)
 		ItemWood = "Wood",
 		ItemSmallStone = "Small Stone",

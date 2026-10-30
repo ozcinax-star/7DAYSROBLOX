@@ -5,8 +5,8 @@
 -- swing so they can animate it and stagger the zombie.
 --
 -- A swing hits the nearest zombie in reach that no wall hides, otherwise the first world surface in
--- reach; world hits go to `onWorldHit` listeners (gathering). Tools wear by one per hit, never on a
--- miss (7DTD). A tool at 0 durability cannot swing until it is repaired.
+-- reach, grass and bushes included; world hits go to `onWorldHit` listeners (gathering). Tools wear
+-- by one per hit, never on a miss (7DTD). A tool at 0 durability cannot swing until it is repaired.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -43,8 +43,9 @@ local swingRemote: UnreliableRemoteEvent
 local nextSwingAt: { [Player]: number } = {}
 local worldHitCallbacks: { WorldHitCallback } = {}
 
--- Ray params that ignore every character (no friendly blocking, no PvP) and decor.
-local function rayParams(): RaycastParams
+-- Ray params that ignore every character (no friendly blocking, no PvP) and decor. Walls only
+-- (`solid`) hide zombies; world hits also land on what the player walks through, such as grass.
+local function rayParams(solid: boolean): RaycastParams
 	local ignored: { Instance } = {}
 	for _, other in Players:GetPlayers() do
 		if other.Character then
@@ -55,7 +56,7 @@ local function rayParams(): RaycastParams
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = ignored
 	params.IgnoreWater = true
-	params.RespectCanCollide = true
+	params.RespectCanCollide = solid
 	return params
 end
 
@@ -98,7 +99,7 @@ local function onUseTool(player: Player, aim: unknown)
 
 	local origin = head.Position
 	local range = tool.Range * MC.StudsPerMeter
-	local params = rayParams()
+	local params = rayParams(true)
 	local ray: Melee.Ray = {
 		ox = origin.X,
 		oy = origin.Y,
@@ -124,7 +125,7 @@ local function onUseTool(player: Player, aim: unknown)
 		zombieId = hit.id
 		headHit = hit.head
 	else
-		local result = workspace:Raycast(origin, direction * range, params)
+		local result = workspace:Raycast(origin, direction * range, rayParams(false))
 		if result == nil then
 			swingRemote:FireAllClients(player, toolId, 0, false)
 			return
