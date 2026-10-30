@@ -18,7 +18,8 @@ Yol haritası notu ve Kararlar tablosu).
 | Stres testi aracı | Bitti |
 | Envanter | Bitti: 10 + 45 slot, kaynaklı yığınlar, elde görünen alet, arayüz |
 | Vuruş | Bitti: 7DTD hasar ve hızları, kafa vuruşu, aşınma, duvar kontrolü |
-| Toplama, crafting, zombi loot'u, kazı | **Sıradaki iş** (aşağıda 3–6) |
+| Toplama | Bitti: ağaç, çalı, ot, yerdeki taş, kaya; 7DTD verim formülü, ağaç devirme |
+| Crafting, zombi loot'u, kazı | **Sıradaki iş** (aşağıda 4–6) |
 | Gündüz-gece, tehdit hesabı, tahta duvar, kamera | **Yapılmadı** |
 | Kapı 1: 80 zombiyle orta seviye telefonda 30 FPS | **Ölçülmedi**; kullanıcı erteledi |
 | Kapı 2: 3 kişilik test grubu "bir gece daha" diyor | Henüz yapılamaz |
@@ -34,6 +35,11 @@ Her sorunun ilk seçeneği benim önerim.
    değişiklik yapılsın mı? Daha önce teklif edildi, yanıt gelmedi.
 4. **Git yedeği:** Uzak depo yok. GitHub'da özel bir depo açılıp gönderilsin mi? Dışarıya açık bir adım
    olduğu için onay gerekir.
+5. **Kaynaklar yeniden çıksın mı?** 7DTD'de doğal ağaç ve kayalar geri gelmez; şimdilik bizde de öyle.
+   Harita küçük ve dünyalar kalıcı olacak (PLAN), yani bir grup haftalar içinde ormanı bitirebilir.
+   Öneri: kalıcılık adımına kadar böyle kalsın; o adımda kesilen nesneler id'leriyle kaydedilsin ve
+   ot, çalı ve yerdeki taş birkaç oyun gününde geri gelsin. Ağaç ve kaya 7DTD gibi gelmesin; bunun
+   yerine tohum dikimiyle ağaç yetiştirilsin.
 
 Cevaplananlar: oyuncu zombiye aletle vuracak (bu planın 2. maddesi); zombiler üst kata çıkıyor
 (bitti); kapsam kuralı değişti, ana referans 7DTD ve karşılığında bir şey çıkmıyor (PLAN, Kapsam).
@@ -60,25 +66,17 @@ küçük taş ve bitki lifi 6000'lik yığın. Kalanlar:
 - Vuruş sesi ve ThreatService'e gürültü; isabet efekti.
 - PvP lobi seçeneği gelince oyuncuya vuruş.
 
-### 3. Toplama
+### 3. Toplama (bitti, 31 Ekim)
 
-Sayılar ve kurallar `REFERENCE_7DTD.md` Bölüm B, 0–3 ve 5.2–5.4'te.
-- **Verim kuralı:** Her kaynağın sabit toplam verimi var. Üçte ikisi vuruşlarda verilen hasarla
-  orantılı, üçte biri son vuruşta toplu gelir. İyi alet yalnızca hızlandırır. Sopa ve mızrak %25 verir.
-  Kesirli kısım oyuncu ve hedef başına sunucuda tutulur; envantere yalnızca tam sayı girer.
-- **Malzeme çarpanları** (blok hasarına): yumruk odun 1 / toprak 0,5 / taş 0,5; taş balta 1 / 0,15 /
-  0,67; taş kürek 0,3 / 1 / 0,2; taş kazma (bizim) demir kazma gibi 0,2 / 0,2 / 1. Hasar tam sayıya
-  kesilir, en az 1.
-- **Ağaç:** küçük 300 can / 30 odun, orta 600 / 70, büyük 900 / 110, tam boy 1200 / 150. Devrilince
-  1–2 tohum (tohum sonra). Devrilen ağaç oyuncudan uzağa düşer, kütük kalmaz. Yol bulma hücreleri
-  yeniden hesaplanır; `markNavigation`'daki hesap tek hücre için ortak bir yardımcıya taşınır.
-- **Ot:** 1 can, 2 bitki lifi. **Çalı:** 1 can, 1–3 odun.
-- **Yerdeki taş:** 1 can, 1 küçük taş; ProximityPrompt ile de alınır. Belli bir süre sonra yeniden çıkar.
-- **Kaya (boulder):** 400 can, 22 küçük taş. Kasaba ve şehir bölgelerinde kaya ve yerde taş yok. Ormanda
-  ve taş ocağında daha çok.
-- Oyuncu boş elle başlar: yumrukla ağaç (küçük ağaç 150 vuruş!) yerine önce ot ve yerden taş toplar,
-  taş baltayı yapar. 7DTD'nin ilk görevi de bu: 10 lif, 10 odun, 5 taş, sonra taş balta.
-- Dinleyici: `ToolService.onWorldHit(player, result, toolId, tool)`.
+`bf7164e`, `4b47110`, `1102479`, `aaa870f`, `94e90be`. Kalanlar:
+- **Tohum:** ağaç devrilince 1–2 tohum (Destroy düşüşü). Tarım adımında.
+- **Ağaç zombiyi ezsin:** 7DTD'de düşen ağaç, yolundaki zombilere 1,5 sn sonra
+  `int((15 + 7h) × 5 × 0,36)` hasar verir (h: gövde boyu × 0,9, metre); oyunculara vermez.
+- **Sığmayan eşya:** şimdilik kayboluyor (kırmızı satır). Loot torbası gelince oyuncunun ayağına düşsün.
+- **Vuruş efekti ve sesi:** ağaca, kayaya, ota vurunca parçacık ve ses; ağaç vurulunca hafif sallansın.
+- **Binaların kapı alanları** açılışta bir kez kuruluyor; bina yanında devrilen ağaç o alanlara yansımaz.
+- **Kazı** (6. madde) aynı `onWorldHit` dinleyicisini kullanacak: arazi malzemesi toprak / taş.
+- Telefon: alt bitki örtüsü 14.492 parça ekledi; ölçülmedi.
 
 ### 4. Crafting
 

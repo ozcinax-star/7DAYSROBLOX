@@ -52,7 +52,8 @@ rojo build -o build.rbxl      # full place build
 | `ZombieService` | Humanoid-free zombies: flow-field movement on a ground and an upper-floor layer joined by stairs, house visits, indoor sleepers, server LOD, snapshot replication, `damage` / `onDied` |
 | `BuildService` | 4-stud grid, wooden wall, part HP, 2000 part cap |
 | `ToolService` | Melee swings with the held tool or the fist: validated aim, 7DTD swing rate, server-side target pick (`Shared/Melee`: zombie cylinder + head sphere, line of sight), damage, wear, swing broadcast; world hits go to `onWorldHit` listeners |
-| `InventoryService` | Server-owned inventories (10-slot toolbelt + 45-slot backpack, 7DTD sizes), validated move / select remotes, the active item shown in the right hand (`Modules/HeldItems`) |
+| `InventoryService` | Server-owned inventories (10-slot toolbelt + 45-slot backpack, 7DTD sizes), validated move / select remotes, the active item shown in the right hand (`Modules/HeldItems`), a pickup-feed event for every item given |
+| `HarvestService` | Gathering on `ToolService.onWorldHit`: trees, bushes, grass, boulders and loose rocks listed by `MapService.getHarvestables()`; 7DTD yields (`Shared/Harvest`), shared damage, tree felling with navigation reopening, loose-rock pick-up prompts |
 
 ### World modules (`src/server/World`)
 

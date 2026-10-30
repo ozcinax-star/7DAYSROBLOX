@@ -131,31 +131,43 @@ tablosu var).
 | `7234e9e` | `Inventory.add` kesirli, NaN ve sonsuz sayıları reddediyor (toplama adımı kesirli verim üretecek) |
 | `6be883f` | Vuruş: `ToolService` + `Shared/Melee` + `ToolController`; zombi canı 125 ±%15; debug "Spawn 1"; Tab kaldırıldı |
 | `1b0fb72` | Zombi 1,5 sn'de 8 vuruyor (7DTD) |
+| `a163ce0` | `REFERENCE_7DTD.md` ve vuruş adımının belgeleri |
+
+### 5. Bölüm: toplama (31 Ekim)
+
+| Commit | Ne yapıldı |
+| --- | --- |
+| `bf7164e` | Saf `Shared/Harvest` (7DTD verim formülü), `Config.Harvest` (düğümler, ağaç boyları), aletlere malzeme çarpanları, 4 test |
+| `4b47110` | Haritada ot, yerdeki taş, çalı (`Map/Undergrowth`) ve taş ocağı kayaları (`Map/Quarry`); ağaç, çalı ve kayalar `MapService.getHarvestables()` listesinde; yapraklar artık raycast almıyor |
+| `1102479` | `MapService.getMap/getHeightGrid` tek değer döndürüyor (assert'in mesajı tabloya karışıyordu) |
+| `aaa870f` | `HarvestService`: vuruşla toplama, ortak hasar, ağaç devirme, yol bulma hücrelerini açma (`ZombieService.reopenArea`), yerdeki taşa E ile alma; dünya vuruşu artık ot ve çalıya da değiyor |
+| `94e90be` | Alınan eşya bildirimi (`PickupFeedController`) ve devrilme animasyonu (`TreeFallController`) |
 
 ## Mevcut durum
 
 | Alan | Durum |
 | --- | --- |
-| Harita (`MapService` + `World/*`) | Çalışıyor. 2048×2048; orman ve küçük kasaba, göl, taş ocağı, telsiz tepesi, çiftlik, kereste atölyesi, hurdalık. Arazi, 37 bina, yollar, sokak eşyaları ve orman sunucu açılışında kodla kuruluyor. |
+| Harita (`MapService` + `World/*`) | Çalışıyor. 2048×2048; orman ve küçük kasaba, göl, taş ocağı, telsiz tepesi, çiftlik, kereste atölyesi, hurdalık. Arazi, 37 bina, yollar, sokak eşyaları, orman ve toplanabilir alt bitki örtüsü sunucu açılışında kodla kuruluyor. Toplanabilir her nesne `getHarvestables()` listesinde: düğüm adı (`Config.Harvest.Nodes`) ve her açılışta aynı kalan bir id (ileride dünya kaydı için). |
 | Binalar | 15 şablon. Mobilyalı odalar, iki katlılarda merdiven, açılmış kapılar, tabelalar. Her model `Template`, `Loot` (`Food`, `Medical`, `Metal`, `Fabric`…), `Floors` ve `Region` özelliklerini taşıyor; loot sistemi bunları kullanacak. |
-| Zombiler (`ZombieService`) | Çalışıyor. Humanoid yok. Akış alanıyla yol bulma, görerek kovalama, ses noktasına gitme, gezinme, eve girip çıkma, merdivenle üst kat, bina içinde uyuyan zombi, saldırı öncesi bekleme, sendeleme, dalgalı spawn, sunucu LOD'u (yakın 10 Hz, uzak 2 Hz), anlık görüntü yayını. API: `spawn`, `remove`, `clear`, `damage` (öldürünce true), `onDied`, `getPosition`, `hearSound`, `getStats`, `getNavGrid`. |
+| Zombiler (`ZombieService`) | Çalışıyor. Humanoid yok. Akış alanıyla yol bulma, görerek kovalama, ses noktasına gitme, gezinme, eve girip çıkma, merdivenle üst kat, bina içinde uyuyan zombi, saldırı öncesi bekleme, sendeleme, dalgalı spawn, sunucu LOD'u (yakın 10 Hz, uzak 2 Hz), anlık görüntü yayını. API: `spawn`, `remove`, `clear`, `damage` (öldürünce true), `onDied`, `getPosition`, `hearSound`, `getStats`, `getNavGrid`, `reopenArea` (kalkan parçaların altındaki hücreleri arazi değerine döndürüp hâlâ duranları yeniden kapatır). |
 | Envanter (`InventoryService` + `Shared/Inventory`) | Çalışıyor. 10 slot alet kemeri + 45 slot sırt çantası. Yeni eşya önce sırt çantasına girer. Her yığın kaynağını taşır; farklı kaynaklar birleşmez. Seçili slottaki eşya sağ elde görünür (stilize model; sallama pozu yok). API: `get`, `changed`, `give`, `room`, `take` (hep ya da hiç), `count`, `getHeld`, `wearHeld`, `onHeldChanged`. Oyuncu boş elle başlar (`StartingItems` boş). |
-| İstemci | `ZombieRenderController` + `Modules/ZombieRig`: 17 parçalı rig, prosedürel yürüyüş, interpolasyon, LOD, ceset; `flinch(id)` hazır. `InventoryController`: alttaki alet kemeri, I / gamepad Y ile sırt çantası, mobilde Bag düğmesi; tıkla-seç-bırak taşıma, sağ tık veya Split ile yarım yığın; 1–0 tuşları ve L1/R1 ile slot seçimi. `ToolController`: sol tık / gamepad R2 / mobilde Hit düğmesi; basılı tutunca aletin hızında vurur; nişan imlecin (serbest fare) ya da ekran ortasının altındaki noktaya; sağ omuzda prosedürel sallama; kırık alette uyarı. `DebugOverlayController`: FPS, tick süresi, zombi sayısı; Spawn 1/80/120, Noise, GodMode, Kill, Give test items ve Clear düğmeleri. |
+| İstemci | `ZombieRenderController` + `Modules/ZombieRig`: 17 parçalı rig, prosedürel yürüyüş, interpolasyon, LOD, ceset; `flinch(id)` hazır. `InventoryController`: alttaki alet kemeri, I / gamepad Y ile sırt çantası, mobilde Bag düğmesi; tıkla-seç-bırak taşıma, sağ tık veya Split ile yarım yığın; 1–0 tuşları ve L1/R1 ile slot seçimi. `ToolController`: sol tık / gamepad R2 / mobilde Hit düğmesi; basılı tutunca aletin hızında vurur; nişan imlecin (serbest fare) ya da ekran ortasının altındaki noktaya; sağ omuzda prosedürel sallama; kırık alette uyarı. `PickupFeedController`: sağ kenarda "+N eşya" satırları (aynı eşya aynı satırda toplanır), sığmayanlar kırmızı. `TreeFallController`: devrilen ağacı yerelde oyuncudan uzağa yatırır ve soldurur. `DebugOverlayController`: FPS, tick süresi, zombi sayısı; Spawn 1/80/120, Noise, GodMode, Kill, Give test items ve Clear düğmeleri. |
 | Debug | Remote: `DebugCommand`. Yalnızca Studio'da veya `Config.Debug.AllowedUserIds` listesindeki hesaplarla çalışır (`11911303584` test eden hesap). Doğrulanır ve hız sınırlıdır. |
 | `DayNightService` | **Boş iskelet.** |
 | `ThreatService` | **Boş iskelet.** Config değerleri ve `Types.SoundPoint` hazır. |
 | `BuildService` | **Boş iskelet.** `Config.Build` ve `Types.BuildPieceKind` hazır. |
 | Kamera (omuz/FPS) | **Yok.** Localization anahtarları (`CameraShoulder`, `CameraFirstPerson`) ve `Config.Camera` hazır. |
 | Vuruş (`ToolService` + `Shared/Melee`) | Çalışıyor. İstemci yalnızca nişan yönünü yollar. Sunucu: birim vektör, hız sınırı (4/sn), aletin 7DTD aralığı (60/APM + 0,1 sn, %12 tolerans), hedefi kendi baş konumundan seçer: menzildeki en yakın zombi (silindir + baktığı yöne eğik kafa küresi), arada duvar varsa vurmaz. Hasar 7DTD: yumruk 5, taş balta 6, taş kürek 9, taş kazma 7; kafaya ×2. Alet yalnızca isabette 1 aşınır; 0'da kullanılamaz. Dünyaya isabet `onWorldHit` dinleyicilerine gider (toplama). Oyunculara vuruş yok (PvP lobi seçeneği gelince). |
-| Toplama, crafting, loot, kazı | **Sıradaki iş** (NEXT_STEPS 3–6). `ToolService.onWorldHit` toplama ve kazı için, `ZombieService.onDied` loot için, `InventoryService.give/take/wearHeld` hepsi için hazır. |
+| Toplama (`HarvestService` + `Shared/Harvest`) | Çalışıyor. 7DTD formülü: verimin üçte ikisi nesnenin toplam hasarıyla orantılı olarak vuruşlarda, üçte biri kıran vuruşta; iyi alet yalnızca hızlandırır. Hasar = aletin blok hasarı × malzeme çarpanı, tam sayıya kesilir, en az 1. Aynı nesneye vuran herkes aynı hasarı paylaşır. Ağaç: 300/30, 600/70, 900/110, 1200/150 (can/odun, boy ölçeğe göre). Çalı 1–3 odun, ot 2 lif, yerdeki taş 1 taş (E ile de alınır), kaya 400 can / 22 taş. Devrilen ağaç çarpışmayı hemen bırakır, altındaki yol hücreleri açılır, 3,5 sn sonra silinir. Hiçbir şey yeniden çıkmaz (7DTD). Sığmayan eşya kaybolur ve kırmızı satırla bildirilir (loot torbası gelince yere düşecek). |
+| Crafting, loot, kazı | **Sıradaki iş** (NEXT_STEPS 4–6). `ToolService.onWorldHit` kazı için, `ZombieService.onDied` loot için, `InventoryService.give/take/wearHeld` hepsi için hazır. |
 | Perk, kayıt, monetizasyon | Bilerek yazılmadı. |
 
 ### Ölçümler
 
 Ölçümler 30–31 Ekim 2026'da PC'de, Studio içinde alındı. Telefonda ölçüm yok.
 
-- **Testler:** 33/33 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
-  Inventory 6, Melee 5).
+- **Testler:** 37/37 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
+  Inventory 6, Melee 5, Harvest 4).
   Testler yalnızca Studio düzeneğiyle çalıştırıldı; Lune ile hiç çalıştırılmadı.
 - **Zombi performansı:** 80 zombiyle tick ortalaması 0,04–0,17 ms, en kötü tick genelde 1,3–1,8 ms
   (bir kez 3,9 ms). Zombi başına 17 parça.
@@ -166,9 +178,11 @@ tablosu var).
 - **Saldırı yönü:** Oyuncunun yanındaki 11 zombinin 9'u ona 0–3° dönük; kalan ikisi hâlâ yürüyordu.
 - **Ölüm:** Kill sonrası ceset 1,5 sn içinde yığılıyor (baş zeminden 0,8 stud yukarıda), yaklaşık
   6,8 sn sonra kayboluyor. `onDied` dinleyicisi henüz yok; loot adımında doğrulanacak.
-- **Harita kurulumu:** Play'de 2,6 sn, Edit önizlemesinde 4,0–4,4 sn.
+- **Harita kurulumu:** Play'de 2,6 sn, Edit önizlemesinde 4,0–4,4 sn (alt bitki örtüsüyle 4,7 sn).
 - **Parça sayısı:**
-  - Haritanın tamamı 22.748 parça.
+  - Haritanın tamamı 37.275 parça: alt bitki örtüsü öncesi 22.748, ot / yerdeki taş / çalı 14.492,
+    taş ocağı 35. Toplanabilir nesne 9.099: 4.352 ot, 1.137 yerdeki taş, 704 çalı, 182 kaya, 2.724
+    ağaç (her boydan ~%25). Play'de PC istemcisi 60 FPS.
   - Binalar 11.395 parça: 8.115 süs (çarpışmasız), 3.280 çarpışmalı. Kendi koyduğum yaklaşık 10.000
     hedefinin üstünde.
   - Haritada 114 sokak lambası var.
@@ -189,6 +203,17 @@ tablosu var).
   - Hatalı nişanlar (NaN, sonsuz, sıfır, 50 uzunluk, metin, tablo, CFrame, nil, sayı) reddedildi.
     3 sn'de 51 istekten 5'i kabul edildi.
   - Zombi saldırısı: her 1,53 sn'de 8 hasar.
+- **Toplama (Play, 31 Ekim):**
+  - Ota yumruk: 2 bitki lifi, ot kayboldu. Yerdeki taşa yumruk: 1 küçük taş. E tuşu: prompt göründü,
+    taş alındı (+1). Çalıya yumruk: 1 odun.
+  - Büyük ağaç (900 / 110): 10 yumruk 2 odun verdi; sonra taş baltayla 40 vuruşta devrildi, toplam
+    2 + 108 = 110 odun; son vuruş 2 + 36 toplu pay = 38.
+  - Kaya: yumrukla 40 vuruş 2 taş; kazmayla 14 vuruşta kırıldı, toplam 22 taş, son vuruş 1 + 7.
+  - Devrilme: tepe oyuncunun tam tersine düştü (yön çarpımı 1,00), 2,5 sn'de 84°, sonra 1 sn'de
+    soldu ve silindi.
+  - Yol bulma (Edit, gerçek `markNavigation`): spawn yakınındaki 5 ağacın 5'inde de gövde hücresi
+    açıldı. Ayakta duran kaya ve göl hücreleri kapalı kaldı. Harita kenarındaki eğimli bir hücre
+    arazi yüzünden kapalı kaldı (doğru).
 - **Konsol:** Sunucu ve istemcide 0 uyarı, 0 hata.
 
 ## Teknik notlar
@@ -255,7 +280,7 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
    local src = Http:GetAsync("http://127.0.0.1:8765/Harness.luau", true)
    Http.HttpEnabled = was
    local H = loadstring(src)()
-   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "33 passed, 0 failed"
+   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "37 passed, 0 failed"
    ```
    Düzenek place'e hiçbir şey bırakmaz.
 3. Her kod değişikliğinden sonra adım 1'deki bundle komutunu tekrar çalıştır, sonra `H.sync()`.
@@ -341,6 +366,17 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
   görsel ve oynanış sorunu; NEXT_STEPS'te.
 - **Roblox'un varsayılan can yenilenmesi** saniyede %1 (7DTD'de dakikada 1 can). Hayatta kalma
   istatistikleri adımında değişecek.
+- **Komut çubuğundan servis durumu okunamaz.** `execute_luau` içinde `require` modülün yeni bir
+  kopyasını verir (ör. `getHarvestables()` boş döner). Sunucu davranışını istemciden remote ile ölç;
+  iç durumu Edit modunda kendi yükleyicinle kur: `H.load` gibi bir önbellekle `ZombieService`'i yükle,
+  önbellekten aynı `MapService`'i al, `init()`, sonra `ZombieService.init()/start()`. `start()`
+  Heartbeat bağlar; ortamda `game:GetService("RunService")` için Heartbeat'i boş bir saplamayla
+  değiştir (5. Bölüm yol bulma ölçümü böyle yapıldı).
+- **`return assert(x, "...")` iki değer döndürür.** Tablo kurucusunun son elemanında mesaj da
+  tabloya girer. Parantez kullan: `return (assert(x, "..."))`.
+- **Ot ve çalı çarpışmasız ama sorgulanabilir.** Varsayılan `RaycastParams` (`RespectCanCollide =
+  false`) bunlara değer. Yerleştirme gibi yeni raycast'lerde bunu hesaba kat.
+- **Alt bitki örtüsü parça sayısını %64 artırdı** (14.492 parça). Telefonda ölçülmedi.
 - **Fare tekeri slot değiştirmiyor.** Tekerlek kamera zoom'unda; kamera adımında karar verilecek.
 - **Git yedeği yok.** Uzak depo tanımlı değil. GitHub'a göndermek dışarıya açık bir adım olduğu için
   kullanıcıya sorulmalı.
