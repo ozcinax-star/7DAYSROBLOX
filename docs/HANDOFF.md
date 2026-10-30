@@ -2,7 +2,7 @@
 
 Bağlamı olmayan yeni bir oturum işe buradan başlar. Sıradaki işler [NEXT_STEPS.md](NEXT_STEPS.md)
 dosyasında, tasarım kararları [PLAN.md](PLAN.md) dosyasında, kod yapısı [../README.md](../README.md)
-dosyasında. Bu not 30 Ekim 2026 tarihli ilk iki çalışma oturumunu özetler.
+dosyasında. Bu not 30 Ekim 2026'daki uzun çalışma oturumunu (birkaç kez sıkıştırılmış tek oturum) özetler.
 
 ## Proje ve roller
 
@@ -43,7 +43,7 @@ Bu kurallar kullanıcının ilk görev tanımından gelir; aksi söylenene kadar
 
 Tüm işler 30 Ekim 2026'da yapıldı; dal `master`, uzak depo (remote) yok.
 
-### 1. Oturum: prototip iskeleti ve zombiler
+### 1. Bölüm: prototip iskeleti ve zombiler
 
 | Commit | Ne yapıldı |
 | --- | --- |
@@ -65,7 +65,7 @@ Kullanıcı geri bildirimleri:
   - Kullanıcının seçimleri: 2048×2048 harita; girilebilir binalar, bazıları iki katlı; arazi kodla,
     oyun açılınca kurulur.
 
-### 2. Oturum: büyük harita ve binalar
+### 2. Bölüm: büyük harita ve binalar
 
 | Commit | Ne yapıldı |
 | --- | --- |
@@ -170,7 +170,7 @@ bilgiler.
 - Kaynak doğruluğu diskteki dosyalardır.
 - Rojo bağlıysa (`rojo serve` ve Studio'daki Rojo eklentisi) yalnızca diski düzenle. MCP ile Studio'da
   script düzenlersen Rojo üzerine yazar.
-- Bu makinede Rojo, StyLua, Selene ve Lune kurulu değil. `rokit install` otomatik modda engellenmişti;
+- Bu makinede Rokit, Rojo, StyLua, Selene ve Lune kurulu değil (30 Ekim'de kontrol edildi). `rokit install` otomatik modda engellenmişti;
   kullanıcının kendisi çalıştırmalı.
 
 ### Rojo yokken senkron
@@ -202,8 +202,9 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
 
 - Başlat: `start_stop_play(true)`.
 - `execute_luau` ile `Server` veri modelinde `workspace.Map` hazır olana kadar bekle.
-- Sunucu ve istemci konsolunu `LogService:GetLogHistory()` ile oku. `get_console_output` bazen boş
-  döner.
+- Konsolu `get_console_output` ile ya da her veri modelinde (`Server`, `Client`)
+  `LogService:GetLogHistory()` ile oku. Oyun kodu hiçbir şey yazdırmaz; boş çıktı "uyarı ve hata yok"
+  demektir. Bu, kasıtlı bir `warn` ile denendi: iki yöntem de yakaladı.
 - Bitince `start_stop_play(false)` ile durdur.
 
 ### Ekran görüntüsü
