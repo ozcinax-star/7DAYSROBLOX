@@ -1,12 +1,14 @@
 --!strict
 -- MapService: builds the MVP map (PLAN: Forest + Small Town) from WorldLayout at server start:
--- terrain, enterable buildings, props, street dressing and the forest. Characters are only loaded
--- once the world exists, so nobody falls through a half-built map.
+-- terrain, enterable buildings, props, street dressing, the forest and its undergrowth. Characters are
+-- only loaded once the world exists, so nobody falls through a half-built map. Trees, bushes, grass
+-- and rocks are listed as harvestables for HarvestService.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
+local Config = require(ReplicatedStorage.Shared.Config)
 local HeightField = require(ReplicatedStorage.Shared.World.HeightField)
 local Noise = require(ReplicatedStorage.Shared.World.Noise)
 local WorldLayout = require(ReplicatedStorage.Shared.World.WorldLayout)
@@ -47,6 +49,11 @@ local SPAWN_SIZE = Vector3.new(8, 1, 8)
 local KEEP_SURFACES = { Asphalt = true, Pavement = true }
 -- Column size of the height grid.
 local COLUMN = 4
+-- Terrain surfaces where tall grass and bushes grow, and where loose rocks never lie.
+local GRASSY = { Grass = true, LeafyGrass = true }
+local PAVED = { Asphalt = true, Pavement = true }
+-- Forest prop kinds that can be gathered, and their Config.Harvest.Nodes entry (trees by size).
+local PROP_NODES = { Bush = "Bush", Rock = "Boulder", TallGrass = "Grass", LooseRock = "LooseRock" }
 
 local mapFolder: Folder? = nil
 local heightGrid: TerrainBuilder.HeightGrid? = nil
@@ -77,8 +84,13 @@ export type BuildingInfo = {
 	upperCells: { Vector3 },
 }
 
+-- A world object that can be gathered (a Config.Harvest.Nodes entry). The id is built from where the
+-- map generator put it, so it is the same on every server start and a world save can list what is gone.
+export type Harvestable = { id: string, node: string, model: Model }
+
 local doorFronts: { Circle } = {}
 local buildings: { BuildingInfo } = {}
+local harvestables: { Harvestable } = {}
 
 local function folder(name: string, parent: Instance): Folder
 	local f = Instance.new("Folder")
@@ -332,6 +344,24 @@ local function canGrow(x: number, z: number, keepOut: { Circle }): boolean
 	return not insideAny(keepOut, x, z)
 end
 
+local function treeNode(scale: number): string
+	for _, size in Config.Harvest.TreeSizes do
+		if scale <= size.MaxScale then
+			return size.Node
+		end
+	end
+	error(`no tree size for scale {scale}`)
+end
+
+-- Builds a prop and lists it as a harvestable when its kind can be gathered.
+local function buildNature(kind: string, id: string, x: number, z: number, yaw: number, scale: number, parent: Instance)
+	local model = PropKit.build(kind, x, MapService.heightAt(x, z) - GROUND_SINK, z, yaw, scale, kind, parent)
+	local node = if kind == "Pine" or kind == "Oak" then treeNode(scale) else PROP_NODES[kind]
+	if node then
+		table.insert(harvestables, { id = id, node = node, model = model })
+	end
+end
+
 local function buildForest(parent: Instance, keepOut: { Circle })
 	local forest = WorldLayout.Forest
 	local seed = WorldLayout.Seed
@@ -360,10 +390,76 @@ local function buildForest(parent: Instance, keepOut: { Circle })
 				else
 					kind = "Oak"
 				end
-				PropKit.build(kind, x, MapService.heightAt(x, z) - GROUND_SINK, z, yaw, scale, kind, parent)
+				buildNature(kind, `F{ix}:{iz}`, x, z, yaw, scale, parent)
 				count += 1
 				yieldEvery(count)
 			end
+		end
+	end
+end
+
+local function canUndergrow(x: number, z: number, keepOut: { Circle }): boolean
+	return HeightField.isPlayable(x, z)
+		and not HeightField.isWater(x, z)
+		and HeightField.nearestRoad(x, z) >= WorldLayout.Undergrowth.RoadClearance
+		and not insideAny(keepOut, x, z)
+		and not insideAny(doorFronts, x, z)
+end
+
+-- Tall grass on grassy ground everywhere; loose rocks and bushes outside town. Uses the Forest cells
+-- with their own hash channels, so it is as deterministic as the forest.
+local function buildUndergrowth(parent: Instance, keepOut: { Circle })
+	local growth = WorldLayout.Undergrowth
+	local seed = WorldLayout.Seed + 10
+	local cell = WorldLayout.Forest.CellSize
+	local limit = WorldLayout.PlayableHalfSize
+	local count = 0
+	local function place(kind: string, id: string, ix: number, iz: number, channel: number, chance: number)
+		if Noise.hash(ix, iz, seed + channel) >= chance then
+			return
+		end
+		local x = (ix + Noise.hash(ix, iz, seed + channel + 1)) * cell
+		local z = (iz + Noise.hash(ix, iz, seed + channel + 2)) * cell
+		local surface = HeightField.surfaceAt(x, z, MapService.heightAt(x, z))
+		local town = HeightField.isInTown(x, z)
+		local suits = if kind == "TallGrass"
+			then GRASSY[surface] == true
+			elseif kind == "Bush" then GRASSY[surface] == true and not town
+			else not PAVED[surface] and not town
+		if suits and canUndergrow(x, z, keepOut) then
+			local yaw = Noise.hash(ix, iz, seed + channel + 3) * 360
+			local scale = 0.8 + Noise.hash(ix, iz, seed + channel + 4) * 0.4
+			buildNature(kind, id, x, z, yaw, scale, parent)
+			count += 1
+			yieldEvery(count)
+		end
+	end
+	for iz = -limit // cell, limit // cell do
+		for ix = -limit // cell, limit // cell do
+			for k = 1, growth.GrassPerCell do
+				place("TallGrass", `G{ix}:{iz}:{k}`, ix, iz, k * 10, growth.GrassChance)
+			end
+			place("LooseRock", `R{ix}:{iz}`, ix, iz, 100, growth.LooseRockChance)
+			place("Bush", `B{ix}:{iz}`, ix, iz, 110, growth.BushChance)
+		end
+	end
+end
+
+-- Boulders and loose rocks spread over the quarry floor.
+local function buildQuarry(parent: Instance, keepOut: { Circle })
+	local growth = WorldLayout.Undergrowth
+	local quarry = WorldLayout.Quarry
+	local seed = WorldLayout.Seed + 30
+	local floorRadius = quarry.radius - quarry.rimWidth
+	for i = 1, growth.QuarryBoulders + growth.QuarryRocks do
+		local angle = Noise.hash(i, 0, seed) * 2 * math.pi
+		-- The square root spreads them evenly over the disc instead of crowding the centre.
+		local distance = math.sqrt(Noise.hash(i, 1, seed)) * floorRadius
+		local x, z = quarry.x + math.cos(angle) * distance, quarry.z + math.sin(angle) * distance
+		if not insideAny(keepOut, x, z) then
+			local kind = if i <= growth.QuarryBoulders then "Rock" else "LooseRock"
+			local scale = 0.8 + Noise.hash(i, 2, seed) * 0.5
+			buildNature(kind, `Q{i}`, x, z, Noise.hash(i, 3, seed) * 360, scale, parent)
 		end
 	end
 end
@@ -392,8 +488,11 @@ function MapService.init()
 	buildHouseFronts(props)
 	buildStreetDressing(props)
 	buildForest(folder("Forest", map), keepOut)
-
 	local spawnPoint = WorldLayout.Spawn
+	table.insert(keepOut, { x = spawnPoint.x, z = spawnPoint.z, radius = SPAWN_SIZE.X })
+	buildUndergrowth(folder("Undergrowth", map), keepOut)
+	buildQuarry(folder("Quarry", map), keepOut)
+
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "Spawn"
 	spawn.Anchored = true
@@ -427,6 +526,10 @@ end
 
 function MapService.getBuildings(): { BuildingInfo }
 	return buildings
+end
+
+function MapService.getHarvestables(): { Harvestable }
+	return harvestables
 end
 
 function MapService.getHeightGrid(): TerrainBuilder.HeightGrid

@@ -10,6 +10,8 @@ export type Options = {
 	className: string?,
 	shape: Enum.PartType?,
 	canCollide: boolean?,
+	-- false: raycasts pass through (foliage, so swings and aim reach the trunk behind it).
+	canQuery: boolean?,
 	castShadow: boolean?,
 	-- Pure decoration (trims, linings, small items): no collision, touch, queries or shadow. Decor can
 	-- never block a doorway for players or the zombie navigation grid.
@@ -48,6 +50,9 @@ function PartFactory.make(
 		end
 		if options.canCollide ~= nil then
 			part.CanCollide = options.canCollide
+		end
+		if options.canQuery ~= nil then
+			part.CanQuery = options.canQuery
 		end
 		if options.castShadow ~= nil then
 			part.CastShadow = options.castShadow

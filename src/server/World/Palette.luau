@@ -76,6 +76,9 @@ Palette.Styles = {
 	OakLeaves = style(rgb(84, 128, 56), M.Grass),
 	Bush = style(rgb(70, 112, 52), M.Grass),
 	Rock = style(rgb(118, 116, 112), M.Rock),
+	-- Gatherable plants and stones read lighter than the terrain around them.
+	TallGrass = style(rgb(128, 152, 66), M.Grass),
+	LooseRock = style(rgb(156, 150, 140), M.Rock),
 	Water = style(rgb(60, 110, 140), M.Glass, 0.3),
 	-- Vehicles and props
 	Rust = style(rgb(130, 70, 40), M.CorrodedMetal),

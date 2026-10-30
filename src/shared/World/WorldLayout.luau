@@ -288,4 +288,18 @@ WorldLayout.Forest = {
 	LogChance = 0.03,
 }
 
+-- Gatherable undergrowth, placed on the Forest cells: tall grass (plant fibre) on grassy ground, loose
+-- rocks and bushes outside town (PLAN: no rocks in towns). Every candidate grows with its chance.
+WorldLayout.Undergrowth = {
+	GrassPerCell = 3,
+	GrassChance = 0.35,
+	LooseRockChance = 0.25,
+	BushChance = 0.08,
+	-- Undergrowth keeps this far from road edges (studs).
+	RoadClearance = 3,
+	-- The quarry floor gets its own boulders and loose rocks.
+	QuarryBoulders = 10,
+	QuarryRocks = 18,
+}
+
 return WorldLayout

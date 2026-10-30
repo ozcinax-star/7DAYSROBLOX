@@ -12,6 +12,13 @@ local CYLINDER = Enum.PartType.Cylinder
 local BALL = Enum.PartType.Ball
 -- Cylinders extend along their local X axis; this turns them upright.
 local UPRIGHT = CFrame.Angles(0, 0, math.pi / 2)
+-- Tree canopies: no collision, and swings and aim pass through them to the trunk.
+local FOLIAGE: PartFactory.Options = { canCollide = false, canQuery = false }
+-- Undergrowth: walked through and never blocks navigation, but swings hit it.
+local UNDERGROWTH: PartFactory.Options = { canCollide = false, castShadow = false }
+-- Tall grass blade heights and how far they lean out from the clump's centre.
+local GRASS_BLADES = { 2.6, 2.1, 1.8 }
+local GRASS_LEAN = math.rad(18)
 
 type Builder = (model: Model, base: CFrame, scale: number, key: string) -> ()
 
@@ -62,7 +69,7 @@ local Builders: { [string]: Builder } = {
 				Vector3.new(size, 4 * scale, size),
 				base * CFrame.new(0, height * 0.35 + tier * 3.6 * scale, 0) * CFrame.Angles(0, math.rad(tier * 30), 0),
 				S.PineLeaves,
-				{ canCollide = false }
+				FOLIAGE
 			)
 		end
 	end,
@@ -79,6 +86,7 @@ local Builders: { [string]: Builder } = {
 		part(model, "Crown", Vector3.one * 11 * scale, base * CFrame.new(0, height + 2 * scale, 0), S.OakLeaves, {
 			shape = BALL,
 			canCollide = false,
+			canQuery = false,
 		})
 		part(
 			model,
@@ -86,7 +94,7 @@ local Builders: { [string]: Builder } = {
 			Vector3.one * 7 * scale,
 			base * CFrame.new(2.5 * scale, height + 5 * scale, 1.5 * scale),
 			S.OakLeaves,
-			{ shape = BALL, canCollide = false }
+			{ shape = BALL, canCollide = false, canQuery = false }
 		)
 	end,
 	Bush = function(model, base, scale)
@@ -103,6 +111,35 @@ local Builders: { [string]: Builder } = {
 			Vector3.new(4, 3, 4) * scale,
 			base * CFrame.new(2 * scale, 2.5 * scale, 1 * scale) * CFrame.Angles(0.3, 0.6, 0.2),
 			S.Rock
+		)
+	end,
+	-- Three wedge blades fanned out and leaning outward, waist high so a swing from the head reaches
+	-- them.
+	TallGrass = function(model, base, scale)
+		for i, height in GRASS_BLADES do
+			local size = Vector3.new(0.12, height, 1.3) * scale
+			part(
+				model,
+				"Blade",
+				size,
+				base
+					* CFrame.Angles(0, i * math.pi * 2 / #GRASS_BLADES, 0)
+					* CFrame.new(0, 0, -0.3 * scale)
+					* CFrame.Angles(-GRASS_LEAN, 0, 0)
+					* CFrame.new(0, size.Y / 2, 0),
+				S.TallGrass,
+				{ className = "WedgePart", canCollide = false, castShadow = false }
+			)
+		end
+	end,
+	LooseRock = function(model, base, scale)
+		part(
+			model,
+			"Stone",
+			Vector3.new(1.5, 0.9, 1.2) * scale,
+			base * CFrame.new(0, 0.45 * scale, 0) * CFrame.Angles(0.2, 0, 0.15),
+			S.LooseRock,
+			UNDERGROWTH
 		)
 	end,
 	FallenLog = function(model, base, scale)
