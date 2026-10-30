@@ -18,8 +18,12 @@ Bu dosya PLAN.md'deki kapsam kuralının istediği referanstır: ana referans 7 
 | Konu | 7DTD | Bizde | Neden |
 | --- | --- | --- | --- |
 | Başlangıç | 2 su, chili konservesi, ilk yardım bandajı, meşale | Boş el | PLAN: oyuncu ağaca vurarak başlar |
-| Taş kazma | Yok; ilk kazma demir (demirci ocağı ister) | Var: 7 / 26 / 70 vuruş/dk / 2,4 m, 250 dayanıklılık; tarif sonra | Kullanıcı isteği |
-| Kereste | Yok | Odun'dan yapılır, inşada kullanılır | Kullanıcı isteği |
+| Taş kazma | Yok; ilk kazma demir (demirci ocağı ister) | Var: 7 / 26 / 70 vuruş/dk / 2,4 m, 250 dayanıklılık; tarif 4 taş / 3 lif / 3 odun (2 sn), taşla tamir | Kullanıcı isteği |
+| Kereste | Yok | 2 odundan 0,4 sn'de yapılır, inşada kullanılacak | Kullanıcı isteği |
+| Envanter doluyken craft | Sırt çantası için kaynak yok; iş istasyonunda çıktı slotları doluysa crafting durur (wiki Forge) | Ürün kuyrukta "No room" ile bekler; yer açılınca gelir | İş istasyonu davranışına en yakın; hiçbir şey kaybolmaz |
+| Crafting iptali | Kullanılmamış malzeme envantere döner (wiki); envanter doluysa ne olduğu kaynakta yok | İadenin tamamı sığmazsa iptal reddedilir | Yere düşen eşya kabı henüz yok; loot torbası gelince yere düşebilir |
+| Tamir edilen alet | Nereye döndüğü kaynakta yok | Boşsa eski slotuna | Kemerdeki alet yerinde kalsın |
+| Crafting kuyruğu kaydı | Saklanır | Oyuncu çıkınca kaybolur | Kayıt sistemi yok (kalıcılık adımı) |
 | Zombi loot torbası | %2–4 (2.0+: %4) | ~%20 | Kullanıcı kararı |
 | Sırt çantası tuşu | Tab veya I | Yalnızca I (gamepad Y, mobilde Bag) | Roblox oyuncu listesi Tab'ı alıyor (Play'de denendi) |
 | Fare tekeri | Alet kemerinde gezinir | Kamera zoom'unda | Kamera adımında karar |

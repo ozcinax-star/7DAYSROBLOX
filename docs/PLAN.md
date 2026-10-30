@@ -212,12 +212,13 @@ Lobi, PvP ve hikâye için verilmiş kararlar.
 | Zombiler ve binalar | Zombiler evlere girip çıkar ve merdivenle üst kata çıkar. Spawn'ların düşük bir kısmı (varsayılan %10) bina içinde uyuyan zombidir | Üst kat güvenli sığınak değil. Uyuyan zombi görünce, duyunca ya da çarpılınca uyanır |
 | Zombi görünümü | Zayıf, çürümüş yüz ve görünen deri; stilize, kan yok. Ten dağılımı küçük bir ABD kasabası gibi: %70 açık, %16 buğday, %14 koyu/siyah | Sanat stili satırıyla uyumlu. Oranlar Config'den ayarlanır |
 | Zombi loot'u | Ölen zombi yaklaşık %20 ihtimalle loot torbası bırakır | 7DTD'de %2–4; oturumlar kısa olduğu için daha cömert. Oran Config'de |
-| Toplama ve crafting | 7DTD referans alınır. Oyuncu boş elle başlar: ağaca vurur, yerden taş toplar. Ağaç Odun verir; Kereste envanterde Odun'dan yapılır ve inşa parçalarında kullanılır. Çalı ve ot bitki lifi verir. Taş balta ve taş kürek 7DTD tarifleriyle; 7DTD'de olmayan taş kazma kullanıcının isteğiyle eklendi | Kaynaklar satırı. Tarif sayıları NEXT_STEPS'te, uygulanınca Config'de |
+| Toplama ve crafting | 7DTD referans alınır. Oyuncu boş elle başlar: ağaca vurur, yerden taş toplar. Ağaç Odun verir; Kereste envanterde Odun'dan yapılır ve inşa parçalarında kullanılır. Çalı ve ot bitki lifi verir. Taş balta ve taş kürek 7DTD tarifleriyle; 7DTD'de olmayan taş kazma kullanıcının isteğiyle eklendi | Kaynaklar satırı. Tarifler `Config.Recipes`'te |
 | Kaya yerleşimi | Kasaba ve şehir bölgelerinde kırılabilir kaya ve toplanabilir taş yok | Harita |
 | Kazılabilir zemin | Var, 7DTD gibi | Yeni kapsam kuralıyla MVP'de; karşılığında bir şey çıkmadı |
 | Telefon kapısı | Ertelendi; yeni sistemlere geçilebilir | Yol haritası notu |
 | Vuruş | 7DTD sayıları: yumruk 5, taş balta 6, taş kürek 9 hasar; kafaya ×2; vuruşlar arası 60/APM + 0,1 sn; zombi 125 ±%15 can, 1,5 sn'de 8 vurur. 7DTD metresi 2,8 stud sayılır | Hedefi sunucu seçer (zombi başına silindir + öne eğik kafa küresi, duvar kontrolü). PvP lobi seçeneği gelince oyuncuya vuruş eklenir; şimdilik oyuncular vurulmaz |
 | Taş kazma istatistikleri | 7 varlık / 26 blok hasarı, 70 vuruş/dk, 2,4 m, 250 dayanıklılık | 7DTD'de karşılığı yok; taş balta ile demir kazma arasına kondu |
+| Crafting kuyruğu | 7DTD sırt çantası crafting'i: 4 iş, yalnızca ilki ilerler, malzeme kuyruğa alınırken düşer, iptal kalanı iade eder; taş aletler küçük taşla aynı kuyrukta tamir edilir. Taş kazma 4 taş / 3 lif / 3 odun, kereste 2 odun (bizim tariflerimiz). Sığmayan ürün kuyrukta bekler; iadesi sığmayan iptal, loot torbası gelene kadar reddedilir | Hiçbir eşya kaybolmaz. Kuyruk kayıt adımına kadar oyuncu çıkınca kaybolur. Tamir edilen alet boşsa eski slotuna döner |
 | Sırt çantası tuşu | I (gamepad Y, mobilde Bag); Tab değil | Roblox oyuncu listesi Tab'ı oyundan önce alıyor (Play'de denendi) |
 
 ## Kaynaklar

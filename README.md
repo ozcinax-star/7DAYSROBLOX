@@ -53,6 +53,7 @@ rojo build -o build.rbxl      # full place build
 | `BuildService` | 4-stud grid, wooden wall, part HP, 2000 part cap |
 | `ToolService` | Melee swings with the held tool or the fist: validated aim, 7DTD swing rate, server-side target pick (`Shared/Melee`: zombie cylinder + head sphere, line of sight), damage, wear, swing broadcast; world hits go to `onWorldHit` listeners |
 | `InventoryService` | Server-owned inventories (10-slot toolbelt + 45-slot backpack, 7DTD sizes), validated move / select remotes, the active item shown in the right hand (`Modules/HeldItems`), a pickup-feed event for every item given |
+| `CraftingService` | 7DTD backpack crafting: a four-job queue per player on the server clock (`Shared/Crafting` craft times and costs), ingredients taken at queue time and refunded on cancel with their sources, output waiting in the queue when there is no room, stone-tool repair through the same queue |
 | `HarvestService` | Gathering on `ToolService.onWorldHit`: trees, bushes, grass, boulders and loose rocks listed by `MapService.getHarvestables()`; 7DTD yields (`Shared/Harvest`), shared damage, tree felling with navigation reopening, loose-rock pick-up prompts |
 
 ### World modules (`src/server/World`)

@@ -143,6 +143,15 @@ tablosu var).
 | `aaa870f` | `HarvestService`: vuruşla toplama, ortak hasar, ağaç devirme, yol bulma hücrelerini açma (`ZombieService.reopenArea`), yerdeki taşa E ile alma; dünya vuruşu artık ot ve çalıya da değiyor |
 | `94e90be` | Alınan eşya bildirimi (`PickupFeedController`) ve devrilme animasyonu (`TreeFallController`) |
 
+### 6. Bölüm: crafting (31 Ekim)
+
+| Commit | Ne yapıldı |
+| --- | --- |
+| `5cf6af2` | `Config.Recipes` (taş balta / kürek 7DTD, taş kazma ve kereste bizim), `Config.Crafting` (sıra, 4 slot, malzeme süreleri), taş aletlere taşla tamir; saf `Shared/Crafting`, 5 test |
+| `f3e58ab` | Alet kemeri slotları 0×0'dı (2. adımdan beri; liste düzeni çocuğa boyut vermiyor); artık boyutlanıyor |
+| `410cc9b` | `CraftingService`: 4 işlik kuyruk, malzeme kuyruğa alınırken düşer, iptal iade eder, sığmayan ürün kuyrukta bekler, iadesi sığmayan iptal reddedilir; tamir aynı kuyrukta, alet eski slotuna döner. `Inventory.putSlot/addAll`, 1 test |
+| `459404d` | Crafting paneli (sırt çantasının sağında) ve sırt çantasında Repair düğmesi |
+
 ## Mevcut durum
 
 | Alan | Durum |
@@ -150,8 +159,8 @@ tablosu var).
 | Harita (`MapService` + `World/*`) | Çalışıyor. 2048×2048; orman ve küçük kasaba, göl, taş ocağı, telsiz tepesi, çiftlik, kereste atölyesi, hurdalık. Arazi, 37 bina, yollar, sokak eşyaları, orman ve toplanabilir alt bitki örtüsü sunucu açılışında kodla kuruluyor. Toplanabilir her nesne `getHarvestables()` listesinde: düğüm adı (`Config.Harvest.Nodes`) ve her açılışta aynı kalan bir id (ileride dünya kaydı için). |
 | Binalar | 15 şablon. Mobilyalı odalar, iki katlılarda merdiven, açılmış kapılar, tabelalar. Her model `Template`, `Loot` (`Food`, `Medical`, `Metal`, `Fabric`…), `Floors` ve `Region` özelliklerini taşıyor; loot sistemi bunları kullanacak. |
 | Zombiler (`ZombieService`) | Çalışıyor. Humanoid yok. Akış alanıyla yol bulma, görerek kovalama, ses noktasına gitme, gezinme, eve girip çıkma, merdivenle üst kat, bina içinde uyuyan zombi, saldırı öncesi bekleme, sendeleme, dalgalı spawn, sunucu LOD'u (yakın 10 Hz, uzak 2 Hz), anlık görüntü yayını. API: `spawn`, `remove`, `clear`, `damage` (öldürünce true), `onDied`, `getPosition`, `hearSound`, `getStats`, `getNavGrid`, `reopenArea` (kalkan parçaların altındaki hücreleri arazi değerine döndürüp hâlâ duranları yeniden kapatır). |
-| Envanter (`InventoryService` + `Shared/Inventory`) | Çalışıyor. 10 slot alet kemeri + 45 slot sırt çantası. Yeni eşya önce sırt çantasına girer. Her yığın kaynağını taşır; farklı kaynaklar birleşmez. Seçili slottaki eşya sağ elde görünür (stilize model; sallama pozu yok). API: `get`, `changed`, `give`, `room`, `take` (hep ya da hiç), `count`, `getHeld`, `wearHeld`, `onHeldChanged`. Oyuncu boş elle başlar (`StartingItems` boş). |
-| İstemci | `ZombieRenderController` + `Modules/ZombieRig`: 17 parçalı rig, prosedürel yürüyüş, interpolasyon, LOD, ceset; `flinch(id)` hazır. `InventoryController`: alttaki alet kemeri, I / gamepad Y ile sırt çantası, mobilde Bag düğmesi; tıkla-seç-bırak taşıma, sağ tık veya Split ile yarım yığın; 1–0 tuşları ve L1/R1 ile slot seçimi. `ToolController`: sol tık / gamepad R2 / mobilde Hit düğmesi; basılı tutunca aletin hızında vurur; nişan imlecin (serbest fare) ya da ekran ortasının altındaki noktaya; sağ omuzda prosedürel sallama; kırık alette uyarı. `PickupFeedController`: sağ kenarda "+N eşya" satırları (aynı eşya aynı satırda toplanır), sığmayanlar kırmızı. `TreeFallController`: devrilen ağacı yerelde oyuncudan uzağa yatırır ve soldurur. `DebugOverlayController`: FPS, tick süresi, zombi sayısı; Spawn 1/80/120, Noise, GodMode, Kill, Give test items ve Clear düğmeleri. |
+| Envanter (`InventoryService` + `Shared/Inventory`) | Çalışıyor. 10 slot alet kemeri + 45 slot sırt çantası. Yeni eşya önce sırt çantasına girer. Her yığın kaynağını taşır; farklı kaynaklar birleşmez. Seçili slottaki eşya sağ elde görünür (stilize model; sallama pozu yok). API: `get`, `changed`, `give`, `room`, `take` (hep ya da hiç), `peekSlot`, `takeSlot`, `putSlot`, `giveBack` (hep ya da hiç iade), `count`, `getHeld`, `wearHeld`, `onHeldChanged`. Oyuncu boş elle başlar (`StartingItems` boş). |
+| İstemci | `ZombieRenderController` + `Modules/ZombieRig`: 17 parçalı rig, prosedürel yürüyüş, interpolasyon, LOD, ceset; `flinch(id)` hazır. `InventoryController`: alttaki alet kemeri, I / gamepad Y ile sırt çantası, mobilde Bag düğmesi; tıkla-seç-bırak taşıma, sağ tık veya Split ile yarım yığın; 1–0 tuşları ve L1/R1 ile slot seçimi. `ToolController`: sol tık / gamepad R2 / mobilde Hit düğmesi; basılı tutunca aletin hızında vurur; nişan imlecin (serbest fare) ya da ekran ortasının altındaki noktaya; sağ omuzda prosedürel sallama; kırık alette uyarı. `PickupFeedController`: sağ kenarda "+N eşya" satırları (aynı eşya aynı satırda toplanır), sığmayanlar kırmızı. `TreeFallController`: devrilen ağacı yerelde oyuncudan uzağa yatırır ve soldurur. `CraftingController`: sırt çantası açıkken sağında crafting paneli (tarif satırları, sahip olunan / gereken, sayı, Craft; altta 4 işlik kuyruk ve geri sayım, tıklayınca iptal). Sırt çantasında Repair düğmesi seçili hasarlı aleti tamire yollar. `DebugOverlayController`: FPS, tick süresi, zombi sayısı; Spawn 1/80/120, Noise, GodMode, Kill, Give test items ve Clear düğmeleri. |
 | Debug | Remote: `DebugCommand`. Yalnızca Studio'da veya `Config.Debug.AllowedUserIds` listesindeki hesaplarla çalışır (`11911303584` test eden hesap). Doğrulanır ve hız sınırlıdır. |
 | `DayNightService` | **Boş iskelet.** |
 | `ThreatService` | **Boş iskelet.** Config değerleri ve `Types.SoundPoint` hazır. |
@@ -159,15 +168,16 @@ tablosu var).
 | Kamera (omuz/FPS) | **Yok.** Localization anahtarları (`CameraShoulder`, `CameraFirstPerson`) ve `Config.Camera` hazır. |
 | Vuruş (`ToolService` + `Shared/Melee`) | Çalışıyor. İstemci yalnızca nişan yönünü yollar. Sunucu: birim vektör, hız sınırı (4/sn), aletin 7DTD aralığı (60/APM + 0,1 sn, %12 tolerans), hedefi kendi baş konumundan seçer: menzildeki en yakın zombi (silindir + baktığı yöne eğik kafa küresi), arada duvar varsa vurmaz. Hasar 7DTD: yumruk 5, taş balta 6, taş kürek 9, taş kazma 7; kafaya ×2. Alet yalnızca isabette 1 aşınır; 0'da kullanılamaz. Dünyaya isabet `onWorldHit` dinleyicilerine gider (toplama). Oyunculara vuruş yok (PvP lobi seçeneği gelince). |
 | Toplama (`HarvestService` + `Shared/Harvest`) | Çalışıyor. 7DTD formülü: verimin üçte ikisi nesnenin toplam hasarıyla orantılı olarak vuruşlarda, üçte biri kıran vuruşta; iyi alet yalnızca hızlandırır. Hasar = aletin blok hasarı × malzeme çarpanı, tam sayıya kesilir, en az 1. Aynı nesneye vuran herkes aynı hasarı paylaşır. Ağaç: 300/30, 600/70, 900/110, 1200/150 (can/odun, boy ölçeğe göre). Çalı 1–3 odun, ot 2 lif, yerdeki taş 1 taş (E ile de alınır), kaya 400 can / 22 taş. Devrilen ağaç çarpışmayı hemen bırakır, altındaki yol hücreleri açılır, 3,5 sn sonra silinir. Hiçbir şey yeniden çıkmaz (7DTD). Sığmayan eşya kaybolur ve kırmızı satırla bildirilir (loot torbası gelince yere düşecek). |
-| Crafting, loot, kazı | **Sıradaki iş** (NEXT_STEPS 4–6). `ToolService.onWorldHit` kazı için, `ZombieService.onDied` loot için, `InventoryService.give/take/wearHeld` hepsi için hazır. |
+| Crafting (`CraftingService` + `Shared/Crafting`) | Çalışıyor. 7DTD sırt çantası crafting'i: 4 işlik kuyruk, yalnızca ilk iş sunucu saatiyle ilerler (çanta kapalıyken de). Süre = Σ adet × malzeme süresi (odun, taş, lif 0,2 sn; diğerleri 1 sn), tarif kendi süresini verirse o. Malzemeler kuyruğa alınırken kaynaklarıyla düşer; iptal kalanı iade eder. Sığmayan ürün kuyrukta "No room" ile bekler. İadesi sığmayan iptal reddedilir ve kırmızı satırla bildirilir (loot torbası gelince yere düşebilir). Tamir: hasarlı taş alet + gereken taş (taş başına 300 dayanıklılık, 0,5 sn) kuyruğa girer; alet boşsa eski slotuna döner. Kuyruk oyuncu çıkınca kaybolur (kayıt yok). Tarifler: taş balta, taş kürek, taş kazma, kereste. |
+| Loot, kazı | **Sıradaki iş** (NEXT_STEPS 5–6). `ToolService.onWorldHit` kazı için, `ZombieService.onDied` loot için, `InventoryService.give/take/wearHeld` hepsi için hazır. |
 | Perk, kayıt, monetizasyon | Bilerek yazılmadı. |
 
 ### Ölçümler
 
 Ölçümler 30–31 Ekim 2026'da PC'de, Studio içinde alındı. Telefonda ölçüm yok.
 
-- **Testler:** 37/37 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
-  Inventory 6, Melee 5, Harvest 4).
+- **Testler:** 43/43 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
+  Inventory 6, Melee 5, Harvest 4, Crafting 6).
   Testler yalnızca Studio düzeneğiyle çalıştırıldı; Lune ile hiç çalıştırılmadı.
 - **Zombi performansı:** 80 zombiyle tick ortalaması 0,04–0,17 ms, en kötü tick genelde 1,3–1,8 ms
   (bir kez 3,9 ms). Zombi başına 17 parça.
@@ -217,6 +227,25 @@ tablosu var).
   - Yol bulma (Edit, gerçek `markNavigation`): spawn yakınındaki 5 ağacın 5'inde de gövde hücresi
     açıldı. Ayakta duran kaya ve göl hücreleri kapalı kaldı. Harita kenarındaki eğimli bir hücre
     arazi yüzünden kapalı kaldı (doğru).
+- **Crafting (Play, 31 Ekim):**
+  - Taş balta 1,23 sn'de geldi (beklenen 1,2). Balta + 5 kereste kuyruğa alınınca 50 odun 38'e,
+    taş ve lif 20'den 18'e düştü. 1 kereste çıktıktan sonra iptal 8 odun iade etti.
+  - Envanter tamamen doluyken taş balta kuyrukta "No room" ile bekledi; bir slot boşalınca 0,05 sn
+    içinde geldi.
+  - Tamir: 6 vuruşla 244'e inen balta 1 taşla 0,5 sn'de 250'ye döndü, kaynağı korundu. Kemerin 3.
+    slotundaki balta tamirden sonra yine 3. slota döndü.
+  - Doluyken tamir işini iptal etmek reddedildi ("No room for 1 Stone Axe" satırı), iş kuyrukta
+    kaldı; bir slot açılınca iptal aleti o slota ve taşı iade etti.
+  - Gerçek fare tıklamaları: + / + / Craft ile 3 taş kürek (15 taş, 9 lif, 9 odun düştü, 3 kürek
+    geldi); kereste sayısına tıklamak en fazla yapılabilecek 17'yi seçti; kuyruktaki işe tıklamak
+    iptal etti (3 kereste yapılmıştı, 28 odun iade). Taş yokken Repair düğmesi soluk, taş gelince
+    açık; tıklayınca balta kuyruğa girip 250 ile döndü.
+  - Kuyruktaki geri sayım akıyor (ör. "Lumber x3 0.8s", 1,5 sn sonra sıradaki iş "1.3s").
+  - Hatalı istekler (NaN, sonsuz, 0, -1, 1,5, 501, 1e9, metin, tablo, bilinmeyen tarif, boş kuyrukta
+    iptal, aralık dışı slot, alet olmayan slot) hiçbir güncelleme üretmedi, envanter değişmedi.
+    Tek karede 40 istekten 6'sı geçti (hız sınırı 6/sn).
+  - Ekran görüntüsünde sırt çantası (594 px) ve panel (340 px) 2198 px genişlikte yan yana sığıyor;
+    4 tarif kaydırmadan görünüyor.
 - **Konsol:** Sunucu ve istemcide 0 uyarı, 0 hata.
 
 ## Teknik notlar
@@ -283,7 +312,7 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
    local src = Http:GetAsync("http://127.0.0.1:8765/Harness.luau", true)
    Http.HttpEnabled = was
    local H = loadstring(src)()
-   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "37 passed, 0 failed"
+   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "43 passed, 0 failed"
    ```
    Düzenek place'e hiçbir şey bırakmaz.
 3. Her kod değişikliğinden sonra adım 1'deki bundle komutunu tekrar çalıştır, sonra `H.sync()`.
@@ -322,7 +351,8 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
 
 ### Ekran görüntüsü
 
-- `screen_capture` Play modunda beyaz çıkıyor; 31 Ekim'de Edit modunda çalıştı.
+- `screen_capture` Play modunda 3B sahneyi beyaz çekiyor ama arayüz görünüyor (31 Ekim crafting
+  paneli böyle çekildi). 3B görüntü için Edit modu gerekiyor.
 - **Elde alet önizlemesi:** Edit modunda `Players:CreateHumanoidModelFromDescription` ile R15 rig
   kurulur, `H.load(...Modules.HeldItems).build(id, rig.RightHand, grip)` ile alet takılır.
 - **Zombi önizlemesi:** Edit modunda `H.load(<StarterPlayer altındaki ZombieRig>)` ile
@@ -385,6 +415,10 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
 - **Ot ve çalı çarpışmasız ama sorgulanabilir.** Varsayılan `RaycastParams` (`RespectCanCollide =
   false`) bunlara değer. Yerleştirme gibi yeni raycast'lerde bunu hesaba kat.
 - **Alt bitki örtüsü parça sayısını %64 artırdı** (14.492 parça). Telefonda ölçülmedi.
+- **Arayüzü görüntüyle doğrula.** Alet kemeri slotları 2. adımdan beri 0×0'dı; yalnızca etiketleri
+  görünüyordu ve `instance_path` ile tıklama yine çalıştığı için fark edilmedi. `UIListLayout`
+  çocuğa boyut vermez; `UIGridLayout` hücreler alanı tam doldurursa yuvarlamayla son hücreyi alt
+  satıra atar (crafting kuyruğunda görüldü, listeye çevrildi).
 - **Fare tekeri slot değiştirmiyor.** Tekerlek kamera zoom'unda; kamera adımında karar verilecek.
 - **Git yedeği yok.** Uzak depo tanımlı değil. GitHub'a göndermek dışarıya açık bir adım olduğu için
   kullanıcıya sorulmalı.

@@ -19,7 +19,8 @@ Yol haritası notu ve Kararlar tablosu).
 | Envanter | Bitti: 10 + 45 slot, kaynaklı yığınlar, elde görünen alet, arayüz |
 | Vuruş | Bitti: 7DTD hasar ve hızları, kafa vuruşu, aşınma, duvar kontrolü |
 | Toplama | Bitti: ağaç, çalı, ot, yerdeki taş, kaya; 7DTD verim formülü, ağaç devirme |
-| Crafting, zombi loot'u, kazı | **Sıradaki iş** (aşağıda 4–6) |
+| Crafting | Bitti: 7DTD kuyruğu (4 iş), malzeme süreleri, iptal ve iade, taşla tamir, panel |
+| Zombi loot'u, kazı | **Sıradaki iş** (aşağıda 5–6) |
 | Gündüz-gece, tehdit hesabı, tahta duvar, kamera | **Yapılmadı** |
 | Kapı 1: 80 zombiyle orta seviye telefonda 30 FPS | **Ölçülmedi**; kullanıcı erteledi |
 | Kapı 2: 3 kişilik test grubu "bir gece daha" diyor | Henüz yapılamaz |
@@ -28,8 +29,9 @@ Yol haritası notu ve Kararlar tablosu).
 
 Her sorunun ilk seçeneği benim önerim.
 
-1. **Taş kazma:** 7DTD'de taş kazma yok; ilk kazma demirdir ve demirci ocağı ister. Kullanıcı istediği
-   için taş kazma eklenecek ve kayada en iyi alet o olacak. İtiraz yoksa böyle kalır.
+1. **Taş kazma ve kereste tarifleri:** 7DTD'de taş kazma yok (ilk kazma demirdir, demirci ocağı
+   ister) ve kereste diye bir eşya yok. Kullanıcı istediği için ikisi de eklendi: taş kazma 4 taş /
+   3 lif / 3 odun (2 sn), kayada en iyi alet; kereste 2 odun (0,4 sn). İtiraz yoksa böyle kalır.
 2. **Telefon testi:** Ertelendi. Bina parça sayısı hedefin üstünde, ölçüm hâlâ yok.
 3. **Edit modunda harita önizlemesi:** Play başlarken eski önizlemeyi kendiliğinden silen küçük bir
    değişiklik yapılsın mı? Daha önce teklif edildi, yanıt gelmedi.
@@ -62,7 +64,6 @@ küçük taş ve bitki lifi 6000'lik yığın. Kalanlar:
 `6be883f`, `1b0fb72`. Kalanlar (7DTD'de var):
 - Güçlü vuruş (sağ tık): 2× veya 2,25× hasar, daha çok stamina.
 - Stamina: vuruş başına stamina; stamina yetmezse vuruş yok. Hayatta kalma istatistikleriyle birlikte.
-- Aleti küçük taşla tamir (7DTD: taş balta 1 taş, crafting kuyruğundan geçer). Crafting adımında.
 - Vuruş sesi ve ThreatService'e gürültü; isabet efekti.
 - PvP lobi seçeneği gelince oyuncuya vuruş.
 
@@ -78,17 +79,19 @@ küçük taş ve bitki lifi 6000'lik yığın. Kalanlar:
 - **Kazı** (6. madde) aynı `onWorldHit` dinleyicisini kullanacak: arazi malzemesi toprak / taş.
 - Telefon: alt bitki örtüsü 14.492 parça ekledi; ölçülmedi.
 
-### 4. Crafting
+### 4. Crafting (bitti, 31 Ekim)
 
-- `Config.Recipes`:
-  - Taş balta 2/2/2.
-  - Taş kürek 5/3/3.
-  - Taş kazma: özel tarif, öneri 4 taş / 3 lif / 3 odun.
-  - Odun'dan Kereste.
-  - İstenirse tahta sopa.
-- Saf `Crafting` modülü ve Lune testleri.
-- `CraftingService`: 4 slotluk kuyruk. Malzeme kuyruğa alınırken düşer, iptalde geri verilir.
-- Crafting arayüzü.
+`5cf6af2`, `f3e58ab`, `410cc9b`, `459404d`. Tarifler: taş balta 2 taş / 2 lif / 2 odun (1,2 sn) ve taş
+kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalanlar:
+- **Kuyruk kaydı:** oyuncu çıkınca kuyruk ve içindeki malzeme kayboluyor (7DTD saklar). Kalıcılık
+  adımında.
+- **Sığmayan iade:** iadesi sığmayan iptal şimdilik reddediliyor. Loot torbası gelince yere düşsün
+  (5. madde).
+- **İş istasyonları ve tarif kilitleri:** kamp ateşi, tezgah, demirci ocağı ve kitap / perk kilidi
+  yok; ihtiyaç doğunca.
+- **Tahta sopa:** istenirse eklenecek tarif.
+- **Dar ekran:** sırt çantası en küçük slotla 432 px, panel 340 px; 800 px'ten dar ekranda sığmaz.
+  Telefon / kamera adımında mobil düzen.
 
 ### 5. Zombi loot'u
 
@@ -96,6 +99,8 @@ küçük taş ve bitki lifi 6000'lik yığın. Kalanlar:
 - Yaklaşık %20 ihtimalle torba bırakılır; oran Config'de.
 - Torbada "Ara" ProximityPrompt'u. Eşyalar envantere girer, sığmayan torbada kalır.
 - Torbanın ömrü Config'de.
+- Aynı torba, envantere sığmayan toplama eşyası ve iadesi sığmayan crafting iptali için oyuncunun
+  ayağına düşsün (3. ve 4. maddenin kalanları).
 
 ### 6. Kazılabilir zemin
 
