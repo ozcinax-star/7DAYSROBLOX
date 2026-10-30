@@ -44,11 +44,26 @@ rojo build -o build.rbxl      # full place build
 
 | Service | Responsibility |
 | --- | --- |
-| `MapService` | Builds the 2048×2048 map (Forest + Small Town) at startup; ground height lookup |
+| `MapService` | Builds the 2048×2048 map (Forest + Small Town) at startup; terrain height (`heightAt`) and walking height including building floors (`groundAt`) |
 | `DayNightService` | Day/night clock, day counter, horde night (default 7, lobby picks 5–10) |
 | `ThreatService` | Noise + Trace meters, sound points, 5 threat tiers |
 | `ZombieService` | Humanoid-free zombies, flow-field movement, server LOD, snapshot replication |
 | `BuildService` | 4-stud grid, wooden wall, part HP, 2000 part cap |
+
+### World modules (`src/server/World`)
+
+| Module | Responsibility |
+| --- | --- |
+| `BuildingTemplates` | ASCII floor plans on the 4-stud grid (legend in the file header), per floor |
+| `FloorPlan` | Pure plan reader: rooms (flood fill + kind from furniture), furniture facing, stairs |
+| `BuildingKit` | Turns a plan into a furnished model: plinth, facade + painted interior linings, casings, open doors, floors and ceilings per room, stairs with railings, gable or flat roof, signs |
+| `Furniture` | One model per furniture symbol; bodies collide, small dressing is decor |
+| `TerrainBuilder` | Writes terrain from the height field; bare ground under building footprints |
+| `PropKit`, `Palette`, `PartFactory` | Props, colour/material styles, part creation (`decor` = no collision) |
+
+Building rules: walls stand on cell centre lines, every doorway and floor cell stays walkable for the
+zombie navigation grid (trims are decor), and the Lune tests check that every floor cell, piece of
+furniture and stair in every template can be walked to.
 
 Not in the prototype (reserved): `LootService`, `CraftingService`, `PerkService`, `SaveService`,
 `MonetizationService`. Item ownership will carry its source (`Types.ItemSource`) as the plan requires.
