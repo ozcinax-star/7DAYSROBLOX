@@ -11,7 +11,12 @@ export type Options = {
 	shape: Enum.PartType?,
 	canCollide: boolean?,
 	castShadow: boolean?,
+	-- Pure decoration (trims, linings, small items): no collision, touch, queries or shadow. Decor can
+	-- never block a doorway for players or the zombie navigation grid.
+	decor: boolean?,
 }
+
+PartFactory.DECOR = { decor = true } :: Options
 
 function PartFactory.make(
 	parent: Instance,
@@ -34,6 +39,12 @@ function PartFactory.make(
 	if options then
 		if options.shape and part:IsA("Part") then
 			part.Shape = options.shape
+		end
+		if options.decor then
+			part.CanCollide = false
+			part.CanTouch = false
+			part.CanQuery = false
+			part.CastShadow = false
 		end
 		if options.canCollide ~= nil then
 			part.CanCollide = options.canCollide
