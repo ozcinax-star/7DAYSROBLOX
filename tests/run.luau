@@ -467,6 +467,19 @@ test("tools never stack and keep their own durability", function()
 	expectEq(Inventory.wear(inv, empty, 1), nil, "no tool in an empty slot")
 end)
 
+test("only whole positive counts are added", function()
+	local inv = Inventory.new(2, 2)
+	expectEq(Inventory.add(inv, "StoneAxe", 1.5, "Craft"), 0, "fractional tool count")
+	expectEq(Inventory.add(inv, "Wood", 2.2, "Loot"), 0, "fractional stack count")
+	expectEq(Inventory.add(inv, "Wood", 0 / 0, "Loot"), 0, "NaN count")
+	expectEq(Inventory.add(inv, "Wood", math.huge, "Loot"), 0, "infinite count")
+	expectEq(Inventory.add(inv, "Wood", -3, "Loot"), 0, "negative count")
+	expectEq(Inventory.add(inv, "NoSuchItem", 2, "Loot"), 2, "unknown item does not fit")
+	for _, slot in inv.slots do
+		expectEq(slot, false, "nothing was added")
+	end
+end)
+
 test("stacks from different sources stay apart", function()
 	local inv = Inventory.new(1, 3)
 	Inventory.add(inv, "Wood", 5, "Loot")

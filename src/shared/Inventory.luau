@@ -70,8 +70,13 @@ local function emptySlotOrder(inv: Inventory): { number }
 	return order
 end
 
+local function isCount(value: number): boolean
+	return value == value and value % 1 == 0 and value >= 1 and value < math.huge
+end
+
 -- Adds `count` of `id`; returns how many did not fit. Tools are added one per slot at full
--- durability unless `durability` is given.
+-- durability unless `durability` is given. Counts are whole numbers: callers that earn fractions
+-- (per-hit harvest yields) keep the remainder themselves. Anything else adds nothing and returns 0.
 function Inventory.add(
 	inv: Inventory,
 	id: string,
@@ -80,8 +85,11 @@ function Inventory.add(
 	durability: number?
 ): number
 	local def = Config.Items[id]
-	if def == nil or count <= 0 then
-		return math.max(0, count)
+	if not isCount(count) then
+		return 0
+	end
+	if def == nil then
+		return count
 	end
 	local left = count
 	local slots = inv.slots
