@@ -6,6 +6,10 @@
 -- per-zombie spread offset and separation so the horde does not walk in single file.
 -- LOD: zombies near a player tick at NearHz, the rest at FarHz. Snapshots carry only zombies that
 -- changed since the previous snapshot, with a periodic full snapshot.
+--
+-- Non-horde zombies are slow walkers. Wanderers near a building sometimes walk in through a door
+-- (a small precomputed flow field per building), linger inside and walk out again. A few zombies
+-- spawn inside buildings as sleepers that stand still until they see, hear or bump into a player.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -27,6 +31,8 @@ local ZC = Config.Zombie
 local FC = Config.FlowField
 local NC = Config.Network
 
+type WanderMode = "Free" | "Enter" | "Linger" | "Exit"
+
 type Zombie = {
 	id: number,
 	x: number,
@@ -34,6 +40,16 @@ type Zombie = {
 	z: number,
 	health: number,
 	state: Types.ZombieState,
+	-- Random per-zombie speed scale (SpeedJitter).
+	speedFactor: number,
+	-- Sleepers stand still until they notice a player.
+	dormant: boolean,
+	wanderMode: WanderMode,
+	-- Index into buildingNavs while entering, lingering in or leaving a building.
+	building: number,
+	-- While entering: once inside, the zombie stops walking at this deadline.
+	insideUntil: number,
+	stunUntil: number,
 	-- Current goal point (sound, search or wander point).
 	goalX: number,
 	goalZ: number,
@@ -70,6 +86,22 @@ type SoundField = {
 	lastUsed: number,
 }
 
+-- Door navigation of one building: following `enter` leads to any walkable ground-floor cell
+-- inside, following `exit` leads to the cell in front of a doorway.
+type BuildingNav = {
+	minX: number,
+	minZ: number,
+	maxX: number,
+	maxZ: number,
+	centerX: number,
+	centerZ: number,
+	interior: { number },
+	enter: NavGrid.Field?,
+	exit: NavGrid.Field?,
+}
+
+export type DiedCallback = (x: number, y: number, z: number, killer: Player?) -> ()
+
 export type Stats = {
 	alive: number,
 	queued: number,
@@ -86,12 +118,15 @@ local soundFields: { [number]: SoundField } = {}
 local soundFieldCount = 0
 
 local zombies: { [number]: Zombie } = {}
+local buildingNavs: { BuildingNav } = {}
+local diedCallbacks: { DiedCallback } = {}
 local aliveCount = 0
 local nextId = 1
 local spawnQueue = 0
 local nextWaveTime = 0
 
 local removedIds: { number } = {}
+local killedIds: { number } = {}
 local nextSnapshot = 0
 local nextFullSnapshot = 0
 local snapshotEntries: { ZombieProtocol.Entry } = {}
@@ -182,6 +217,28 @@ local function setState(zombie: Zombie, state: Types.ZombieState)
 	end
 end
 
+local function isInside(nav: BuildingNav, x: number, z: number): boolean
+	return x >= nav.minX and x <= nav.maxX and z >= nav.minZ and z <= nav.maxZ
+end
+
+-- The building containing (x, z), else the one whose centre is closest within `radius`.
+local function nearbyBuilding(x: number, z: number, radius: number): number?
+	local best: number? = nil
+	local bestDistSq = radius * radius
+	for index, nav in buildingNavs do
+		if isInside(nav, x, z) then
+			return index
+		end
+		local dx, dz = nav.centerX - x, nav.centerZ - z
+		local d = dx * dx + dz * dz
+		if d < bestDistSq then
+			bestDistSq = d
+			best = index
+		end
+	end
+	return best
+end
+
 local function enterSearch(zombie: Zombie, now: number, x: number, z: number)
 	setState(zombie, "Search")
 	zombie.soundId = nil
@@ -191,14 +248,52 @@ local function enterSearch(zombie: Zombie, now: number, x: number, z: number)
 	zombie.stateUntil = now + ZC.SearchDuration
 end
 
+local function enterLinger(zombie: Zombie, now: number)
+	setState(zombie, "Idle")
+	zombie.wanderMode = "Linger"
+	zombie.stateUntil = now + randomRange(ZC.LingerMin, ZC.LingerMax)
+end
+
 local function enterWander(zombie: Zombie, now: number)
 	setState(zombie, "Wander")
 	zombie.soundId = nil
 	zombie.soundStrength = 0
 	zombie.targetPlayer = nil
+	zombie.wanderMode = "Free"
 	zombie.goalX = zombie.x + randomRange(-ZC.WanderRadius, ZC.WanderRadius)
 	zombie.goalZ = zombie.z + randomRange(-ZC.WanderRadius, ZC.WanderRadius)
 	zombie.stateUntil = now + randomRange(ZC.WanderRetargetMin, ZC.WanderRetargetMax)
+
+	-- Inside a building: linger or head for a door. Near one: sometimes walk in.
+	local index = nearbyBuilding(zombie.x, zombie.z, ZC.HouseVisitRadius)
+	if index == nil then
+		return
+	end
+	local nav = buildingNavs[index]
+	zombie.building = index
+	if isInside(nav, zombie.x, zombie.z) then
+		if nav.exit and math.random() < ZC.HouseExitChance then
+			setState(zombie, "Wander")
+			zombie.wanderMode = "Exit"
+			zombie.stateUntil = now + ZC.LingerMax * 2
+		else
+			enterLinger(zombie, now)
+		end
+	elseif nav.enter and #nav.interior > 0 and math.random() < ZC.HouseVisitChance then
+		local cell = nav.interior[math.random(1, #nav.interior)]
+		zombie.goalX, zombie.goalZ = grid:cellCenter(cell)
+		zombie.wanderMode = "Enter"
+		zombie.insideUntil = math.huge
+		zombie.stateUntil = now + ZC.LingerMax * 2
+	end
+end
+
+-- Wakes a sleeper or wanderer and sends it after `player`.
+local function startChase(zombie: Zombie, player: Player)
+	zombie.dormant = false
+	zombie.targetPlayer = player
+	zombie.soundId = nil
+	setState(zombie, "Chase")
 end
 
 local function getSoundField(soundId: number, x: number, z: number, now: number): NavGrid.Field?
@@ -282,18 +377,79 @@ local function followField(
 	moveToward(zombie, goalX, goalZ, speed, dt)
 end
 
+-- Wander behaviour: free roaming, or walking into, lingering in and leaving a building.
+local function stepWander(zombie: Zombie, now: number, dt: number)
+	local speed = ZC.WanderSpeed * zombie.speedFactor
+	local mode = zombie.wanderMode
+	local nav = buildingNavs[zombie.building]
+	if mode == "Linger" then
+		if now >= zombie.stateUntil then
+			enterWander(zombie, now)
+		end
+		return
+	elseif mode == "Enter" and nav then
+		if now >= zombie.stateUntil then
+			enterWander(zombie, now)
+			return
+		end
+		local field = nav.enter :: NavGrid.Field
+		local cell = grid:cellAt(zombie.x, zombie.z)
+		if cell and grid:distanceAt(field, cell) == 0 then
+			-- Inside: walk a little further in, then stand.
+			if zombie.insideUntil == math.huge then
+				zombie.insideUntil = now + ZC.WanderRetargetMax
+			end
+			local dx, dz = zombie.goalX - zombie.x, zombie.goalZ - zombie.z
+			if now >= zombie.insideUntil or dx * dx + dz * dz <= ZC.ArriveDistance * ZC.ArriveDistance then
+				enterLinger(zombie, now)
+				return
+			end
+			moveToward(zombie, zombie.goalX, zombie.goalZ, speed, dt)
+		else
+			followField(zombie, field, nav.centerX, nav.centerZ, speed, dt)
+		end
+		return
+	elseif mode == "Exit" and nav then
+		local field = nav.exit :: NavGrid.Field
+		local cell = grid:cellAt(zombie.x, zombie.z)
+		if now >= zombie.stateUntil or cell == nil or grid:distanceAt(field, cell) == 0 then
+			-- Out of the door: walk away from the building.
+			zombie.wanderMode = "Free"
+			local dx, dz = zombie.x - nav.centerX, zombie.z - nav.centerZ
+			local length = math.max(1e-3, math.sqrt(dx * dx + dz * dz))
+			zombie.goalX = zombie.x + dx / length * ZC.WanderRadius
+			zombie.goalZ = zombie.z + dz / length * ZC.WanderRadius
+			zombie.stateUntil = now + randomRange(ZC.WanderRetargetMin, ZC.WanderRetargetMax)
+			return
+		end
+		followField(zombie, field, nav.centerX, nav.centerZ, speed, dt)
+		return
+	end
+	if now >= zombie.stateUntil or zombie.state == "Idle" then
+		enterWander(zombie, now)
+		if zombie.wanderMode ~= "Free" then
+			return
+		end
+	end
+	moveToward(zombie, zombie.goalX, zombie.goalZ, speed, dt)
+end
+
 local function stepZombie(zombie: Zombie, players: { PlayerInfo }, now: number, dt: number)
 	local nearest, nearestDist = nearestPlayer(players, zombie.x, zombie.z)
 
-	-- Direct sight overrides sounds.
+	-- Direct sight overrides sounds. Sleepers see less, but wake when a player bumps into them.
 	local state = zombie.state
 	if state ~= "Chase" and state ~= "AttackPlayer" and nearest and now >= zombie.nextSightCheck then
 		zombie.nextSightCheck = now + ZC.SightCheckInterval
-		if nearestDist <= ZC.SightRange and hasLineOfSight(zombie, nearest) then
-			zombie.targetPlayer = nearest.player
-			zombie.soundId = nil
-			setState(zombie, "Chase")
+		local sight = if zombie.dormant then ZC.DormantSightRange else ZC.SightRange
+		local bumped = zombie.dormant and nearestDist <= ZC.DormantWakeDistance
+		if bumped or (nearestDist <= sight and hasLineOfSight(zombie, nearest)) then
+			startChase(zombie, nearest.player)
 		end
+	end
+
+	if now < zombie.stunUntil then
+		return
 	end
 
 	state = zombie.state
@@ -310,8 +466,13 @@ local function stepZombie(zombie: Zombie, players: { PlayerInfo }, now: number, 
 			enterSearch(zombie, now, target.x, target.z)
 			return
 		end
-		if dist <= ZC.AttackRange then
-			setState(zombie, "AttackPlayer")
+		-- The height check keeps a zombie from hitting a player on the floor above or on a roof.
+		if dist <= ZC.AttackRange and math.abs(target.y - zombie.y) <= ZC.AttackHeightTolerance then
+			if state ~= "AttackPlayer" then
+				-- Arms go out first; the client plays the grab at the same moment.
+				zombie.nextAttack = math.max(zombie.nextAttack, now + ZC.AttackWindup)
+				setState(zombie, "AttackPlayer")
+			end
 			if now >= zombie.nextAttack then
 				zombie.nextAttack = now + ZC.AttackCooldown
 				target.humanoid:TakeDamage(ZC.AttackDamage)
@@ -320,7 +481,7 @@ local function stepZombie(zombie: Zombie, players: { PlayerInfo }, now: number, 
 		end
 		setState(zombie, "Chase")
 		local entry = playerFields[target.player]
-		followField(zombie, entry and entry.field, target.x, target.z, ZC.RunSpeed, dt)
+		followField(zombie, entry and entry.field, target.x, target.z, ZC.ChaseSpeed * zombie.speedFactor, dt)
 	elseif state == "SeekSound" then
 		local dx = zombie.goalX - zombie.x
 		local dz = zombie.goalZ - zombie.z
@@ -329,7 +490,7 @@ local function stepZombie(zombie: Zombie, players: { PlayerInfo }, now: number, 
 			return
 		end
 		local field = getSoundField(zombie.soundId :: number, zombie.goalX, zombie.goalZ, now)
-		followField(zombie, field, zombie.goalX, zombie.goalZ, ZC.RunSpeed, dt)
+		followField(zombie, field, zombie.goalX, zombie.goalZ, ZC.SeekSpeed * zombie.speedFactor, dt)
 	elseif state == "Search" then
 		if now >= zombie.stateUntil then
 			enterWander(zombie, now)
@@ -342,12 +503,9 @@ local function stepZombie(zombie: Zombie, players: { PlayerInfo }, now: number, 
 			zombie.goalX += randomRange(-ZC.SearchRadius, ZC.SearchRadius)
 			zombie.goalZ += randomRange(-ZC.SearchRadius, ZC.SearchRadius)
 		end
-		moveToward(zombie, zombie.goalX, zombie.goalZ, ZC.WanderSpeed, dt)
-	else
-		if now >= zombie.stateUntil or state == "Idle" then
-			enterWander(zombie, now)
-		end
-		moveToward(zombie, zombie.goalX, zombie.goalZ, ZC.WanderSpeed, dt)
+		moveToward(zombie, zombie.goalX, zombie.goalZ, ZC.WanderSpeed * zombie.speedFactor, dt)
+	elseif not zombie.dormant then
+		stepWander(zombie, now, dt)
 	end
 end
 
@@ -403,6 +561,42 @@ local function separate(stepped: { Zombie })
 	end
 end
 
+-- An interior ground-floor cell of a building near a random player, out of every player's sight and
+-- at least IndoorSpawnMinDistance away from all of them.
+local function pickIndoorSpawnPoint(players: { PlayerInfo }): (number?, number?)
+	if #players == 0 or #buildingNavs == 0 then
+		return nil, nil
+	end
+	local anchor = players[math.random(1, #players)]
+	local maxSq = ZC.SpawnMaxDistance * ZC.SpawnMaxDistance
+	local minSq = ZC.IndoorSpawnMinDistance * ZC.IndoorSpawnMinDistance
+	for _ = 1, ZC.SpawnAttempts do
+		local nav = buildingNavs[math.random(1, #buildingNavs)]
+		local dx, dz = nav.centerX - anchor.x, nav.centerZ - anchor.z
+		if #nav.interior > 0 and dx * dx + dz * dz <= maxSq then
+			local x, z = grid:cellCenter(nav.interior[math.random(1, #nav.interior)])
+			local spot = Vector3.new(x, MapService.groundAt(x, z) + ZC.RootHeight, z)
+			local ok = true
+			for _, info in players do
+				local px, pz = x - info.x, z - info.z
+				if px * px + pz * pz < minSq then
+					ok = false
+					break
+				end
+				local origin = Vector3.new(info.x, info.y, info.z)
+				if Workspace:Raycast(origin, spot - origin, sightParams) == nil then
+					ok = false
+					break
+				end
+			end
+			if ok then
+				return x, z
+			end
+		end
+	end
+	return nil, nil
+end
+
 local function pickSpawnPoint(players: { PlayerInfo }): (number?, number?)
 	local cx, cz = 0, 0
 	if #players > 0 then
@@ -423,8 +617,19 @@ end
 
 local function spawnOne(players: { PlayerInfo }, now: number): boolean
 	local id = allocateId()
-	local x, z = pickSpawnPoint(players)
-	if id == nil or x == nil or z == nil then
+	if id == nil then
+		return false
+	end
+	local dormant = false
+	local x, z
+	if math.random() < ZC.IndoorSpawnChance then
+		x, z = pickIndoorSpawnPoint(players)
+		dormant = x ~= nil
+	end
+	if x == nil or z == nil then
+		x, z = pickSpawnPoint(players)
+	end
+	if x == nil or z == nil then
 		return false
 	end
 	local spread = ZC.SpreadRadius
@@ -435,6 +640,12 @@ local function spawnOne(players: { PlayerInfo }, now: number): boolean
 		z = z,
 		health = ZC.MaxHealth,
 		state = "Idle",
+		speedFactor = 1 + randomRange(-ZC.SpeedJitter, ZC.SpeedJitter),
+		dormant = dormant,
+		wanderMode = "Free",
+		building = 0,
+		insideUntil = 0,
+		stunUntil = 0,
 		goalX = x,
 		goalZ = z,
 		soundId = nil,
@@ -531,9 +742,10 @@ local function sendSnapshots(now: number)
 		first = last + 1
 	end
 
-	if #removedIds > 0 then
-		removedRemote:FireAllClients(removedIds)
+	if #removedIds > 0 or #killedIds > 0 then
+		removedRemote:FireAllClients(removedIds, killedIds)
 		removedIds = {}
+		killedIds = {}
 	end
 end
 
@@ -629,8 +841,52 @@ local function markNavigation()
 	end
 end
 
+-- Door flow fields per building: walkable ground-floor cells inside the footprint are the "enter"
+-- sources, the cells in front of exterior doorways the "exit" sources.
+local function buildBuildingNavs()
+	local size = FC.CellSize
+	for _, info in MapService.getBuildings() do
+		local nav: BuildingNav = {
+			minX = info.minX,
+			minZ = info.minZ,
+			maxX = info.maxX,
+			maxZ = info.maxZ,
+			centerX = (info.minX + info.maxX) / 2,
+			centerZ = (info.minZ + info.maxZ) / 2,
+			interior = {},
+			enter = nil,
+			exit = nil,
+		}
+		for z = info.minZ + size / 2, info.maxZ, size do
+			for x = info.minX + size / 2, info.maxX, size do
+				local cell = grid:cellAt(x, z)
+				if cell and grid:getCost(cell) ~= NavGrid.BLOCKED then
+					table.insert(nav.interior, cell)
+				end
+			end
+		end
+		local radius = math.max(info.maxX - info.minX, info.maxZ - info.minZ) / 2 + ZC.BuildingFieldMargin
+		local x0, z0, x1, z1 = grid:windowAround(nav.centerX, nav.centerZ, radius)
+		if #nav.interior > 0 then
+			nav.enter = grid:buildField(nav.interior, x0, z0, x1, z1)
+		end
+		local fronts = {}
+		for _, front in info.doorFronts do
+			local cell = grid:cellAt(front.X, front.Z)
+			if cell then
+				table.insert(fronts, cell)
+			end
+		end
+		if #fronts > 0 then
+			nav.exit = grid:buildField(fronts, x0, z0, x1, z1)
+		end
+		table.insert(buildingNavs, nav)
+	end
+end
+
 function ZombieService.start()
 	markNavigation()
+	buildBuildingNavs()
 	sightParams.FilterDescendantsInstances = { MapService.getMap(), Workspace.Terrain }
 	Players.PlayerRemoving:Connect(function(player)
 		playerFields[player] = nil
@@ -644,6 +900,7 @@ function ZombieService.spawn(count: number)
 	nextWaveTime = 0
 end
 
+-- Despawns a zombie without a death (no corpse, no loot).
 function ZombieService.remove(id: number)
 	if zombies[id] then
 		zombies[id] = nil
@@ -659,16 +916,44 @@ function ZombieService.clear()
 	end
 end
 
--- Server-side damage entry point (weapons call this after validating the hit).
-function ZombieService.damage(id: number, amount: number)
+-- Server-side damage entry point (weapons call this after validating the hit). A hit staggers the
+-- zombie and turns it on the attacker; a kill leaves a corpse on every client and notifies the
+-- onDied listeners (loot). Returns true when the hit killed the zombie.
+function ZombieService.damage(id: number, amount: number, attacker: Player?): boolean
 	local zombie = zombies[id]
 	if zombie == nil or amount <= 0 then
-		return
+		return false
 	end
 	zombie.health -= amount
 	if zombie.health <= 0 then
-		ZombieService.remove(id)
+		zombies[id] = nil
+		aliveCount -= 1
+		table.insert(killedIds, id)
+		for _, callback in diedCallbacks do
+			task.spawn(callback, zombie.x, zombie.y, zombie.z, attacker)
+		end
+		return true
 	end
+	zombie.stunUntil = os.clock() + ZC.HitStunSeconds
+	if attacker and zombie.state ~= "Chase" and zombie.state ~= "AttackPlayer" then
+		startChase(zombie, attacker)
+	end
+	zombie.dormant = false
+	return false
+end
+
+-- Registers a listener for zombie deaths (body position, killing player if any).
+function ZombieService.onDied(callback: DiedCallback)
+	table.insert(diedCallbacks, callback)
+end
+
+-- Current server position of a zombie (root height), or nil if it does not exist.
+function ZombieService.getPosition(id: number): Vector3?
+	local zombie = zombies[id]
+	if zombie == nil then
+		return nil
+	end
+	return Vector3.new(zombie.x, zombie.y, zombie.z)
 end
 
 -- Called by ThreatService for every noise event. Zombies in hearing range walk to the newest or
@@ -685,6 +970,7 @@ function ZombieService.hearSound(point: Types.SoundPoint)
 				local isNewer = point.createdAt > zombie.soundCreatedAt
 				local isLouder = point.strength > zombie.soundStrength
 				if zombie.soundId == nil or isNewer or isLouder then
+					zombie.dormant = false
 					zombie.soundId = point.id
 					zombie.soundStrength = point.strength
 					zombie.soundCreatedAt = point.createdAt

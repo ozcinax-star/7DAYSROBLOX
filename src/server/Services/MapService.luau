@@ -56,7 +56,26 @@ local ready = false
 
 type Circle = { x: number, z: number, radius: number }
 
+-- One entry per placed building, for systems that need to know where buildings and their doors are
+-- (zombies walking in and out, indoor spawns, loot).
+export type BuildingInfo = {
+	name: string,
+	template: string,
+	model: Model,
+	region: string,
+	-- Footprint rectangle in world studs (walls included).
+	minX: number,
+	minZ: number,
+	maxX: number,
+	maxZ: number,
+	baseY: number,
+	floors: number,
+	-- World centre of the navigation cell in front of every exterior ground-floor doorway.
+	doorFronts: { Vector3 },
+}
+
 local doorFronts: { Circle } = {}
+local buildings: { BuildingInfo } = {}
 
 local function folder(name: string, parent: Instance): Folder
 	local f = Instance.new("Folder")
@@ -124,7 +143,21 @@ local function buildBuildings(parent: Instance, keepOut: { Circle })
 		for _, front in fronts do
 			table.insert(doorFronts, { x = front.X, z = front.Z, radius = DOOR_CLEARANCE })
 		end
-		model:SetAttribute("Region", HeightField.regionAt(cx, cz))
+		local region = HeightField.regionAt(cx, cz)
+		model:SetAttribute("Region", region)
+		table.insert(buildings, {
+			name = placement.name,
+			template = placement.template,
+			model = model,
+			region = region,
+			minX = placement.x,
+			minZ = placement.z,
+			maxX = placement.x + width,
+			maxZ = placement.z + depth,
+			baseY = baseY,
+			floors = model:GetAttribute("Floors") :: number,
+			doorFronts = fronts,
+		})
 		forFootprint(placement, function(column)
 			floorTops[column] = baseY + BuildingKit.FloorTop
 		end)
@@ -385,6 +418,10 @@ end
 
 function MapService.getMap(): Folder
 	return assert(mapFolder, "MapService not initialized")
+end
+
+function MapService.getBuildings(): { BuildingInfo }
+	return buildings
 end
 
 function MapService.getHeightGrid(): TerrainBuilder.HeightGrid

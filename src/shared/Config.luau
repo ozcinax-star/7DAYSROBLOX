@@ -57,9 +57,14 @@ Config.Threat = {
 
 Config.Zombie = {
 	MaxHealth = 100,
-	-- Speed while chasing a sound or a player (studs/s).
-	RunSpeed = 12,
-	WanderSpeed = 3,
+	-- Non-horde zombies are slow walkers (The Walking Dead style): a player walking at 16 studs/s
+	-- outpaces them; the danger is numbers and being cornered. Speeds in studs/s.
+	ChaseSpeed = 5,
+	-- Walking toward a heard sound.
+	SeekSpeed = 4,
+	WanderSpeed = 2,
+	-- Each zombie's speeds are scaled by a random factor in [1 - SpeedJitter, 1 + SpeedJitter].
+	SpeedJitter = 0.15,
 	-- Max distance at which a zombie notices a player directly; line of sight is checked by raycast.
 	SightRange = 60,
 	-- Chase is dropped when the player gets farther than SightRange * LoseSightMultiplier.
@@ -76,9 +81,32 @@ Config.Zombie = {
 	WanderRadius = 20,
 	-- Distance at which a target point counts as reached.
 	ArriveDistance = 3,
-	AttackRange = 4,
+	AttackRange = 3.6,
+	-- A target more than this far above or below the zombie (another floor, a roof) cannot be hit.
+	AttackHeightTolerance = 3,
 	AttackDamage = 10,
-	AttackCooldown = 1.2,
+	-- Arms-out reach before the first grab lands; the client plays the lunge at the same moment.
+	AttackWindup = 0.6,
+	AttackCooldown = 1.4,
+	-- A hit zombie staggers and stops moving for this long.
+	HitStunSeconds = 0.35,
+	-- Wandering zombies near a building sometimes walk in through a door, linger inside, and walk
+	-- out again later. Chances are rolled each time a wanderer picks a new goal; with these values
+	-- about a quarter of the zombies in town are indoors at any time (measured in Play).
+	HouseVisitChance = 0.1,
+	HouseExitChance = 0.7,
+	HouseVisitRadius = 48,
+	LingerMin = 8,
+	LingerMax = 25,
+	-- Chance that a spawned zombie appears inside a building, standing still (a "sleeper") until it
+	-- sees or hears a player or one comes within DormantWakeDistance.
+	IndoorSpawnChance = 0.1,
+	-- Indoor spawns keep this distance from every player and are never placed in a player's sight.
+	IndoorSpawnMinDistance = 30,
+	DormantSightRange = 18,
+	DormantWakeDistance = 8,
+	-- Margin around a building's footprint covered by its door flow fields (studs).
+	BuildingFieldMargin = 40,
 	-- Individual offset from the shared path so the horde does not walk in a single file.
 	SpreadRadius = 2.5,
 	-- Zombies closer than this push each other apart.
