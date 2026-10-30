@@ -118,6 +118,21 @@ test("a blocked source falls back to the nearest walkable cell", function()
 	assert(d ~= NavGrid.UNREACHABLE, "field is not empty")
 end)
 
+test("a layer that starts blocked only walks its opened cells", function()
+	-- An upper floor: a 3-cell corridor along X opened in an otherwise blocked layer.
+	local grid = NavGrid.new(4, 64, 8, NavGrid.BLOCKED)
+	expectEq(grid:isWalkable(0, 0), false, "closed by default")
+	for x = 0, 8, 4 do
+		grid:setCost(grid:cellAt(x + 1, 1) :: number, NavGrid.NORMAL)
+	end
+	local field = grid:buildField({ grid:cellAt(9, 1) :: number })
+	expectEq(grid:distanceAt(field, grid:cellAt(1, 1) :: number), 2, "along the corridor")
+	expectEq(grid:distanceAt(field, grid:cellAt(1, 5) :: number), NavGrid.UNREACHABLE, "beside the corridor")
+	local wx, wz = grid:nextWaypoint(field, 1, 1)
+	expectEq(wx, 6, "next cell x")
+	expectEq(wz, 2, "next cell z")
+end)
+
 print("HeightField")
 
 test("town and roads are flat", function()

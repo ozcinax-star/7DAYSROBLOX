@@ -42,11 +42,13 @@ export type NavGrid = typeof(setmetatable(
 	NavGrid
 ))
 
-function NavGrid.new(cellSize: number, halfExtent: number, structureCost: number): NavGrid
+-- `initialCost` fills every cell (default NORMAL); a layer that only has a few open cells, such as
+-- the upper floors of buildings, starts BLOCKED and opens them one by one.
+function NavGrid.new(cellSize: number, halfExtent: number, structureCost: number, initialCost: number?): NavGrid
 	local width = math.floor(halfExtent * 2 / cellSize)
 	local cellCount = width * width
 	local cost = buffer.create(cellCount)
-	buffer.fill(cost, 0, NORMAL)
+	buffer.fill(cost, 0, initialCost or NORMAL)
 	return setmetatable({
 		cellSize = cellSize,
 		halfExtent = halfExtent,

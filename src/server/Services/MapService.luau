@@ -72,6 +72,9 @@ export type BuildingInfo = {
 	floors: number,
 	-- World centre of the navigation cell in front of every exterior ground-floor doorway.
 	doorFronts: { Vector3 },
+	-- Stairs between floors and the upper-floor cells (BuildingKit.NavInfo).
+	stairs: { BuildingKit.Stair },
+	upperCells: { Vector3 },
 }
 
 local doorFronts: { Circle } = {}
@@ -139,7 +142,7 @@ local function buildBuildings(parent: Instance, keepOut: { Circle })
 		local width, depth = BuildingKit.footprint(placement.template, placement.rotation)
 		local cx, cz = placement.x + width / 2, placement.z + depth / 2
 		local baseY = MapService.heightAt(cx, cz)
-		local model, fronts = BuildingKit.build(placement, baseY, parent)
+		local model, fronts, nav = BuildingKit.build(placement, baseY, parent)
 		for _, front in fronts do
 			table.insert(doorFronts, { x = front.X, z = front.Z, radius = DOOR_CLEARANCE })
 		end
@@ -157,6 +160,8 @@ local function buildBuildings(parent: Instance, keepOut: { Circle })
 			baseY = baseY,
 			floors = model:GetAttribute("Floors") :: number,
 			doorFronts = fronts,
+			stairs = nav.stairs,
+			upperCells = nav.upperCells,
 		})
 		forFootprint(placement, function(column)
 			floorTops[column] = baseY + BuildingKit.FloorTop

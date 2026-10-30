@@ -92,7 +92,8 @@ Config.Zombie = {
 	HitStunSeconds = 0.35,
 	-- Wandering zombies near a building sometimes walk in through a door, linger inside, and walk
 	-- out again later. Chances are rolled each time a wanderer picks a new goal; with these values
-	-- about a quarter of the zombies in town are indoors at any time (measured in Play).
+	-- about 30% of the zombies in town are indoors at any time (measured in Play: 22-24 of 80).
+	-- A visit picks any floor cell of the building, so two-storey buildings send some upstairs.
 	HouseVisitChance = 0.1,
 	HouseExitChance = 0.7,
 	HouseVisitRadius = 48,
@@ -107,6 +108,13 @@ Config.Zombie = {
 	DormantWakeDistance = 8,
 	-- Margin around a building's footprint covered by its door flow fields (studs).
 	BuildingFieldMargin = 40,
+	-- Zombies climb and descend stairs at this fraction of their walking speed.
+	StairSpeedMultiplier = 0.6,
+	-- Seconds between two zombies stepping onto the same flight, so a crowd climbs in a file.
+	StairSpacing = 0.7,
+	-- Someone whose feet are within this many studs below an upper floor counts as being on it
+	-- (half-way up the stairs, or a jump on the floor below does not).
+	LevelSlack = 4,
 	-- Individual offset from the shared path so the horde does not walk in a single file.
 	SpreadRadius = 2.5,
 	-- Zombies closer than this push each other apart.

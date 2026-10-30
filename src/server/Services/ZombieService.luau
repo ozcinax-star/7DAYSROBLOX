@@ -10,6 +10,10 @@
 -- Non-horde zombies are slow walkers. Wanderers near a building sometimes walk in through a door
 -- (a small precomputed flow field per building), linger inside and walk out again. A few zombies
 -- spawn inside buildings as sleepers that stand still until they see, hear or bump into a player.
+--
+-- Upper floors are a second navigation layer (templates have at most two floors). Each flight of
+-- stairs links the ground cell at its foot to the upper cell at its top; a zombie whose goal is on
+-- the other level walks to the nearest end, then follows the flight with its height on the steps.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -26,12 +30,43 @@ local HeightField = require(Shared.World.HeightField)
 local WorldLayout = require(Shared.World.WorldLayout)
 
 local MapService = require(script.Parent.MapService)
+local BuildingKit = require(script.Parent.Parent.World.BuildingKit)
 
 local ZC = Config.Zombie
 local FC = Config.FlowField
 local NC = Config.Network
 
+local GROUND = 1
+local UPPER = 2
+local FLOOR_HEIGHT = BuildingKit.FloorHeight
+-- Distance from the foot or top cell centre at which a zombie steps onto the flight (studs).
+local STAIR_SNAP = 1
+
 type WanderMode = "Free" | "Enter" | "Linger" | "Exit"
+
+-- One flight of stairs between the ground level and the upper level of a building.
+type StairLink = {
+	building: number,
+	footCell: number,
+	topCell: number,
+	footX: number,
+	footZ: number,
+	topX: number,
+	topZ: number,
+	-- Unit direction from foot to top.
+	dirX: number,
+	dirZ: number,
+	-- Walking surfaces at the foot and at the top.
+	lowY: number,
+	highY: number,
+	-- Distance from the foot centre to the first step, length of the flight, and the lift of the
+	-- walking line above the straight line between the floors (half a riser, onto the treads).
+	rampStart: number,
+	rampLength: number,
+	riser: number,
+	-- Next time a zombie may step onto the flight (StairSpacing).
+	nextStart: number,
+}
 
 type Zombie = {
 	id: number,
@@ -45,11 +80,19 @@ type Zombie = {
 	-- Sleepers stand still until they notice a player.
 	dormant: boolean,
 	wanderMode: WanderMode,
-	-- Index into buildingNavs while entering, lingering in or leaving a building.
+	-- Index into buildingNavs while entering, lingering in or leaving a building; on the upper level
+	-- always the building the zombie is in.
 	building: number,
 	-- While entering: once inside, the zombie stops walking at this deadline.
 	insideUntil: number,
 	stunUntil: number,
+	-- Navigation level (GROUND or UPPER) and, while on the stairs, the flight and its direction.
+	level: number,
+	stair: StairLink?,
+	stairUp: boolean,
+	-- Level and building of the goal point (heard sound, house visit).
+	goalLevel: number,
+	goalBuilding: number,
 	-- Current goal point (sound, search or wander point).
 	goalX: number,
 	goalZ: number,
@@ -74,11 +117,16 @@ type PlayerInfo = {
 	z: number,
 	humanoid: Humanoid,
 	root: BasePart,
+	level: number,
+	building: number,
 }
 
+-- Ground field toward the player, or toward the stairs of the building whose upper floor they are on.
 type PlayerField = {
 	field: NavGrid.Field?,
 	rebuildAt: number,
+	level: number,
+	building: number,
 }
 
 type SoundField = {
@@ -98,6 +146,19 @@ type BuildingNav = {
 	interior: { number },
 	enter: NavGrid.Field?,
 	exit: NavGrid.Field?,
+	-- Upper floor: walking height, flights, open cells (empty in one-storey buildings), ground cells
+	-- at the foot of the stairs, and fields toward the feet (ground) and the tops (upper level).
+	upperY: number,
+	links: { StairLink },
+	upperCells: { number },
+	footCells: { number },
+	footField: NavGrid.Field?,
+	topField: NavGrid.Field?,
+	-- Cell window of the footprint, for upper-level fields.
+	wx0: number,
+	wz0: number,
+	wx1: number,
+	wz1: number,
 }
 
 export type DiedCallback = (x: number, y: number, z: number, killer: Player?) -> ()
@@ -113,12 +174,21 @@ export type Stats = {
 local ZombieService = {}
 
 local grid: NavGrid.NavGrid
+-- Upper floors of every building in one layer (footprints never overlap); levels[GROUND] is `grid`.
+local upperGrid: NavGrid.NavGrid
+local levels: { NavGrid.NavGrid } = {}
 local playerFields: { [Player]: PlayerField } = {}
 local soundFields: { [number]: SoundField } = {}
 local soundFieldCount = 0
 
 local zombies: { [number]: Zombie } = {}
 local buildingNavs: { BuildingNav } = {}
+-- Buildings with stairs, and the flight starting at a ground cell / arriving at an upper cell.
+local multiStorey: { number } = {}
+local footLinks: { [number]: StairLink } = {}
+local topLinks: { [number]: StairLink } = {}
+-- Upper-level fields toward one goal cell, built on first use (upper floors are small).
+local upperFields: { [number]: NavGrid.Field } = {}
 local diedCallbacks: { DiedCallback } = {}
 local aliveCount = 0
 local nextId = 1
@@ -161,6 +231,25 @@ local function allocateId(): number?
 	return nil
 end
 
+local function isInside(nav: BuildingNav, x: number, z: number): boolean
+	return x >= nav.minX and x <= nav.maxX and z >= nav.minZ and z <= nav.maxZ
+end
+
+-- Level and building of a root-height point (feet + RootHeight): UPPER with the building index when
+-- it is on (or above) the upper floor of a building with stairs, else GROUND and 0.
+local function locate(x: number, y: number, z: number): (number, number)
+	for _, index in multiStorey do
+		local nav = buildingNavs[index]
+		if isInside(nav, x, z) and y - ZC.RootHeight >= nav.upperY - ZC.LevelSlack then
+			local cell = upperGrid:cellAt(x, z)
+			if cell and upperGrid:nearestWalkable(cell, 2) then
+				return UPPER, index
+			end
+		end
+	end
+	return GROUND, 0
+end
+
 local function collectPlayers(): { PlayerInfo }
 	local list = {}
 	for _, player in Players:GetPlayers() do
@@ -170,7 +259,17 @@ local function collectPlayers(): { PlayerInfo }
 			local root = character.PrimaryPart
 			if humanoid and root and humanoid.Health > 0 then
 				local p = root.Position
-				table.insert(list, { player = player, x = p.X, y = p.Y, z = p.Z, humanoid = humanoid, root = root })
+				local level, building = locate(p.X, p.Y, p.Z)
+				table.insert(list, {
+					player = player,
+					x = p.X,
+					y = p.Y,
+					z = p.Z,
+					humanoid = humanoid,
+					root = root,
+					level = level,
+					building = building,
+				})
 			end
 		end
 	end
@@ -217,10 +316,6 @@ local function setState(zombie: Zombie, state: Types.ZombieState)
 	end
 end
 
-local function isInside(nav: BuildingNav, x: number, z: number): boolean
-	return x >= nav.minX and x <= nav.maxX and z >= nav.minZ and z <= nav.maxZ
-end
-
 -- The building containing (x, z), else the one whose centre is closest within `radius`.
 local function nearbyBuilding(x: number, z: number, radius: number): number?
 	local best: number? = nil
@@ -260,6 +355,7 @@ local function enterWander(zombie: Zombie, now: number)
 	zombie.soundStrength = 0
 	zombie.targetPlayer = nil
 	zombie.wanderMode = "Free"
+	zombie.goalLevel = zombie.level
 	zombie.goalX = zombie.x + randomRange(-ZC.WanderRadius, ZC.WanderRadius)
 	zombie.goalZ = zombie.z + randomRange(-ZC.WanderRadius, ZC.WanderRadius)
 	zombie.stateUntil = now + randomRange(ZC.WanderRetargetMin, ZC.WanderRetargetMax)
@@ -279,12 +375,24 @@ local function enterWander(zombie: Zombie, now: number)
 		else
 			enterLinger(zombie, now)
 		end
-	elseif nav.enter and #nav.interior > 0 and math.random() < ZC.HouseVisitChance then
-		local cell = nav.interior[math.random(1, #nav.interior)]
-		zombie.goalX, zombie.goalZ = grid:cellCenter(cell)
-		zombie.wanderMode = "Enter"
-		zombie.insideUntil = math.huge
-		zombie.stateUntil = now + ZC.LingerMax * 2
+	else
+		-- A visit picks any floor cell, upstairs included.
+		local groundCount = if nav.enter then #nav.interior else 0
+		local upperCount = #nav.upperCells
+		if groundCount + upperCount > 0 and math.random() < ZC.HouseVisitChance then
+			local pick = math.random(1, groundCount + upperCount)
+			if pick <= groundCount then
+				zombie.goalX, zombie.goalZ = grid:cellCenter(nav.interior[pick])
+				zombie.goalLevel = GROUND
+			else
+				zombie.goalX, zombie.goalZ = upperGrid:cellCenter(nav.upperCells[pick - groundCount])
+				zombie.goalLevel = UPPER
+			end
+			zombie.goalBuilding = index
+			zombie.wanderMode = "Enter"
+			zombie.insideUntil = math.huge
+			zombie.stateUntil = now + ZC.LingerMax * 2
+		end
 	end
 end
 
@@ -337,17 +445,21 @@ local function moveToward(zombie: Zombie, tx: number, tz: number, speed: number,
 	local step = math.min(dist, speed * dt)
 	local nx = zombie.x + dx / dist * step
 	local nz = zombie.z + dz / dist * step
-	if grid:isWalkable(nx, nz) then
+	local g = levels[zombie.level]
+	if g:isWalkable(nx, nz) then
 		zombie.x = nx
 		zombie.z = nz
-	elseif grid:isWalkable(nx, zombie.z) then
+	elseif g:isWalkable(nx, zombie.z) then
 		zombie.x = nx
-	elseif grid:isWalkable(zombie.x, nz) then
+	elseif g:isWalkable(zombie.x, nz) then
 		zombie.z = nz
 	else
 		return
 	end
-	zombie.y = MapService.groundAt(zombie.x, zombie.z) + ZC.RootHeight
+	local floor = if zombie.level == GROUND
+		then MapService.groundAt(zombie.x, zombie.z)
+		else buildingNavs[zombie.building].upperY
+	zombie.y = floor + ZC.RootHeight
 	zombie.dirty = true
 end
 
@@ -362,11 +474,12 @@ local function followField(
 	dt: number
 )
 	if field then
-		local wx, wz = grid:nextWaypoint(field, zombie.x, zombie.z)
+		local g = levels[zombie.level]
+		local wx, wz = g:nextWaypoint(field, zombie.x, zombie.z)
 		if wx and wz then
 			local sx = wx + zombie.spreadX
 			local sz = wz + zombie.spreadZ
-			if grid:isWalkable(sx, sz) then
+			if g:isWalkable(sx, sz) then
 				moveToward(zombie, sx, sz, speed, dt)
 			else
 				moveToward(zombie, wx, wz, speed, dt)
@@ -375,6 +488,134 @@ local function followField(
 		end
 	end
 	moveToward(zombie, goalX, goalZ, speed, dt)
+end
+
+-- Upper-level field toward the cell at (x, z) of building `index`.
+local function upperField(index: number, x: number, z: number): NavGrid.Field?
+	local cell = upperGrid:cellAt(x, z)
+	local nav = buildingNavs[index]
+	if cell == nil or nav == nil then
+		return nil
+	end
+	local field = upperFields[cell]
+	if field == nil then
+		field = upperGrid:buildField({ cell }, nav.wx0, nav.wz0, nav.wx1, nav.wz1)
+		upperFields[cell] = field
+	end
+	return field
+end
+
+-- Walks a zombie along its flight with the height on the steps; at the end it changes level.
+local function stepStair(zombie: Zombie, speed: number, dt: number)
+	local link = zombie.stair :: StairLink
+	local up = zombie.stairUp
+	local tx = if up then link.topX else link.footX
+	local tz = if up then link.topZ else link.footZ
+	local dx, dz = tx - zombie.x, tz - zombie.z
+	local dist = math.sqrt(dx * dx + dz * dz)
+	local step = speed * ZC.StairSpeedMultiplier * dt
+	if dist <= step then
+		zombie.x, zombie.z = tx, tz
+		zombie.stair = nil
+		zombie.level = if up then UPPER else GROUND
+		zombie.building = link.building
+		zombie.y = (if up then link.highY else link.lowY) + ZC.RootHeight
+	else
+		zombie.x += dx / dist * step
+		zombie.z += dz / dist * step
+		local height = link.highY - link.lowY
+		local along = (zombie.x - link.footX) * link.dirX + (zombie.z - link.footZ) * link.dirZ
+		local rise = (along - link.rampStart) / link.rampLength * height + link.riser
+		zombie.y = link.lowY + math.clamp(rise, 0, height) + ZC.RootHeight
+	end
+	zombie.dirty = true
+end
+
+-- The flight of `nav` whose foot (up) or top (down) is closest to (x, z).
+local function nearestStair(nav: BuildingNav, up: boolean, x: number, z: number): StairLink
+	local best = nav.links[1]
+	local bestSq = math.huge
+	for _, link in nav.links do
+		local dx = (if up then link.footX else link.topX) - x
+		local dz = (if up then link.footZ else link.topZ) - z
+		local d = dx * dx + dz * dz
+		if d < bestSq then
+			bestSq = d
+			best = link
+		end
+	end
+	return best
+end
+
+-- Walks toward a goal on either level. On the goal's level (upstairs: in the goal's building) the
+-- zombie follows `groundField` or an upper-level field; otherwise it takes the stairs first, up those
+-- of the goal building or down those of the building it is in. `groundField` leads to the goal on the
+-- ground, or to the goal building's stair feet when the goal is upstairs (nil: the building's own).
+local function travel(
+	zombie: Zombie,
+	goalX: number,
+	goalZ: number,
+	goalLevel: number,
+	goalBuilding: number,
+	groundField: NavGrid.Field?,
+	speed: number,
+	dt: number,
+	now: number
+)
+	if zombie.stair then
+		stepStair(zombie, speed, dt)
+		return
+	end
+	local level = zombie.level
+	if level == goalLevel and (level == GROUND or zombie.building == goalBuilding) then
+		local field = if level == GROUND then groundField else upperField(goalBuilding, goalX, goalZ)
+		followField(zombie, field, goalX, goalZ, speed, dt)
+		return
+	end
+	local up = level == GROUND
+	local index = if up then goalBuilding else zombie.building
+	local nav = buildingNavs[index]
+	if nav == nil or #nav.links == 0 then
+		followField(zombie, if up then groundField else nil, goalX, goalZ, speed, dt)
+		return
+	end
+	local g = levels[level]
+	local cell = g:cellAt(zombie.x, zombie.z)
+	local link = if cell == nil then nil elseif up then footLinks[cell] else topLinks[cell]
+	if link and link.building == index then
+		local px = if up then link.footX else link.topX
+		local pz = if up then link.footZ else link.topZ
+		local dx, dz = px - zombie.x, pz - zombie.z
+		if dx * dx + dz * dz > STAIR_SNAP * STAIR_SNAP then
+			moveToward(zombie, px, pz, speed, dt)
+		elseif now >= link.nextStart then
+			link.nextStart = now + ZC.StairSpacing
+			zombie.stair = link
+			zombie.stairUp = up
+		end
+		return
+	end
+	-- Next to the end cell, walk straight onto it: the spread offset could otherwise keep the zombie
+	-- circling the single cell it must reach.
+	local field = if up then groundField or nav.footField else nav.topField
+	local target = nearestStair(nav, up, zombie.x, zombie.z)
+	local px = if up then target.footX else target.topX
+	local pz = if up then target.footZ else target.topZ
+	if cell and field and g:distanceAt(field, cell) <= 1 then
+		moveToward(zombie, px, pz, speed, dt)
+	else
+		followField(zombie, field, px, pz, speed, dt)
+	end
+end
+
+-- Walking speed of the zombie's current behaviour.
+local function stateSpeed(zombie: Zombie): number
+	local state = zombie.state
+	local base = if state == "Chase" or state == "AttackPlayer"
+		then ZC.ChaseSpeed
+		elseif state == "SeekSound" then ZC.SeekSpeed
+		else ZC.WanderSpeed
+	return base * zombie.speedFactor
 end
 
 -- Wander behaviour: free roaming, or walking into, lingering in and leaving a building.
@@ -392,10 +633,16 @@ local function stepWander(zombie: Zombie, now: number, dt: number)
 			enterWander(zombie, now)
 			return
 		end
-		local field = nav.enter :: NavGrid.Field
-		local cell = grid:cellAt(zombie.x, zombie.z)
-		if cell and grid:distanceAt(field, cell) == 0 then
-			-- Inside: walk a little further in, then stand.
+		local upstairs = zombie.goalLevel == UPPER
+		local arrived
+		if upstairs then
+			arrived = zombie.level == UPPER and zombie.stair == nil
+		else
+			local cell = grid:cellAt(zombie.x, zombie.z)
+			arrived = cell ~= nil and nav.enter ~= nil and grid:distanceAt(nav.enter, cell) == 0
+		end
+		if arrived then
+			-- Inside (on the chosen floor): walk a little further in, then stand.
 			if zombie.insideUntil == math.huge then
 				zombie.insideUntil = now + ZC.WanderRetargetMax
 			end
@@ -404,12 +651,21 @@ local function stepWander(zombie: Zombie, now: number, dt: number)
 				enterLinger(zombie, now)
 				return
 			end
+		end
+		if upstairs then
+			travel(zombie, zombie.goalX, zombie.goalZ, UPPER, zombie.building, nil, speed, dt, now)
+		elseif arrived then
 			moveToward(zombie, zombie.goalX, zombie.goalZ, speed, dt)
 		else
-			followField(zombie, field, nav.centerX, nav.centerZ, speed, dt)
+			followField(zombie, nav.enter, nav.centerX, nav.centerZ, speed, dt)
 		end
 		return
 	elseif mode == "Exit" and nav then
+		if zombie.level == UPPER then
+			-- Down the stairs first.
+			travel(zombie, nav.centerX, nav.centerZ, GROUND, 0, nav.exit, speed, dt, now)
+			return
+		end
 		local field = nav.exit :: NavGrid.Field
 		local cell = grid:cellAt(zombie.x, zombie.z)
 		if now >= zombie.stateUntil or cell == nil or grid:distanceAt(field, cell) == 0 then
@@ -442,7 +698,10 @@ local function stepZombie(zombie: Zombie, players: { PlayerInfo }, now: number, 
 	if state ~= "Chase" and state ~= "AttackPlayer" and nearest and now >= zombie.nextSightCheck then
 		zombie.nextSightCheck = now + ZC.SightCheckInterval
 		local sight = if zombie.dormant then ZC.DormantSightRange else ZC.SightRange
-		local bumped = zombie.dormant and nearestDist <= ZC.DormantWakeDistance
+		-- Only a player on the same floor bumps into a sleeper, not one walking on the floor above.
+		local bumped = zombie.dormant
+			and nearestDist <= ZC.DormantWakeDistance
+			and math.abs(nearest.y - zombie.y) < FLOOR_HEIGHT / 2
 		if bumped or (nearestDist <= sight and hasLineOfSight(zombie, nearest)) then
 			startChase(zombie, nearest.player)
 		end
@@ -453,6 +712,11 @@ local function stepZombie(zombie: Zombie, players: { PlayerInfo }, now: number, 
 	end
 
 	state = zombie.state
+	-- A zombie on the stairs finishes the flight before anything but a chase moves it.
+	if zombie.stair and state ~= "Chase" and state ~= "AttackPlayer" then
+		stepStair(zombie, stateSpeed(zombie), dt)
+		return
+	end
 	if state == "Chase" or state == "AttackPlayer" then
 		local target = findPlayerInfo(players, zombie.targetPlayer)
 		if target == nil then
@@ -481,16 +745,24 @@ local function stepZombie(zombie: Zombie, players: { PlayerInfo }, now: number, 
 		end
 		setState(zombie, "Chase")
 		local entry = playerFields[target.player]
-		followField(zombie, entry and entry.field, target.x, target.z, ZC.ChaseSpeed * zombie.speedFactor, dt)
+		local speed = ZC.ChaseSpeed * zombie.speedFactor
+		travel(zombie, target.x, target.z, target.level, target.building, entry and entry.field, speed, dt, now)
 	elseif state == "SeekSound" then
 		local dx = zombie.goalX - zombie.x
 		local dz = zombie.goalZ - zombie.z
-		if dx * dx + dz * dz <= ZC.ArriveDistance * ZC.ArriveDistance then
+		local sameLevel = zombie.level == zombie.goalLevel
+			and zombie.stair == nil
+			and (zombie.level == GROUND or zombie.building == zombie.goalBuilding)
+		if sameLevel and dx * dx + dz * dz <= ZC.ArriveDistance * ZC.ArriveDistance then
 			enterSearch(zombie, now, zombie.goalX, zombie.goalZ)
 			return
 		end
-		local field = getSoundField(zombie.soundId :: number, zombie.goalX, zombie.goalZ, now)
-		followField(zombie, field, zombie.goalX, zombie.goalZ, ZC.SeekSpeed * zombie.speedFactor, dt)
+		-- The sound's ground field is useless for a sound upstairs; travel uses the stair field then.
+		local field = if zombie.goalLevel == GROUND
+			then getSoundField(zombie.soundId :: number, zombie.goalX, zombie.goalZ, now)
+			else nil
+		local speed = ZC.SeekSpeed * zombie.speedFactor
+		travel(zombie, zombie.goalX, zombie.goalZ, zombie.goalLevel, zombie.goalBuilding, field, speed, dt, now)
 	elseif state == "Search" then
 		if now >= zombie.stateUntil then
 			enterWander(zombie, now)
@@ -511,13 +783,15 @@ end
 
 -- Pushes zombies that share a cell apart. Cheap O(n) bucket pass, run on the zombies stepped this frame.
 local function separate(stepped: { Zombie })
+	-- Buckets are per level (zombies on the stairs follow their flight and are left out).
 	local buckets: { [number]: { Zombie } } = {}
 	for _, zombie in stepped do
-		local cell = grid:cellAt(zombie.x, zombie.z)
+		local cell = if zombie.stair then nil else levels[zombie.level]:cellAt(zombie.x, zombie.z)
 		if cell then
-			local bucket = buckets[cell]
+			local key = cell + (zombie.level - 1) * grid.cellCount
+			local bucket = buckets[key]
 			if bucket == nil then
-				buckets[cell] = { zombie }
+				buckets[key] = { zombie }
 			else
 				table.insert(bucket, zombie)
 			end
@@ -544,11 +818,12 @@ local function separate(stepped: { Zombie })
 						local push = (radius - d) * 0.5 * ZC.SeparationStrength
 						local px = dx / d * push
 						local pz = dz / d * push
-						if grid:isWalkable(a.x - px, a.z - pz) then
+						local g = levels[a.level]
+						if g:isWalkable(a.x - px, a.z - pz) then
 							a.x -= px
 							a.z -= pz
 						end
-						if grid:isWalkable(b.x + px, b.z + pz) then
+						if g:isWalkable(b.x + px, b.z + pz) then
 							b.x += px
 							b.z += pz
 						end
@@ -561,21 +836,33 @@ local function separate(stepped: { Zombie })
 	end
 end
 
--- An interior ground-floor cell of a building near a random player, out of every player's sight and
--- at least IndoorSpawnMinDistance away from all of them.
-local function pickIndoorSpawnPoint(players: { PlayerInfo }): (number?, number?)
+-- An interior floor cell (either floor) of a building near a random player, out of every player's
+-- sight and at least IndoorSpawnMinDistance away from all of them. Returns x, z, level and building.
+local function pickIndoorSpawnPoint(players: { PlayerInfo }): (number?, number?, number, number)
 	if #players == 0 or #buildingNavs == 0 then
-		return nil, nil
+		return nil, nil, GROUND, 0
 	end
 	local anchor = players[math.random(1, #players)]
 	local maxSq = ZC.SpawnMaxDistance * ZC.SpawnMaxDistance
 	local minSq = ZC.IndoorSpawnMinDistance * ZC.IndoorSpawnMinDistance
 	for _ = 1, ZC.SpawnAttempts do
-		local nav = buildingNavs[math.random(1, #buildingNavs)]
+		local index = math.random(1, #buildingNavs)
+		local nav = buildingNavs[index]
+		local groundCount, upperCount = #nav.interior, #nav.upperCells
 		local dx, dz = nav.centerX - anchor.x, nav.centerZ - anchor.z
-		if #nav.interior > 0 and dx * dx + dz * dz <= maxSq then
-			local x, z = grid:cellCenter(nav.interior[math.random(1, #nav.interior)])
-			local spot = Vector3.new(x, MapService.groundAt(x, z) + ZC.RootHeight, z)
+		if groundCount + upperCount > 0 and dx * dx + dz * dz <= maxSq then
+			local pick = math.random(1, groundCount + upperCount)
+			local level, x, z, floor
+			if pick <= groundCount then
+				level = GROUND
+				x, z = grid:cellCenter(nav.interior[pick])
+				floor = MapService.groundAt(x, z)
+			else
+				level = UPPER
+				x, z = upperGrid:cellCenter(nav.upperCells[pick - groundCount])
+				floor = nav.upperY
+			end
+			local spot = Vector3.new(x, floor + ZC.RootHeight, z)
 			local ok = true
 			for _, info in players do
 				local px, pz = x - info.x, z - info.z
@@ -590,11 +877,11 @@ local function pickIndoorSpawnPoint(players: { PlayerInfo }): (number?, number?)
 				end
 			end
 			if ok then
-				return x, z
+				return x, z, level, index
 			end
 		end
 	end
-	return nil, nil
+	return nil, nil, GROUND, 0
 end
 
 local function pickSpawnPoint(players: { PlayerInfo }): (number?, number?)
@@ -622,30 +909,38 @@ local function spawnOne(players: { PlayerInfo }, now: number): boolean
 	end
 	local dormant = false
 	local x, z
+	local level, building = GROUND, 0
 	if math.random() < ZC.IndoorSpawnChance then
-		x, z = pickIndoorSpawnPoint(players)
+		x, z, level, building = pickIndoorSpawnPoint(players)
 		dormant = x ~= nil
 	end
 	if x == nil or z == nil then
 		x, z = pickSpawnPoint(players)
+		level, building = GROUND, 0
 	end
 	if x == nil or z == nil then
 		return false
 	end
+	local floor = if level == UPPER then buildingNavs[building].upperY else MapService.groundAt(x, z)
 	local spread = ZC.SpreadRadius
 	local zombie: Zombie = {
 		id = id,
 		x = x,
-		y = MapService.groundAt(x, z) + ZC.RootHeight,
+		y = floor + ZC.RootHeight,
 		z = z,
 		health = ZC.MaxHealth,
 		state = "Idle",
 		speedFactor = 1 + randomRange(-ZC.SpeedJitter, ZC.SpeedJitter),
 		dormant = dormant,
 		wanderMode = "Free",
-		building = 0,
+		building = building,
 		insideUntil = 0,
 		stunUntil = 0,
+		level = level,
+		stair = nil,
+		stairUp = false,
+		goalLevel = level,
+		goalBuilding = building,
 		goalX = x,
 		goalZ = z,
 		soundId = nil,
@@ -693,14 +988,26 @@ local function updatePlayerFields(players: { PlayerInfo }, now: number)
 	for _, info in players do
 		local entry = playerFields[info.player]
 		if entry == nil then
-			entry = { field = nil, rebuildAt = 0 }
+			entry = { field = nil, rebuildAt = 0, level = GROUND, building = 0 }
 			playerFields[info.player] = entry
+		end
+		-- Going up or down the stairs changes the field's goal at once, not at the next rebuild.
+		if entry.level ~= info.level or entry.building ~= info.building then
+			entry.rebuildAt = 0
 		end
 		if now >= entry.rebuildAt then
 			entry.rebuildAt = now + FC.RebuildInterval
-			local cell = grid:cellAt(info.x, info.z)
-			if cell then
-				entry.field = grid:buildField({ cell }, grid:windowAround(info.x, info.z, FC.FieldRadius))
+			entry.level = info.level
+			entry.building = info.building
+			local sources: { number }? = nil
+			if info.level == UPPER then
+				sources = buildingNavs[info.building].footCells
+			else
+				local cell = grid:cellAt(info.x, info.z)
+				sources = if cell then { cell } else nil
+			end
+			if sources then
+				entry.field = grid:buildField(sources, grid:windowAround(info.x, info.z, FC.FieldRadius))
 			end
 			return
 		end
@@ -785,12 +1092,40 @@ end
 
 function ZombieService.init()
 	grid = NavGrid.new(FC.CellSize, WorldLayout.HalfSize, FC.StructureCellCost)
+	upperGrid = NavGrid.new(FC.CellSize, WorldLayout.HalfSize, FC.StructureCellCost, NavGrid.BLOCKED)
+	levels = { grid, upperGrid }
 	snapshotRemote = Net.unreliable("ZombieSnapshot")
 	removedRemote = Net.event("ZombieRemoved")
 end
 
+-- World-space centre and half extents of a part's bounding box.
+local function partBounds(part: BasePart): (Vector3, number, number, number)
+	local cf, size = part.CFrame, part.Size
+	local right, up, look = cf.RightVector, cf.UpVector, cf.LookVector
+	local halfX = (math.abs(right.X) * size.X + math.abs(up.X) * size.Y + math.abs(look.X) * size.Z) / 2
+	local halfY = (math.abs(right.Y) * size.X + math.abs(up.Y) * size.Y + math.abs(look.Y) * size.Z) / 2
+	local halfZ = (math.abs(right.Z) * size.X + math.abs(up.Z) * size.Y + math.abs(look.Z) * size.Z) / 2
+	return cf.Position, halfX, halfY, halfZ
+end
+
+-- Blocks the cells of `g` under a part box that crosses `walkHeight`.
+local function blockAtHeight(
+	g: NavGrid.NavGrid,
+	p: Vector3,
+	halfX: number,
+	halfY: number,
+	halfZ: number,
+	walkHeight: number
+)
+	if p.Y - halfY <= walkHeight and p.Y + halfY >= walkHeight then
+		local e = FC.RasterEpsilon
+		g:blockRect(p.X - halfX + e, p.Z - halfZ + e, p.X + halfX - e, p.Z + halfZ - e)
+	end
+end
+
 -- Blocks water, out-of-bounds and steep cells, then every collidable map part that stands in the way
 -- at walking height (walls, trunks, furniture). Roofs, upper floors and canopies do not block.
+-- Upper floors get their own layer: their floor cells open, then whatever crosses their walking height.
 local function markNavigation()
 	local heightGrid = MapService.getHeightGrid()
 	assert(heightGrid.columns == grid.width, "height grid and nav grid must share the 4-stud cells")
@@ -821,41 +1156,72 @@ local function markNavigation()
 	local count = 0
 	for _, part in MapService.getMap():GetDescendants() do
 		if part:IsA("BasePart") and part.CanCollide then
-			local cf, size = part.CFrame, part.Size
-			local right, up, look = cf.RightVector, cf.UpVector, cf.LookVector
-			local halfX = (math.abs(right.X) * size.X + math.abs(up.X) * size.Y + math.abs(look.X) * size.Z) / 2
-			local halfY = (math.abs(right.Y) * size.X + math.abs(up.Y) * size.Y + math.abs(look.Y) * size.Z) / 2
-			local halfZ = (math.abs(right.Z) * size.X + math.abs(up.Z) * size.Y + math.abs(look.Z) * size.Z) / 2
-			local p = cf.Position
-			local ground = MapService.heightAt(p.X, p.Z)
-			local walkHeight = ground + FC.StepHeight
-			if p.Y - halfY <= walkHeight and p.Y + halfY >= walkHeight then
-				local e = FC.RasterEpsilon
-				grid:blockRect(p.X - halfX + e, p.Z - halfZ + e, p.X + halfX - e, p.Z + halfZ - e)
-			end
+			local p, halfX, halfY, halfZ = partBounds(part)
+			blockAtHeight(grid, p, halfX, halfY, halfZ, MapService.heightAt(p.X, p.Z) + FC.StepHeight)
 		end
 		count += 1
 		if count % 2000 == 0 then
 			task.wait()
 		end
 	end
+
+	-- Walls, furniture and the railings around stair holes cross the upper walking height; the stair
+	-- ramps and guards below end under it.
+	for _, info in MapService.getBuildings() do
+		if #info.upperCells > 0 then
+			for _, point in info.upperCells do
+				local cell = upperGrid:cellAt(point.X, point.Z)
+				if cell then
+					upperGrid:setCost(cell, NavGrid.NORMAL)
+				end
+			end
+			local walkHeight = info.upperCells[1].Y + FC.StepHeight
+			for _, part in info.model:GetDescendants() do
+				if part:IsA("BasePart") and part.CanCollide then
+					local p, halfX, halfY, halfZ = partBounds(part)
+					blockAtHeight(upperGrid, p, halfX, halfY, halfZ, walkHeight)
+				end
+				count += 1
+				if count % 2000 == 0 then
+					task.wait()
+				end
+			end
+		end
+	end
 end
 
 -- Door flow fields per building: walkable ground-floor cells inside the footprint are the "enter"
--- sources, the cells in front of exterior doorways the "exit" sources.
+-- sources, the cells in front of exterior doorways the "exit" sources. Two-storey buildings also get
+-- their flights (both ends must be open, else the flight is reported and left out) and stair fields.
 local function buildBuildingNavs()
 	local size = FC.CellSize
 	for _, info in MapService.getBuildings() do
+		assert(info.floors <= 2, `{info.name}: zombie navigation supports at most two floors`)
+		local index = #buildingNavs + 1
+		local centerX = (info.minX + info.maxX) / 2
+		local centerZ = (info.minZ + info.maxZ) / 2
+		local halfExtent = math.max(info.maxX - info.minX, info.maxZ - info.minZ) / 2
+		local wx0, wz0, wx1, wz1 = upperGrid:windowAround(centerX, centerZ, halfExtent + size)
 		local nav: BuildingNav = {
 			minX = info.minX,
 			minZ = info.minZ,
 			maxX = info.maxX,
 			maxZ = info.maxZ,
-			centerX = (info.minX + info.maxX) / 2,
-			centerZ = (info.minZ + info.maxZ) / 2,
+			centerX = centerX,
+			centerZ = centerZ,
 			interior = {},
 			enter = nil,
 			exit = nil,
+			upperY = info.baseY + FLOOR_HEIGHT + BuildingKit.FloorTop,
+			links = {},
+			upperCells = {},
+			footCells = {},
+			footField = nil,
+			topField = nil,
+			wx0 = wx0,
+			wz0 = wz0,
+			wx1 = wx1,
+			wz1 = wz1,
 		}
 		for z = info.minZ + size / 2, info.maxZ, size do
 			for x = info.minX + size / 2, info.maxX, size do
@@ -865,8 +1231,7 @@ local function buildBuildingNavs()
 				end
 			end
 		end
-		local radius = math.max(info.maxX - info.minX, info.maxZ - info.minZ) / 2 + ZC.BuildingFieldMargin
-		local x0, z0, x1, z1 = grid:windowAround(nav.centerX, nav.centerZ, radius)
+		local x0, z0, x1, z1 = grid:windowAround(centerX, centerZ, halfExtent + ZC.BuildingFieldMargin)
 		if #nav.interior > 0 then
 			nav.enter = grid:buildField(nav.interior, x0, z0, x1, z1)
 		end
@@ -879,6 +1244,59 @@ local function buildBuildingNavs()
 		end
 		if #fronts > 0 then
 			nav.exit = grid:buildField(fronts, x0, z0, x1, z1)
+		end
+
+		local cellSize = Config.Build.GridSize
+		for _, stair in info.stairs do
+			local footCell = grid:cellAt(stair.foot.X, stair.foot.Z)
+			local topCell = upperGrid:cellAt(stair.top.X, stair.top.Z)
+			if
+				footCell
+				and topCell
+				and grid:getCost(footCell) ~= NavGrid.BLOCKED
+				and upperGrid:getCost(topCell) ~= NavGrid.BLOCKED
+			then
+				local dx, dz = stair.top.X - stair.foot.X, stair.top.Z - stair.foot.Z
+				local length = math.sqrt(dx * dx + dz * dz)
+				local link: StairLink = {
+					building = index,
+					footCell = footCell,
+					topCell = topCell,
+					footX = stair.foot.X,
+					footZ = stair.foot.Z,
+					topX = stair.top.X,
+					topZ = stair.top.Z,
+					dirX = dx / length,
+					dirZ = dz / length,
+					lowY = stair.foot.Y,
+					highY = stair.top.Y,
+					rampStart = cellSize / 2,
+					rampLength = stair.cells * cellSize,
+					riser = (stair.top.Y - stair.foot.Y) / (2 * BuildingKit.StepCount),
+					nextStart = 0,
+				}
+				table.insert(nav.links, link)
+				table.insert(nav.footCells, footCell)
+				footLinks[footCell] = link
+				topLinks[topCell] = link
+			else
+				warn(`ZombieService: a stair of {info.name} has a blocked end; zombies will not use it`)
+			end
+		end
+		if #nav.links > 0 then
+			for _, point in info.upperCells do
+				local cell = upperGrid:cellAt(point.X, point.Z)
+				if cell and upperGrid:getCost(cell) ~= NavGrid.BLOCKED then
+					table.insert(nav.upperCells, cell)
+				end
+			end
+			local tops = {}
+			for _, link in nav.links do
+				table.insert(tops, link.topCell)
+			end
+			nav.footField = grid:buildField(nav.footCells, x0, z0, x1, z1)
+			nav.topField = upperGrid:buildField(tops, wx0, wz0, wx1, wz1)
+			table.insert(multiStorey, index)
 		end
 		table.insert(buildingNavs, nav)
 	end
@@ -961,6 +1379,7 @@ end
 function ZombieService.hearSound(point: Types.SoundPoint)
 	local range = point.radius * ZC.HearingMultiplier
 	local rangeSq = range * range
+	local goalLevel, goalBuilding = locate(point.x, point.y, point.z)
 	for _, zombie in zombies do
 		local state = zombie.state
 		if state ~= "Chase" and state ~= "AttackPlayer" then
@@ -976,6 +1395,8 @@ function ZombieService.hearSound(point: Types.SoundPoint)
 					zombie.soundCreatedAt = point.createdAt
 					zombie.goalX = point.x
 					zombie.goalZ = point.z
+					zombie.goalLevel = goalLevel
+					zombie.goalBuilding = goalBuilding
 					setState(zombie, "SeekSound")
 				end
 			end

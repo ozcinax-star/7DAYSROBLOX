@@ -101,6 +101,25 @@ local RUG_ANCHORS = { o = true, a = true, e = true, F = true, b = true }
 local RUG_SIZES: { [string]: Vector3 } = { Living = V(8, RUG_HEIGHT, 6), Bedroom = V(6, RUG_HEIGHT, 4.5) }
 local PICTURE_ROOMS = { Living = true, Bedroom = true, Office = true, Hall = true }
 
+-- Navigation data of a built building, in world coordinates.
+export type Stair = {
+	-- Floor the flight starts on (1 = ground floor).
+	floor: number,
+	-- Centre of the cell in front of the low end and of the cell beyond the high end, at the walking
+	-- height of their floors.
+	foot: Vector3,
+	top: Vector3,
+	-- Number of cells the flight covers.
+	cells: number,
+}
+
+export type NavInfo = {
+	stairs: { Stair },
+	-- Centre of every walkable cell above the ground floor, at its walking height: floor cells
+	-- (furniture included, stair holes not) and the doorways between rooms.
+	upperCells: { Vector3 },
+}
+
 type Piece = { bottom: number, top: number, glass: boolean }
 
 local function piece(bottom: number, top: number, glass: boolean?): Piece
@@ -1290,13 +1309,42 @@ function BuildingKit.apron(templateName: string): string
 	return BuildingTemplates[templateName].apron or "Ground"
 end
 
+-- Stairs and upper-floor cells in world space, for the zombie navigation of upper floors.
+local function navInfo(ctx: Ctx, floors: { Floor }): NavInfo
+	local info: NavInfo = { stairs = {}, upperCells = {} }
+	for index, floor in floors do
+		local surface = floor.y0 + FLOOR_TOP
+		if index > 1 then
+			for row = 1, ctx.rows do
+				for col = 1, ctx.cols do
+					if isFloorCell(floor, row, col) or FloorPlan.charAt(floor.plan, row, col) == "D" then
+						table.insert(info.upperCells, ctx.transform * V(cellCenter(col), surface, cellCenter(row)))
+					end
+				end
+			end
+		end
+		if floors[index + 1] then
+			for _, stair in FloorPlan.stairs(floor.plan) do
+				local entry, exit = FloorPlan.stairEnds(stair)
+				table.insert(info.stairs, {
+					floor = index,
+					foot = ctx.transform * V(cellCenter(entry[2]), surface, cellCenter(entry[1])),
+					top = ctx.transform * V(cellCenter(exit[2]), surface + FLOOR_HEIGHT, cellCenter(exit[1])),
+					cells = #stair.cells,
+				})
+			end
+		end
+	end
+	return info
+end
+
 -- Builds the placement on ground height baseY. Also returns the world point in front of every
--- exterior doorway, which street furniture must leave free.
+-- exterior doorway, which street furniture must leave free, and the stairs and upper-floor cells.
 function BuildingKit.build(
 	placement: WorldLayout.BuildingPlacement,
 	baseY: number,
 	parent: Instance
-): (Model, { Vector3 })
+): (Model, { Vector3 }, NavInfo)
 	local template = BuildingTemplates[placement.template]
 	assert(template, `unknown building template {placement.template}`)
 	local plan1 = template.floors[1]
@@ -1403,11 +1451,13 @@ function BuildingKit.build(
 	buildFacade(ctx, topY)
 
 	model.Parent = parent
-	return model, ctx.doorFronts
+	return model, ctx.doorFronts, navInfo(ctx, floors)
 end
 
 BuildingKit.FloorHeight = FLOOR_HEIGHT
 -- Walking surface of the ground floor above the building's base height.
 BuildingKit.FloorTop = FLOOR_TOP
+-- Steps per flight; the walking ramp runs half a riser above the straight line between floors.
+BuildingKit.StepCount = STEP_COUNT
 
 return BuildingKit
