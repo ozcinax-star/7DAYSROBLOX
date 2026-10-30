@@ -124,6 +124,10 @@ küçük taş ve bitki lifi 6000'lik yığın. Kalanlar:
   parça tavanı, parça canı 250, zombinin en zayıf parçaya saldırması, ızgara güncellemesi. Kereste
   burada kullanılır.
 - **Kamera:** Omuz kamerası varsayılan, FPS geçişi (Input Action System), zoom 4–14.
+  - Dokunmatik ve gamepad ekran ortasından nişan alır. Hesap: varsayılan kamera başın ~15° aşağısına
+    bakarken yumruğun 5,6 stud'luk ışını yerden ~3 stud yukarıda biter. Yani ota (2,6 stud) ve
+    yerdeki taşa vurmak için kamera ~40° aşağı eğilmeli. Omuz kamerasında yere bakmak kolay olmalı;
+    yerdeki taşta E prompt'u zaten çalışıyor.
 - **Prototip oyun testi:** 3 kişi, bir gece ve bir horde.
 
 ## 7DTD referans sayıları

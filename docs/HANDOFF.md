@@ -211,6 +211,9 @@ tablosu var).
   - Kaya: yumrukla 40 vuruş 2 taş; kazmayla 14 vuruşta kırıldı, toplam 22 taş, son vuruş 1 + 7.
   - Devrilme: tepe oyuncunun tam tersine düştü (yön çarpımı 1,00), 2,5 sn'de 84°, sonra 1 sn'de
     soldu ve silindi.
+  - Gerçek fare tıklaması (istemcinin nişan yolu): ota tık +2 lif; baltayla meşe gövdesine 2 tık
+    +2 / +2 odun; kamera ışını yapraklardan geçen küçük bir çamda 2 tık +1 / +2 odun (yapraklar
+    nişanı tutmuyor).
   - Yol bulma (Edit, gerçek `markNavigation`): spawn yakınındaki 5 ağacın 5'inde de gövde hücresi
     açıldı. Ayakta duran kaya ve göl hücreleri kapalı kaldı. Harita kenarındaki eğimli bir hücre
     arazi yüzünden kapalı kaldı (doğru).
@@ -305,6 +308,11 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
 - Vuruş ölçmek için istemcide `Remotes.ToolSwing.OnClientEvent` dinlenir (saldıran, alet, zombi id'si
   veya 0, kafa). Kalabalıkta isabetler dağılır; tek zombiyle ölç. İstemcide zombiler `workspace.ClientZombies` altında, `Pelvis`
   parçasıyla ölçülebilir.
+- Toplama ölçmek için istemcide `Remotes.InventoryGain.OnClientEvent` dinlenir (eşya, eklenen, sığmayan).
+- **MCP kamerayı Fixed'e alıyor:** her `execute_luau` çağrısından sonra kamera Fixed olur, karakteri
+  takip etmez. Dünyadaki bir noktaya gerçek tıklama için aynı çağrıda `CameraType = Scriptable` yap,
+  `camera.CFrame`'i karakterin arkasına koy, `WorldToViewportPoint` ile ekran noktasını al, sonra
+  `user_mouse_input` ile tıkla (Fixed kamera konumu korur). Fare serbest olduğu için nişan imleçten geçer.
 - Arayüz düğmeleri `user_mouse_input` ile `instance_path` verilerek tıklanabilir (ör.
   `LocalPlayer.PlayerGui.Inventory.Backpack.Slots.Slot11`); tuşlar `user_keyboard_input` ile.
 - Slot düğmelerindeki `Name` etiketi `.Name` özelliğinin gölgesinde kalır: test betiğinde
