@@ -25,20 +25,16 @@ Yol haritası notu ve Kararlar tablosu).
 
 Her sorunun ilk seçeneği benim önerim.
 
-1. **"Bir giren bir çıkar" kuralı:** Kullanıcı kazılabilir zemini ve erken toplamayı MVP'ye ekledi.
-   PLAN'daki kapsam kuralına göre bir şeyin çıkması gerekiyor.
-   - Öneri: Ses-duyarlı zombi türü 1.x'e kaysın; ses takibi zaten her zombide var.
-   - Alternatif: tahta parmaklık 1.x'e kaysın.
-2. **Taş kazma:** 7DTD'de taş kazma yok; ilk kazma demirdir ve demirci ocağı ister. Kullanıcı istediği
+1. **Taş kazma:** 7DTD'de taş kazma yok; ilk kazma demirdir ve demirci ocağı ister. Kullanıcı istediği
    için taş kazma eklenecek ve kayada en iyi alet o olacak. İtiraz yoksa böyle kalır.
-3. **Telefon testi:** Ertelendi. Bina parça sayısı hedefin üstünde, ölçüm hâlâ yok.
-4. **Edit modunda harita önizlemesi:** Play başlarken eski önizlemeyi kendiliğinden silen küçük bir
+2. **Telefon testi:** Ertelendi. Bina parça sayısı hedefin üstünde, ölçüm hâlâ yok.
+3. **Edit modunda harita önizlemesi:** Play başlarken eski önizlemeyi kendiliğinden silen küçük bir
    değişiklik yapılsın mı? Daha önce teklif edildi, yanıt gelmedi.
-5. **Git yedeği:** Uzak depo yok. GitHub'da özel bir depo açılıp gönderilsin mi? Dışarıya açık bir adım
+4. **Git yedeği:** Uzak depo yok. GitHub'da özel bir depo açılıp gönderilsin mi? Dışarıya açık bir adım
    olduğu için onay gerekir.
 
-Önceki listedeki iki soru cevaplandı: oyuncu zombiye aletle vuracak (bu planın 2. maddesi), zombiler
-üst kata çıkıyor (bitti).
+Cevaplananlar: oyuncu zombiye aletle vuracak (bu planın 2. maddesi); zombiler üst kata çıkıyor
+(bitti); kapsam kuralı değişti, ana referans 7DTD ve karşılığında bir şey çıkmıyor (PLAN, Kapsam).
 
 ## Sıradaki işler
 
@@ -178,7 +174,7 @@ Ağaçta odun, verilen hasara oranla her vuruşta gelir; devrilince yalnızca to
 
 - **Bina loot'u:** Binaların `Loot` özelliği hazır (`Food`, `Medical`, `Metal`, `Fabric`…).
 - **Taş inşa kademesi.**
-- **3 zombi türü:** Normal, Hızlı, Ses-duyarlı (karar 1'e bağlı).
+- **3 zombi türü:** Normal, Hızlı, Ses-duyarlı.
 - **Horde gecesi:** oyuncu başına 20 zombi, eş zamanlı tavan 120, dalgalar. Dalga altyapısı hazır.
 - **Tehdit ipuçları ve karşı önlemler.**
 - **Ölüm cezası:** taşınan ham kaynakların %50'si düşer, ekipman kalır (PLAN, Temel kararlar).

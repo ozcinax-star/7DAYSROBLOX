@@ -85,7 +85,11 @@ MVP tek bir soruyu cevaplamalı: "Tehdit sistemi oyunculara tekrar döndürüyor
 | Hikaye | Yok; ortam ipuçları (notlar) | Ana görev hattı, laboratuvar | Sezonluk gizem olayları (kaynak açıklanmaz) |
 | Kayıt | Oyuncu profili + dünya kaydı | Dünya yedekleri | Dünya paylaşımı |
 
-Kapsam kuralı: yeni bir sistem MVP'ye ancak bir mevcut sistemi çıkararak girebilir.
+Kapsam kuralı (31 Ekim 2026'da kullanıcı kararıyla değişti; eski kural "bir giren, bir çıkar" idi):
+
+- **Ana referans 7 Days to Die.** 7DTD'de olan bir sistem, bu plandaki özgün kararlarla çelişmediği sürece MVP'ye eklenebilir; karşılığında bir şey çıkarmak gerekmez.
+- **Fark özgün kararlardan gelir.** Tehdit sistemi (Gürültü + İz), grup başına kalıcı dünya ve lobi, oturum ritmi, stilize sanat, ölüm cezası, çevrimdışı saldırının olmaması, gelir modeli ve mobil öncelik 7DTD'den ayrıldığı yerde bu plan geçerlidir.
+- **Sayılar 7DTD'den alınır.** Roblox veya mobil için uyarlanan her sayı Config'de, gerekçesiyle birlikte Kararlar tablosunda yazılır. Araştırılan sayılar `docs/REFERENCE_7DTD.md` dosyasında tutulur.
 
 ## Teknik mimari
 
@@ -184,7 +188,7 @@ Her aşama bir geçiş kriteriyle kapanır; kriter tutmazsa bir sonrakine geçil
 
 | Risk | Olasılık | Etki | Önlem |
 | --- | --- | --- | --- |
-| Kapsam taşması (konseptin tamamını MVP'ye sokmak) | Yüksek | Proje bitmez | Kapsam tablosu + "bir giren, bir çıkar" kuralı |
+| Kapsam taşması (konseptin tamamını MVP'ye sokmak) | Yüksek | Proje bitmez | 7DTD referansıyla net hedef, sistem başına ayrı adım, commit ve ölçüm; özgün kararlar dışında yeni icat yok |
 | Zombi sayısı performansı çökertiyor | Yüksek | Mobilde oynanamaz | Humanoid'siz AI, LOD, ilk iş olarak stres testi |
 | Dünya kaydında veri kaybı | Orta | Oyuncu güveni biter | UpdateAsync, sunucu kilidi, sürümlü şema, yedek anahtar |
 | Exploit ile loot/hasar hilesi | Yüksek | Ekonomi bozulur | Sunucu otoriter mantık, Remote doğrulama ve hız sınırı |
@@ -210,7 +214,7 @@ Lobi, PvP ve hikâye için verilmiş kararlar.
 | Zombi loot'u | Ölen zombi yaklaşık %20 ihtimalle loot torbası bırakır | 7DTD'de %2–4; oturumlar kısa olduğu için daha cömert. Oran Config'de |
 | Toplama ve crafting | 7DTD referans alınır. Oyuncu boş elle başlar: ağaca vurur, yerden taş toplar. Ağaç Odun verir; Kereste envanterde Odun'dan yapılır ve inşa parçalarında kullanılır. Çalı ve ot bitki lifi verir. Taş balta ve taş kürek 7DTD tarifleriyle; 7DTD'de olmayan taş kazma kullanıcının isteğiyle eklendi | Kaynaklar satırı. Tarif sayıları NEXT_STEPS'te, uygulanınca Config'de |
 | Kaya yerleşimi | Kasaba ve şehir bölgelerinde kırılabilir kaya ve toplanabilir taş yok | Harita |
-| Kazılabilir zemin | Var | Kapsam kuralı gereği MVP'den neyin çıkacağı kullanıcı kararı bekliyor (NEXT_STEPS) |
+| Kazılabilir zemin | Var, 7DTD gibi | Yeni kapsam kuralıyla MVP'de; karşılığında bir şey çıkmadı |
 | Telefon kapısı | Ertelendi; yeni sistemlere geçilebilir | Yol haritası notu |
 
 ## Kaynaklar
