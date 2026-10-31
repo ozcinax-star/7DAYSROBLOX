@@ -28,7 +28,8 @@ Yol haritası notu ve Kararlar tablosu).
 | Bina kapları | Bitti: 174 aranabilir mobilya, ortak, 7 günde yeniden dolar |
 | Kazı | Bitti: 7DTD can ve verimi, kil / kırık kum / taş, adım kuralı, Dirt ile doldurma |
 | Ahşap kapı | Bitti: 1000 can, aç/kapa, açıkken zombi geçer, kapalıyken duvar |
-| Silahlar, tarım, jeneratör | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
+| Yakın dövüş silahları | Bitti: tahta sopa, taş mızrak; toplamada dörtte bir verim |
+| Yay, tarım, jeneratör | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
 | Kapı 1: 80 zombiyle orta seviye telefonda 30 FPS | **Ölçülmedi**; kullanıcı erteledi |
 | Kapı 2: 3 kişilik test grubu "bir gece daha" diyor | Henüz yapılamaz |
 
@@ -167,7 +168,15 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Görsel:** kazı vuruşunda toz efekti ve ses yok; Dirt için hedef önizlemesi yok.
 - **Kar:** 7DTD kartopu vermez bizde; kar boş kazılır.
 
-### 11. Sonra
+### 11. Yakın dövüş silahları (bitti, 1 Kasım)
+
+`114cc42`. Kalanlar:
+- **Mızrak:** güçlü saldırı (3,6 m) ve fırlatma yok; tek "use" düğmesi var.
+- **Kalite (1–6):** 7DTD'de dayanıklılık 100 → 200, hasar +%10 → +%50.
+- **Sinsi saldırı:** 7DTD'de fark etmemiş zombiye çömelerek vuruş ×2 (bizde çömelme yok).
+- **Görsel:** sopa ve mızrak da aletlerin sallama pozunu kullanıyor; mızrak dürtmesi yok.
+
+### 12. Sonra
 
 - **Araç zinciri:** Kullanıcı `rokit install` ve `rojo plugin install` komutlarını kendisi çalıştırır.
   Sonra `stylua --check src tests`, `selene src`, `lune run tests/run`, `rojo build -o build.rbxl`
