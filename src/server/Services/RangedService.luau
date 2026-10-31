@@ -1,10 +1,12 @@
 --!strict
--- RangedService: bows (7DTD Catapult action). "Use" with a bow in the hand shoots one arrow from the
--- inventory. The server checks the shot interval and the bow's durability, takes the arrow, wears the
--- bow by one and flies the arrow itself from the head of the character it simulates: one Heartbeat
--- loop moves every arrow along its arc and tests each step against zombies (the melee hit volumes,
--- head shots double) and the world (walls, blocks, terrain, water). Clients only draw the arc they
--- are told about (ArrowController).
+-- RangedService: bows and guns (7DTD Catapult and Ranged actions). "Use" with one in the hand shoots
+-- one arrow or round from the inventory. The server checks the shot interval (and, for guns, the
+-- magazine: after its last round the reload must pass), the weapon's durability, takes the ammo,
+-- wears the weapon by one and flies the shot itself from the head of the character it simulates,
+-- turned inside the gun's spread cone: one Heartbeat loop moves every shot along its arc and tests
+-- each step against zombies (the melee hit volumes, head shots double) and the world (walls, blocks,
+-- terrain, water). A gunshot is a Gunshot noise (ThreatService). Clients only draw the arc they are
+-- told about (ArrowController).
 --
 -- An arrow hits the first zombie or surface on its path. It damages zombies only: blocks and world
 -- objects stop it (7DTD stone arrows do 1 block damage; ignored). A hit zombie chases the shooter,
@@ -22,6 +24,7 @@ local Melee = require(Shared.Melee)
 local Net = require(Shared.Net)
 
 local InventoryService = require(script.Parent.InventoryService)
+local ThreatService = require(script.Parent.ThreatService)
 local ToolService = require(script.Parent.ToolService)
 local ZombieService = require(script.Parent.ZombieService)
 
@@ -58,6 +61,8 @@ local stoppedRemote: UnreliableRemoteEvent
 local arrows: { [number]: Arrow } = {}
 local inFlight: { [Player]: number } = {}
 local nextShotAt: { [Player]: number } = {}
+-- Rounds fired from the current magazine, per player and gun.
+local fired: { [Player]: { [string]: number } } = {}
 local nextArrowId = 1
 
 -- Walls, blocks and terrain stop arrows; characters (no friendly fire, no PvP) do not.
@@ -163,8 +168,20 @@ local function onShoot(player: Player, origin: Vector3, direction: Vector3, item
 	if ammoId == nil or not InventoryService.take(player, { [ammoId] = 1 }) then
 		return
 	end
-	nextShotAt[player] = now + weapon.ShotSeconds * (1 - MC.CooldownTolerance)
+	local rounds = fired[player] or {}
+	fired[player] = rounds
+	local wait, kept = Ballistics.afterShot(weapon, (rounds[itemId] or 0) + 1)
+	rounds[itemId] = kept
+	nextShotAt[player] = now + wait * (1 - MC.CooldownTolerance)
 	InventoryService.wearHeld(player, 1)
+	if weapon.SpreadDegrees then
+		local x, y, z =
+			Ballistics.spread(direction.X, direction.Y, direction.Z, weapon.SpreadDegrees, math.random(), math.random())
+		direction = Vector3.new(x, y, z).Unit
+	end
+	if weapon.Noise then
+		ThreatService.emit(weapon.Noise, origin, player)
+	end
 
 	local ammo = RC.Ammo[ammoId]
 	local velocity = direction * Ballistics.speed(weapon, ammo)
@@ -182,7 +199,7 @@ local function onShoot(player: Player, origin: Vector3, direction: Vector3, item
 		range = weapon.MaxRange * MC.StudsPerMeter,
 	}
 	inFlight[player] = (inFlight[player] or 0) + 1
-	firedRemote:FireAllClients(id, origin, velocity, gravity, Workspace:GetServerTimeNow())
+	firedRemote:FireAllClients(id, origin, velocity, gravity, Workspace:GetServerTimeNow(), ammoId)
 end
 
 function RangedService.init()
@@ -197,6 +214,7 @@ function RangedService.start()
 	RunService.Heartbeat:Connect(onHeartbeat)
 	Players.PlayerRemoving:Connect(function(player)
 		nextShotAt[player] = nil
+		fired[player] = nil
 		for _, arrow in arrows do
 			if arrow.owner == player then
 				stop(arrow, arrow.position, 0)

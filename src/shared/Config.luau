@@ -2,6 +2,8 @@
 -- Single source of truth for every balance number. Gameplay code must not contain magic numbers;
 -- add a field here instead. Values are starting estimates from docs/PLAN.md and get tuned by playtests.
 
+local Types = require("./Types")
+
 local Config = {}
 
 -- How a tool is repaired: each unit of item Id restores Amount durability and takes Seconds in the
@@ -101,19 +103,25 @@ export type ToolDef = {
 	HarvestShare: number?,
 }
 
--- A ranged weapon (7DTD Catapult action): the ammo it takes, in order of preference, seconds between
--- shots, what it adds to the ammo's entity damage, the share of the ammo's speed it keeps and its
--- range in metres.
+-- A ranged weapon (7DTD Catapult and Ranged actions): the ammo it takes, in order of preference,
+-- seconds between shots, what it adds to the ammo's entity damage, the share of the ammo's speed it
+-- keeps and its range in metres. Guns also have a magazine (rounds, then ReloadSeconds before the
+-- next shot), a random spread cone (degrees) and the noise event every shot makes.
 export type RangedDef = {
 	Ammo: { string },
 	ShotSeconds: number,
 	DamageOffset: number,
 	SpeedShare: number,
 	MaxRange: number,
+	Magazine: number?,
+	ReloadSeconds: number?,
+	SpreadDegrees: number?,
+	Noise: Types.NoiseKind?,
 }
 
--- Ammo: entity damage, launch speed (m/s) and gravity (m/s^2) of its projectile.
-export type AmmoDef = { EntityDamage: number, Speed: number, Gravity: number }
+-- Ammo: entity damage, launch speed (m/s) and gravity (m/s^2) of its projectile. Tracer: clients
+-- draw a bright streak (a bullet) instead of an arrow.
+export type AmmoDef = { EntityDamage: number, Speed: number, Gravity: number, Tracer: boolean? }
 
 -- A crop (7DTD plantedX1-3): its seed and produce items, the produce a ripe player crop pays (Count,
 -- and one more at BonusChance), seeds given back on harvest, its ripe height (studs) and produce
@@ -672,6 +680,14 @@ Config.Items = {
 	-- no water since 1.0.
 	-- foodCanChili
 	CanChili = { Stack = 10, Color = { 0.7, 0.25, 0.15 }, Use = { Food = 15, Heal = 7, HealRate = 0.5 } },
+	-- Gun parts and ammo (7DTD resourceMetalPipe, resourceGlue, resourceBone, ammo9mmBulletBall).
+	MetalPipe = { Stack = 500, Color = { 0.5, 0.5, 0.52 } },
+	Glue = { Stack = 500, Color = { 0.9, 0.85, 0.6 } },
+	Bone = { Stack = 1200, Color = { 0.92, 0.9, 0.82 } },
+	Ammo9mm = { Stack = 300, Color = { 0.8, 0.65, 0.3 } },
+	-- gunHandgunT0PipePistol: one durability per shot (DegradationPerUse 1). Its 300 uses are ours
+	-- (7DTD's base DegradationMax is unconfirmed); it is not repairable yet.
+	PipePistol = { Stack = 1, Durability = 300, Color = { 0.35, 0.33, 0.3 } },
 	-- foodBakedPotato and foodCornOnTheCob (7DTD 3.2): 10 food, 5 health over time, 5 water lost.
 	-- Their +10 max stamina bonus is not in yet.
 	BakedPotato = {
@@ -796,6 +812,20 @@ Config.Recipes = {
 	-- 7DTD 3.2 campfire: 5 Small Stone; cooking happens at a campfire. Times are the ingredients'
 	-- CraftingIngredientTime (river water 10, potato 10, corn 5).
 	Campfire = { Output = "Campfire", Count = 1, Ingredients = costs({ SmallStone = 5 }) },
+	-- gunHandgunT0PipePistol: 4 metal pipes, 2 glue, 6 wood in the backpack (7DTD 3.2).
+	PipePistol = {
+		Output = "PipePistol",
+		Count = 1,
+		Ingredients = costs({ MetalPipe = 4, Glue = 2, Wood = 6 }),
+	},
+	-- resourceGlue: 7 bones and a boiled water in the cooking pot at a campfire.
+	Glue = {
+		Output = "Glue",
+		Count = 1,
+		Ingredients = costs({ Bone = 7, BottledWater = 1 }),
+		Station = "Campfire",
+		Tool = "CookingPot",
+	},
 	-- drinkJarBoiledWater: murky water in the cooking pot. Bottled water is 7DTD's boiled water jar.
 	BoiledWater = {
 		Output = "BottledWater",
@@ -847,6 +877,7 @@ Config.Crafting = {
 		"StoneSpear",
 		"PrimitiveBow",
 		"StoneArrow",
+		"PipePistol",
 		"Lumber",
 		"WoodFrame",
 		"WoodLadder",
@@ -861,6 +892,7 @@ Config.Crafting = {
 		"BakedPotato",
 		"CornOnTheCob",
 		"BoiledWater",
+		"Glue",
 		"Generator",
 		"ElectricLamp",
 	},
@@ -869,7 +901,7 @@ Config.Crafting = {
 	-- Most crafts one queue slot may hold (7DTD's cap is unconfirmed).
 	MaxCount = 500,
 	-- 7DTD CraftingIngredientTime: seconds each ingredient adds to a craft, 1 when not listed.
-	IngredientSeconds = { Wood = 0.2, SmallStone = 0.2, PlantFiber = 0.2 } :: { [string]: number },
+	IngredientSeconds = { Wood = 0.2, SmallStone = 0.2, PlantFiber = 0.2, Bone = 0.2 } :: { [string]: number },
 	DefaultIngredientSeconds = 1,
 	-- How close (studs, character to the station's centre) a station recipe may be queued. Ours: 7DTD
 	-- opens the station itself at interaction reach. The job then runs in the player's queue.
@@ -984,8 +1016,8 @@ Config.Farming = {
 	FolderName = "Crops",
 }
 
--- Bows (7DTD 3.2 items.xml). "Use" with one in the hand shoots: no draw, every shot is at full draw.
--- Bows are silent (PLAN's noise sources do not list them).
+-- Bows and guns (7DTD 3.2 items.xml). "Use" with one in the hand shoots: no draw, every shot is at
+-- full draw. Bows are silent (PLAN's noise sources do not list them); guns make a Gunshot noise.
 Config.Ranged = {
 	Weapons = {
 		-- gunBowT0PrimitiveBow: EntityDamage -5, ProjectileVelocity -30 %, MaxRange 100 m. The shot
@@ -997,16 +1029,34 @@ Config.Ranged = {
 			SpeedShare = 0.7,
 			MaxRange = 100,
 		},
+		-- gunHandgunT0PipePistol: 126 rounds a minute, 6-round magazine, about 2 s reload, -4 damage,
+		-- 40 m range, 1.5 degree hip spread (no aiming here). Its damage falloff past 12 m is not in.
+		PipePistol = {
+			Ammo = { "Ammo9mm" },
+			ShotSeconds = 60 / 126,
+			DamageOffset = -4,
+			SpeedShare = 1,
+			MaxRange = 40,
+			Magazine = 6,
+			ReloadSeconds = 2,
+			SpreadDegrees = 1.5,
+			Noise = "Gunshot",
+		},
 	} :: { [string]: RangedDef },
 	Ammo = {
 		-- ammoArrowStone: 35 damage, 45 m/s. Its Gravity is -4; we read it as m/s^2.
 		StoneArrow = { EntityDamage = 35, Speed = 45, Gravity = 4 },
+		-- ammo9mmBulletBall: 32 damage. 7DTD bullets are hitscan; ours fly at 250 m/s without drop.
+		Ammo9mm = { EntityDamage = 32, Speed = 250, Gravity = 0, Tracer = true },
 	} :: { [string]: AmmoDef },
 	-- Arrows one player may have in the air at once.
 	MaxArrowsPerPlayer = 6,
 	-- Client look: arrow length (studs) and how long a stopped arrow stays before it is removed.
 	ArrowLength = 2.4,
 	StuckSeconds = 6,
+	-- Client look of a bullet: tracer length (studs) and how long the muzzle flash shows (seconds).
+	TracerLength = 5,
+	FlashSeconds = 0.06,
 }
 
 local function drop(id: string, min: number, max: number?): Drop
@@ -1214,6 +1264,9 @@ Config.Loot = {
 		{ Id = "BottledWater", Min = 1, Max = 1, Weight = 1.2 },
 		{ Id = "MurkyWater", Min = 1, Max = 1, Weight = 1 },
 		{ Id = "FirstAidBandage", Min = 1, Max = 1, Weight = 1 },
+		-- 7DTD gets bones from corpses; here zombie bags carry them (glue for gun parts).
+		{ Id = "Bone", Min = 2, Max = 6, Weight = 2 },
+		{ Id = "Ammo9mm", Min = 2, Max = 6, Weight = 1 },
 	} :: { LootPick },
 	ZombieToolChance = 0.15,
 	ZombieTools = { "StoneAxe", "StoneShovel", "StonePickaxe", "WoodenClub", "StoneSpear" },
@@ -1326,6 +1379,10 @@ Config.Loot = {
 				{ Id = "MechanicalParts", Min = 1, Max = 3, Weight = 2 },
 				{ Id = "ElectricalParts", Min = 1, Max = 3, Weight = 2 },
 				{ Id = "GasCan", Min = 10, Max = 30, Weight = 2 },
+				-- Guns: a storage sweep gives about 4 pipes, 3 glue and 14 rounds of 9mm.
+				{ Id = "MetalPipe", Min = 1, Max = 2, Weight = 1.5 },
+				{ Id = "Glue", Min = 1, Max = 2, Weight = 1 },
+				{ Id = "Ammo9mm", Min = 4, Max = 12, Weight = 1 },
 			},
 		},
 	} :: { [string]: ContainerDef },
@@ -1512,6 +1569,8 @@ Config.Debug = {
 		{ Id = "CookingGrill", Count = 1 },
 		{ Id = "Potato", Count = 3 },
 		{ Id = "Corn", Count = 3 },
+		{ Id = "PipePistol", Count = 1 },
+		{ Id = "Ammo9mm", Count = 30 },
 		{ Id = "ElectricLamp", Count = 4 },
 		{ Id = "GasCan", Count = 300 },
 		{ Id = "Wood", Count = 50 },

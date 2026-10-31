@@ -845,6 +845,30 @@ test("a stone arrow from the primitive bow keeps 7DTD's damage, speed and recipe
 	assert(Config.Tools.PrimitiveBow == nil, "a bow is not swung")
 end)
 
+test("the pipe pistol reloads after six rounds and spreads inside its cone", function()
+	local pistol = Config.Ranged.Weapons.PipePistol
+	local ammo = Config.Ranged.Ammo.Ammo9mm
+	expectEq(Ballistics.damage(pistol, ammo), 28, "32 damage less 4")
+	local fired, wait = 0, 0
+	for _ = 1, 5 do
+		wait, fired = Ballistics.afterShot(pistol, fired + 1)
+		expectEq(wait, pistol.ShotSeconds, "rounds left in the magazine")
+	end
+	wait, fired = Ballistics.afterShot(pistol, fired + 1)
+	expectEq(wait, pistol.ReloadSeconds, "sixth round reloads")
+	expectEq(fired, 0, "fresh magazine")
+	local bowWait = Ballistics.afterShot(Config.Ranged.Weapons.PrimitiveBow, 99)
+	expectEq(bowWait, Config.Ranged.Weapons.PrimitiveBow.ShotSeconds, "bows never reload")
+	local limit = math.cos(math.rad(pistol.SpreadDegrees)) - 1e-9
+	for _, dir in { { 0, 0, -1 }, { 0, 1, 0 }, { 0.6, 0, 0.8 } } do
+		for _, r in { { 0, 0 }, { 0.999, 0.25 }, { 0.5, 0.7 } } do
+			local x, y, z = Ballistics.spread(dir[1], dir[2], dir[3], pistol.SpreadDegrees, r[1], r[2])
+			expectEq(math.abs(x * x + y * y + z * z - 1) < 1e-9, true, "still a unit vector")
+			expectEq(x * dir[1] + y * dir[2] + z * dir[3] >= limit, true, "inside the cone")
+		end
+	end
+end)
+
 print("Farming")
 
 test("crops ripen in two 7DTD stages and pay 2-3 produce and their seed back", function()

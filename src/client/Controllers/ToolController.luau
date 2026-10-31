@@ -16,6 +16,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Ballistics = require(Shared.Ballistics)
 local Config = require(Shared.Config)
 local Localization = require(Shared.Localization)
 local Melee = require(Shared.Melee)
@@ -64,6 +65,8 @@ local swings: { [Motor6D]: Swing } = {}
 local baseC0: { [Motor6D]: CFrame } = setmetatable({}, { __mode = "k" }) :: any
 local holding: Source? = nil
 local nextSwingAt = 0
+-- Rounds fired from each gun's magazine, as the server counts them.
+local roundsFired: { [string]: number } = {}
 local messageLabel: TextLabel
 local messageToken = 0
 
@@ -259,10 +262,16 @@ local function trySwing(source: Source)
 			showMessage(Localization.get("ToolBroken", { item = Localization.get(`Item{held.id}`) }))
 			nextSwingAt = now + MC.MessageSeconds
 		elseif not hasAmmo(ranged) then
-			showMessage(Localization.get("NoAmmo"))
+			showMessage(Localization.get(if ranged.Magazine then "NoBullets" else "NoAmmo"))
 			nextSwingAt = now + MC.MessageSeconds
 		else
-			sendUse(now, ranged.ShotSeconds)
+			-- The same magazine count the server keeps; a spent magazine waits for the reload.
+			local wait, kept = Ballistics.afterShot(ranged, (roundsFired[held.id] or 0) + 1)
+			roundsFired[held.id] = kept
+			sendUse(now, wait)
+			if kept == 0 and ranged.Magazine then
+				showMessage(Localization.get("Reloading"))
+			end
 		end
 		return
 	end

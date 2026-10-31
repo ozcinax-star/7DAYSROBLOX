@@ -1,7 +1,8 @@
 --!strict
--- ArrowController: draws the arrows RangedService flies. Each launch comes with its origin, velocity,
--- gravity and server time; the client runs the same arc (Shared/Ballistics) every frame, pins the
--- arrow where the server says it stopped and removes it a few seconds later. A zombie hit flinches.
+-- ArrowController: draws the arrows and bullets RangedService flies. Each launch comes with its origin,
+-- velocity, gravity, server time and ammo; the client runs the same arc (Shared/Ballistics) every
+-- frame, pins an arrow where the server says it stopped and removes it a few seconds later. Bullets
+-- are bright tracers with a muzzle flash and vanish where they stop. A zombie hit flinches.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -16,6 +17,10 @@ local ZombieRenderController = require(script.Parent.ZombieRenderController)
 
 local RC = Config.Ranged
 local SHAFT_COLOR = Color3.fromRGB(150, 110, 70)
+local TRACER_COLOR = Color3.fromRGB(255, 220, 140)
+local FLASH_COLOR = Color3.fromRGB(255, 190, 90)
+local FLASH_RANGE = 12
+local FLASH_BRIGHTNESS = 3
 -- An arrow never heard to stop is removed after its longest possible flight plus this (seconds).
 local LOST_SLACK = 1
 
@@ -28,6 +33,7 @@ type Flight = {
 	-- Server time after which an arrow that has not stopped is removed.
 	lostAt: number,
 	stopped: boolean,
+	tracer: boolean,
 }
 
 local ArrowController = {}
@@ -56,7 +62,36 @@ local function pose(flight: Flight, t: number): CFrame
 	return CFrame.lookAt(position, position + heading)
 end
 
-local function onFired(id: unknown, origin: unknown, velocity: unknown, gravity: unknown, launchedAt: unknown)
+-- A short flash of light where a gun fired.
+local function flash(origin: Vector3)
+	local part = Instance.new("Part")
+	part.Name = "MuzzleFlash"
+	part.Size = Vector3.one * 0.2
+	part.Transparency = 1
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CFrame = CFrame.new(origin)
+	local light = Instance.new("PointLight")
+	light.Color = FLASH_COLOR
+	light.Range = FLASH_RANGE
+	light.Brightness = FLASH_BRIGHTNESS
+	light.Parent = part
+	part.Parent = folder
+	task.delay(RC.FlashSeconds, function()
+		part:Destroy()
+	end)
+end
+
+local function onFired(
+	id: unknown,
+	origin: unknown,
+	velocity: unknown,
+	gravity: unknown,
+	launchedAt: unknown,
+	ammoId: unknown
+)
 	if
 		typeof(id) ~= "number"
 		or typeof(origin) ~= "Vector3"
@@ -67,11 +102,21 @@ local function onFired(id: unknown, origin: unknown, velocity: unknown, gravity:
 		return
 	end
 	remove(id)
+	local ammo = if typeof(ammoId) == "string" then RC.Ammo[ammoId] else nil
+	local tracer = ammo ~= nil and ammo.Tracer == true
 	local part = Instance.new("Part")
-	part.Name = "Arrow"
-	part.Size = Vector3.new(0.12, 0.12, RC.ArrowLength)
-	part.Color = SHAFT_COLOR
-	part.Material = Enum.Material.Wood
+	if tracer then
+		part.Name = "Tracer"
+		part.Size = Vector3.new(0.07, 0.07, RC.TracerLength)
+		part.Color = TRACER_COLOR
+		part.Material = Enum.Material.Neon
+		flash(origin)
+	else
+		part.Name = "Arrow"
+		part.Size = Vector3.new(0.12, 0.12, RC.ArrowLength)
+		part.Color = SHAFT_COLOR
+		part.Material = Enum.Material.Wood
+	end
 	part.Anchored = true
 	part.CanCollide = false
 	part.CanQuery = false
@@ -85,6 +130,7 @@ local function onFired(id: unknown, origin: unknown, velocity: unknown, gravity:
 		launchedAt = launchedAt,
 		lostAt = launchedAt + longestFlight + LOST_SLACK,
 		stopped = false,
+		tracer = tracer,
 	}
 	part.CFrame = pose(flight, 0)
 	part.Parent = folder
@@ -100,6 +146,13 @@ local function onStopped(id: unknown, where: unknown, zombieId: unknown)
 		return
 	end
 	flight.stopped = true
+	if flight.tracer then
+		if zombieId ~= 0 then
+			ZombieRenderController.flinch(zombieId)
+		end
+		remove(id)
+		return
+	end
 	-- Pinned with its tip at the stop point, pointing the way it flew.
 	local heading = pose(flight, math.max(0, Workspace:GetServerTimeNow() - flight.launchedAt)).LookVector
 	flight.part.CFrame = CFrame.lookAt(where - heading * (RC.ArrowLength / 2), where + heading)
