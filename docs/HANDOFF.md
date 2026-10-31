@@ -229,6 +229,12 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 | --- | --- |
 | `717d039` | Jeneratör (500 can; 50 hurda + 6 mekanik + 8 elektrik parçası, 105 sn) ve elektrikli lamba direği (100 can; 4 hurda + 2 elektrik parçası, 10 sn). Benzin elde "use" ile jeneratöre dökülür (bir seferde 250, depo 1000); jeneratör etkileşim tuşuyla açılır / kapanır. Çalışan jeneratör 48 stud içindeki lambaları 50 W'a kadar yakar (lamba 5 W), kullanılan watt için 7DTD'nin 1,8 benzin / watt / oyun günü oranında yakar, 3 sn'de bir gürültü yapar (tek ses noktası), İz ekler. Benzin, mekanik ve elektrik parçası depo kaplarında; saf `Shared/Power` (1 test); `BuildService.onPlaced`, `blockAt`; `ThreatService.emit` artık oyuncu ya da adlı kaynakla birleştirir |
 
+### 17. Bölüm: grafik ayarları (31 Ekim)
+
+| Commit | Ne yapıldı |
+| --- | --- |
+| `767fdd2` | Saatin altında "Graphics: …" düğmesi; panelde Auto / Low / Medium / High. Ön ayar yalnızca bu istemciyi değiştirir: zombi çizim / ayrıntı / animasyon mesafesi ve ceset süresi (`ZombieRenderController.setQuality`), güneş gölgesi, bloom, güneş ışınları, lamba ışığının erimi. Sis, atmosfer, gökyüzü ve gece tonu hiç değişmez. Auto: dokunmatik ve klavyesiz cihaz Low, öbürleri Roblox grafik kalitesine göre (1–3 Low, 4–7 Medium, 8–10 High, Automatic Medium). Medium eski görünüm. Saf `Shared/Graphics` (1 test) |
+
 ## Mevcut durum
 
 | Alan | Durum |
@@ -245,6 +251,7 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 | İnşa (`BuildService` + `Shared/BuildGrid`) | Çalışıyor. 4 stud'luk küp ızgara; sütunları yol bulma ızgarasıyla aynı. Elde Wood Frame, Wood Ladder veya Wood Door varken "use" (sol tık, R2, Hit) bloğu koyar: sunucu baştan nişan yönünde 24 stud ışın atar, vurduğu bloğun yanına ya da yüzeyin hemen üstündeki hücreye koyar (zeminde blok toprağa en fazla bir hücre gömülür, havada durmaz). Ret: dolu hücre, harita parçası (duvar, ağaç, tabela), karakter veya zombi içinde, su, oynanmaz alan, kasaba binası tabanı, 2000 blok, zemin ya da komşu blok desteği yok. Taş balta bloğa vurunca hasar vermez: hasarlıysa vuruş başına 100 can tamir eder (7DTD'nin tam tamir için 3 odununun payı, yukarı yuvarlanmış), çerçeveyi 3 vuruşta 4 keresteyle ahşap bloğa çevirir. Diğer aletler ahşap çarpanıyla hasar verir. Yere bağlantısı kopan bloklar düşer (7DTD yapısal destek, yatay açıklık sınırı yok). Zombiyi engelleyen sütun (zeminden 2 ile 6 stud arası) yol bulmada blok canına göre 2–8 maliyetli hücre olur; kovalayan ya da sese giden zombi önündeki en zayıf bloğa 7 hasar vurur (1,5 / gece 1,1 sn). Merdiven `TrussPart`: oyuncu tırmanır, zombiyi engellemez. Kapı (1000 can) iki hücre tutar (üst hücre boş olmalı), 0,35 stud kalınlığında bir panel: kuranın durduğu yüze asılır, `ProximityPrompt` (Open / Close) ile hücresinin içine 90° döner. Sunucu canlı karakteri, 8 + 4 stud mesafeyi ve saniyede 4 aç/kapa sınırını denetler; aralıkta karakter ya da zombi varken kapatmaz. Açık kapı yol bulmada boş hücre sayılır ve zombi vuruşu onu atlar; kapalı kapı 1000 canlı duvardır, bu yüzden zombi genellikle yanındaki daha zayıf bloğu kırar. Zombi kapı açmaz (7DTD). Kilit yok. Bloklar zombi görüşünü keser, loot torbası üstlerine düşer, her blok İz'e 0,04 ekler. Kayıt yok. API: `getCount`, `clear` (debug). |
 | Kamera (omuz/FPS) | **Yok.** Localization anahtarları (`CameraShoulder`, `CameraFirstPerson`) ve `Config.Camera` hazır. |
 | Vuruş (`ToolService` + `Shared/Melee`) | Çalışıyor. İstemci yalnızca nişan yönünü yollar. Sunucu: birim vektör, hız sınırı (4/sn), aletin 7DTD aralığı (60/APM + 0,1 sn, %12 tolerans), hedefi kendi baş konumundan seçer: menzildeki en yakın zombi (silindir + baktığı yöne eğik kafa küresi), arada duvar varsa vurmaz. Hasar 7DTD: yumruk 5, taş balta 6, taş kürek 9, taş kazma 7, tahta sopa 12, taş mızrak 12; kafaya ×2. Mızrağın yalnızca hafif saldırısı var (güçlü saldırı ve fırlatma yok). Alet yalnızca isabette 1 aşınır; 0'da kullanılamaz. Dünyaya isabet `onWorldHit` dinleyicilerine gider (toplama). Oyunculara vuruş yok (PvP lobi seçeneği gelince). |
+| Grafik ayarları (`GraphicsController` + `Shared/Graphics`) | Çalışıyor. `Config.Graphics.Presets`: Low (zombi 160 stud, ayrıntı 25, animasyon 45, ceset 3 sn, gölge / bloom / ışın kapalı, lamba ışığı ×0,6), Medium (260 / 45 / 70 / 6 sn, hepsi açık, ×1; eski görünüm), High (260 / 60 / 100 / 12 sn, hepsi açık, ×1,2). Zombi çizim mesafesi `ZombieVisual.RenderDistance`'ı (260) geçmez; sunucu despawn'ı ona göre. DepthOfField'e dokunulmaz (kapalı kalır; uzaktaki zombiyi bulanıklaştırırdı). Roblox kalite ayarı değişince Auto yeniden seçer. Seçim oturumluk, kayıt yok. `Terrain.Decoration` script'ten değişmiyor; partikül efekti yok. |
 | Jeneratör ve lamba (`PowerService` + `Shared/Power`) | Çalışıyor. İkisi de inşa bloğu (`Size` alanı: hücre tabanında küçük kutu; `BuildGrid.plotCFrame` ile zemine oturur). Jeneratör 3,2 × 2,4 × 2,2, zombiyi durdurur ve kırılır; lamba 0,4 × 3,2 × 0,4 direk, `Passable` (zombi geçer). Kablo yok (PLAN: elektrik ağı sonraya). Jeneratör: tek "Turn on / Turn off" istemi (8 stud, oyuncu başına saniyede 4), nesne metni "Generator  Gas x/1000"; benzinsiz açılmaz. Elde Gas Can varken "use": sunucu baştan 8 stud ışın atar, jeneratöre değerse en çok 250 benzin döker (depoyu taşırmaz, taşınan kadar). Saniyede bir: çalışan jeneratörler (yakıtı > 0) 48 stud içindeki lambaları anahtar sırasıyla, en yakın jeneratörden, 50 W bitene kadar yakar (dünyada en çok 40 lamba); her jeneratör yalnızca yüklü watt için yakar (5 W lamba günde 9 benzin; yüksüz jeneratör yakıt harcamaz ama ses yapar). Benzin bitince jeneratör durur. Yanan lamba: Neon baş + PointLight (20 stud, gölgesiz). Çalışan jeneratör 3 sn'de bir "Generator" gürültüsü (3 puan, 90 stud; tek ses noktası, Noise ≈ 21'de dengelenir); İz: yanan lamba 1,5, çalışan jeneratör 3 (`Power` kaynağı). Jeneratörün üstünde gösterge: çalışırken yeşil Neon, dururken kırmızı. Kırılan jeneratörün lambaları söner. Kayıt yok. |
 | Tarım (`FarmService` + `Shared/Farming`) | Çalışıyor. Farm Plot bir inşa bloğu (`Plot = true`): hücresinin dibinde 0,8 stud'luk yassı parça; hücreye yükselen zemin varsa onun üstüne kalkar (`BuildGrid.plotCFrame`). Yol bulmada geçilir, zombi vuruşu onu seçmez, taş baltayla 14 kille tamir edilir. Elde tohum (`Seed` alanı) varken "use": sunucu baştan 24 stud ışın atar, tarlaya değerse ve tarlada ekin yoksa tohumu harcar. Ekin 3 aşamalı; aşama `StageDays` (1,05) × gün süresi (≈ 11,5 dk), olgunluk ≈ 23 dk; sunucu saniyede bir bakar ve modeli yeniden kurar (filiz, büyüyen bitki, ürünlü bitki). Olgun ekinde 0,5 sn basılı "Harvest" istemi (8 stud): sunucu canlı karakteri ve mesafeyi denetler, 2 ürün + %50 bir ürün daha ve 1 tohum verir (sığmayan ayağa düşer), ekin kalkar, tarla kalır. Ürünler yenir: mısır 2 yemek + 3 can, patates ve yaban mersini 2 yemek. Tohum kaynağı: dolap (mısır, patates tohumu), raf (yaban mersini tohumu), buzdolabı (mısır, patates); 5 ürün = 1 tohum. Ekinler `workspace.Crops` içinde, kayıt yok. Debug: `GrowCrops` hepsini olgunlaştırır. API: `ripenAll` (debug). |
 | Yay (`RangedService` + `Shared/Ballistics`) | Çalışıyor. Elde yay varken "use" ok atar (germe yok; her atış tam gerili). Sunucu: kendi atış aralığı (1 sn, %12 tolerans), yayın dayanıklılığı, oyuncu başına havada en çok 6 ok; envanterden 1 ok alır (hep ya da hiç), yayı 1 aşındırır. Ok sunucunun baş konumundan çıkar, 88 stud/sn hızla ve 11,2 stud/sn² yerçekimiyle Heartbeat'te uçar; her adım `Melee.hitBody` ile zombilere (kafa ×2) ve ışınla dünyaya (duvar, blok, arazi, su) sınanır, hangisi yakınsa orada durur. 280 stud'da düşer. Yalnızca zombilere hasar verir; vurulan zombi atanı kovalar (yakın dövüşteki gibi). Ok geri alınmaz, bloğa hasar vermez, ses çıkarmaz. İstemci: `ArrowFired` (id, çıkış, hız, yerçekimi, sunucu saati) ile yayı her karede kendisi hesaplar; `ArrowStopped` ile oku durduğu yere saplar, 6 sn sonra siler; zombiye saplanan ok hemen silinir, zombi sendeler. Elde yay varken ok yoksa "No arrows". |
@@ -259,9 +266,9 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 
 Ölçümler 30–31 Ekim 2026'da PC'de, Studio içinde alındı. Telefonda ölçüm yok.
 
-- **Testler:** 65/65 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
-  Inventory 6, Melee 5, Harvest 6, Ballistics 1, Farming 1, Power 1, Crafting 6, Loot 3, DayClock 2,
-  Threat 4, BuildGrid 4, Vitals 4).
+- **Testler:** 66/66 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
+  Inventory 6, Melee 5, Harvest 6, Ballistics 1, Farming 1, Power 1, Graphics 1, Crafting 6, Loot 3,
+  DayClock 2, Threat 4, BuildGrid 4, Vitals 4).
   Testler yalnızca Studio düzeneğiyle çalıştırıldı; Lune ile hiç çalıştırılmadı.
 - **Zombi performansı:** 80 zombiyle tick ortalaması 0,04–0,17 ms, en kötü tick genelde 1,3–1,8 ms
   (bir kez 3,9 ms). Zombi başına 17 parça.
@@ -436,6 +443,10 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
   Kapatınca lambalar söndü; yeniden açılıp sopayla 55 vuruşta kırılan jeneratörün lambaları söndü.
   İnşa önizlemesi jeneratörde 3,2 × 2,4 × 2,2, lambada 0,4 × 3,2 × 0,4 boyutunda (iç payı düşülmüş).
   Haritada 48 depo mobilyası var (24'ü metal binalarda, iki zar); tarif sayıları buna göre.
+- **Grafik (Play, 31 Ekim):** bu PC'de (Roblox kalitesi 10) Auto High seçti. Fareyle Low: gölge,
+  bloom, ışın kapandı; atmosfer (0,30) ve gece tonu aynı kaldı; lamba ışığı 12 stud. 80 zombiden
+  ~200 stud uzaklaşınca Low'da 21 zombi çizildi (en uzak 156), Medium'da 59 (en uzak 255).
+  Not: MCP `execute_luau` kamerayı Fixed'e çeviriyor; mesafe ölçümünden önce kamera Custom yapıldı.
 - **Konsol:** Sunucu ve istemcide 0 uyarı, 0 hata.
 
 ## Teknik notlar
@@ -502,7 +513,7 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
    local src = Http:GetAsync("http://127.0.0.1:8765/Harness.luau", true)
    Http.HttpEnabled = was
    local H = loadstring(src)()
-   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "65 passed, 0 failed"
+   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "66 passed, 0 failed"
    ```
    Düzenek place'e hiçbir şey bırakmaz.
 3. Her kod değişikliğinden sonra adım 1'deki bundle komutunu tekrar çalıştır, sonra `H.sync()`.

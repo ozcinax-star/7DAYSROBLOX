@@ -32,7 +32,8 @@ Yol haritası notu ve Kararlar tablosu).
 | Yay ve ok | Bitti: ilkel yay, taş ok, sunucuda yerçekimli uçuş |
 | Tarım | Bitti: tarla, 3 ekin, büyüme, hasat, tohum geri |
 | Jeneratör ve lamba | Bitti: benzin, aç/kapa, 48 stud'da 50 W, gürültü ve İz |
-| Grafik ve UI cilası, ev değiştirme | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
+| Grafik ayarları | Bitti: Auto / Low / Medium / High, yalnızca istemci, gece görüşü sabit |
+| UI cilası, ev değiştirme | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
 | Kapı 1: 80 zombiyle orta seviye telefonda 30 FPS | **Ölçülmedi**; kullanıcı erteledi |
 | Kapı 2: 3 kişilik test grubu "bir gece daha" diyor | Henüz yapılamaz |
 
@@ -218,7 +219,17 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Benzin kaynağı:** 7DTD'de arabalar ve benzin istasyonu; bizde depo kapları.
 - **Kayıt:** jeneratör yakıtı ve durumu sunucu kapanınca kaybolur.
 
-### 15. Sonra
+### 15. Grafik ayarları (bitti, 31 Ekim)
+
+`767fdd2`. Kalanlar:
+- **Kayıt:** seçim oturumluk; kalıcılık adımında oyuncu verisine yazılır.
+- **Görüş mesafesi:** harita akışı (`StreamingTargetRadius` 384) sunucu genelinde; istemci başına
+  ayarlanamaz. Ön ayar yalnızca zombi çizim mesafesini kısar.
+- **Ot ve partikül:** `Terrain.Decoration` script'ten değişmiyor; partikül efekti henüz yok. Gelince
+  ön ayara eklenir.
+- **Telefon FPS testi:** Low'un telefonda yetip yetmediği ölçülmedi (kapı 1 hâlâ kullanıcıda).
+
+### 16. Sonra
 
 - **Araç zinciri:** Kullanıcı `rokit install` ve `rojo plugin install` komutlarını kendisi çalıştırır.
   Sonra `stylua --check src tests`, `selene src`, `lune run tests/run`, `rojo build -o build.rbxl`
