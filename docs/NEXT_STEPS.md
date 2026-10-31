@@ -16,7 +16,7 @@ Yol haritası notu ve Kararlar tablosu).
 | Zombi davranışı | Bitti: yavaş sarsılan yürüyüş, eve girip çıkma, merdivenle üst kat, bina içinde uyuyan zombi, saldırı öncesi kol uzatma, vurulunca sendeleme |
 | Zombi görünümü | Bitti: 17 parçalı rig, zayıf ve çürümüş yüz, ten dağılımı, prosedürel topallama, ölünce yığılma |
 | Stres testi aracı | Bitti |
-| Envanter | Bitti: 10 + 45 slot, kaynaklı yığınlar, elde görünen alet, arayüz |
+| Envanter | Bitti: 10 + 45 slot, kaynaklı yığınlar, elde görünen alet, arayüz, eşya atma (G / Drop) |
 | Vuruş | Bitti: 7DTD hasar ve hızları, kafa vuruşu, aşınma, duvar kontrolü |
 | Toplama | Bitti: ağaç, çalı, ot, yerdeki taş, kaya; 7DTD verim formülü, ağaç devirme |
 | Crafting | Bitti: 7DTD kuyruğu (4 iş), malzeme süreleri, iptal ve iade, taşla tamir, panel |
@@ -257,7 +257,14 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 ### 17. Evin içine inşaat (bitti, 31 Ekim)
 
 `4ed6ce1`. Kalanlar:
-- **Üst kat:** üst kat yol bulma ızgarası (`upperGrid`) blokları bilmiyor; üst kata blok konunca
+- **Üst kat (31 Ekim'de boyutlandırıldı, yapılmadı):** gereken değişiklikler: `structureCosts` kat
+  başına (anahtar `cell + (level - 1) * cellCount`), `setStructure(level, ...)`; `structureCell` ve
+  `moveToward` içindeki `here` zombinin katına göre; vuruş geri çağrısı katı da vermeli (şimdi
+  `grid:cellCenter`); üst kat alan önbelleği (`upperFields`, `nav.topField`) yapı değişince boşalmalı;
+  blok kalkınca üst hücre eski maliyetine dönmeli (üst ızgara için `reopenArea` yok); BuildService
+  `updateColumn` üst kat yüksekliğini (`info.upperCells[1].Y`) kullanmalı; içeri kuralı ikinci bir
+  bant ve istemci aynası; destek kontrolü üst döşemeyi zemin saymalı. Zombi yol bulmasına dokunduğu
+  için ayrı ve dikkatli bir adım. Eski not: üst kat yol bulma ızgarası (`upperGrid`) blokları bilmiyor; üst kata blok konunca
   zombiler içinden geçerdi. Açmak için `ZombieService.setStructure` üst kat ızgarasına da yazmalı.
 - **Pencereler:** pencere altındaki duvar (denizlik 4 stud) yol bulmada duvar sayılır; zombi
   pencereden girmez, bu yüzden pencereyi kapatmaya gerek yok. 7DTD'de
