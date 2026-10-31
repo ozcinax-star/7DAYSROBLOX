@@ -34,7 +34,8 @@ Yol haritası notu ve Kararlar tablosu).
 | Jeneratör ve lamba | Bitti: benzin, aç/kapa, 48 stud'da 50 W, gürültü ve İz |
 | Grafik ayarları | Bitti: Auto / Low / Medium / High, yalnızca istemci, gece görüşü sabit |
 | Depolama sandığı | Bitti: 36 yuva, ortak, kırılınca torba |
-| UI cilası, ev değiştirme | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
+| Evin içine inşaat | Bitti: zemin katta 2 hücre, kapı boşluğu barikatı |
+| UI cilası | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
 | Kapı 1: 80 zombiyle orta seviye telefonda 30 FPS | **Ölçülmedi**; kullanıcı erteledi |
 | Kapı 2: 3 kişilik test grubu "bir gece daha" diyor | Henüz yapılamaz |
 
@@ -242,7 +243,21 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Kayıt:** sandık içeriği sunucu kapanınca kaybolur.
 - **Simgeler:** eşyalar hâlâ renkli kare; simge yok (görsel adım).
 
-### 17. Sonra
+### 17. Evin içine inşaat (bitti, 31 Ekim)
+
+`4ed6ce1`. Kalanlar:
+- **Üst kat:** üst kat yol bulma ızgarası (`upperGrid`) blokları bilmiyor; üst kata blok konunca
+  zombiler içinden geçerdi. Açmak için `ZombieService.setStructure` üst kat ızgarasına da yazmalı.
+- **Pencereler:** pencere altındaki duvar (denizlik 4 stud) yol bulmada duvar sayılır; zombi
+  pencereden girmez, bu yüzden pencereyi kapatmaya gerek yok. 7DTD'de
+  zombiler pencere kırar; gelirse pencere de barikatlanabilir olmalı.
+- **Binayı yıkmak:** harita parçaları (duvar, kapı kanadı, mobilya) kırılmaz. 7DTD'de her blok
+  kırılır; bizde binalar yüzlerce parça ve yol bulma ızgarası açılışta pişiriliyor. Ayrı adım.
+- **Taban yüksekliği:** kural döşeme üstünün bir hücre tabanına 1,25 stud'dan yakın olmasına dayanır.
+  Bugün tüm binalar 0 yüksekliğinde (döşeme üstü 1,0); yüksek arazide bina kurulursa zemin kat
+  hücresi döşemeye çarpar ve blok konmaz. O durumda bina tabanı ızgaraya hizalanmalı.
+
+### 18. Sonra
 
 - **Araç zinciri:** Kullanıcı `rokit install` ve `rojo plugin install` komutlarını kendisi çalıştırır.
   Sonra `stylua --check src tests`, `selene src`, `lune run tests/run`, `rojo build -o build.rbxl`

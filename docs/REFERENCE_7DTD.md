@@ -44,7 +44,7 @@ Bu dosya PLAN.md'deki kapsam kuralının istediği referanstır: ana referans 7 
 | Bloğa vuruş ve yükseltme | Sol tık hasar, sağ tık (taş balta) tamir / yükseltme | Taş balta her zaman tamir / yükseltme yapar; diğer aletler hasar verir | Tek "use" düğmesi (mobil) |
 | Tamir maliyeti | Bloğun RepairItems'ı (ahşap 3 odun), hasara orantılı | Vuruş başına 100 can, payı yukarı yuvarlanır (çerçeve tam tamir 3, ahşap blok 5 odun) | Kesirli eşya yok |
 | Yapısal destek | Malzeme başına yapışkanlık / kütle; ahşap 8 blok yatay | Yalnızca yere bağlantı | Basit tutuldu |
-| Blok bina içinde | POI'lerin içine de konur | Kasaba binası tabanına konmaz | Üst kat yol bulma katmanı yapıyı bilmiyor |
+| Blok bina içinde | POI'lerin içine de konur | Yalnızca zemin katta, kattan 2 hücreye kadar | Üst kat yol bulma katmanı yapıyı bilmiyor |
 | Hayatta kalma zaman tabanı | Yemek / su / can saat başına (varsayılan 60 dk gün = 1 gün) | Oyun günü başına aynı sayılar (11 dk); dayanıklılık ve açlık hasarı gerçek saniye | PLAN Kararlar |
 | Yeniden doğuş | Varsayılan ceza XP borcu; istatistikler dolu | İstatistikler dolu; ham kaynakların yarısı 5 dk'lık torbada | PLAN ölüm cezası |
 | Koşma hızı | m/s yok (MotorAcceleration çarpanları) | 16 yürüme, 24 koşma stud/sn | Roblox varsayılanı + yarım kat |
