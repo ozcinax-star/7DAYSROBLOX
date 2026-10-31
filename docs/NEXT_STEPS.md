@@ -31,7 +31,8 @@ Yol haritası notu ve Kararlar tablosu).
 | Yakın dövüş silahları | Bitti: tahta sopa, taş mızrak; toplamada dörtte bir verim |
 | Yay ve ok | Bitti: ilkel yay, taş ok, sunucuda yerçekimli uçuş |
 | Tarım | Bitti: tarla, 3 ekin, büyüme, hasat, tohum geri |
-| Jeneratör, grafik ve UI cilası, ev değiştirme | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
+| Jeneratör ve lamba | Bitti: benzin, aç/kapa, 48 stud'da 50 W, gürültü ve İz |
+| Grafik ve UI cilası, ev değiştirme | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
 | Kapı 1: 80 zombiyle orta seviye telefonda 30 FPS | **Ölçülmedi**; kullanıcı erteledi |
 | Kapı 2: 3 kişilik test grubu "bir gece daha" diyor | Henüz yapılamaz |
 
@@ -203,7 +204,21 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Kayıt:** ekinler sunucu kapanınca kaybolur.
 - **Görsel:** ekin modelleri basit parçalar; aşama geçişinde efekt yok.
 
-### 14. Sonra
+### 14. Jeneratör ve lamba (bitti, 31 Ekim)
+
+`717d039`. Kalanlar:
+- **Kablo:** 7DTD'de cihazlar kabloyla bağlanır, röle / anahtar / zamanlayıcı var; bizde yarıçap
+  (PLAN: elektrik ağı "Sonrası").
+- **Motor:** 7DTD'de jeneratör motorla 50 W'tan 300 W'a çıkar; bizde sabit 50 W (10 lamba).
+- **Tarif:** 7DTD'de 15 dövme demir; ocak ve çalışma tezgâhı yok, yerine 50 hurda. Parçalar 15 / 21
+  yerine 6 / 8 (tek kasaba). Ocak gelince dövme demire dönülür.
+- **Ses:** jeneratör çalışırken ses efekti yok (gürültü yalnızca zombi ve tehdit için).
+- **Gündüz kapatma:** otomatik değil; oyuncu kapatır (benzin tasarrufu bilinçli bir karar).
+- **Başka tüketiciler:** taret, tuzak, spot ışığı yok.
+- **Benzin kaynağı:** 7DTD'de arabalar ve benzin istasyonu; bizde depo kapları.
+- **Kayıt:** jeneratör yakıtı ve durumu sunucu kapanınca kaybolur.
+
+### 15. Sonra
 
 - **Araç zinciri:** Kullanıcı `rokit install` ve `rojo plugin install` komutlarını kendisi çalıştırır.
   Sonra `stylua --check src tests`, `selene src`, `lune run tests/run`, `rojo build -o build.rbxl`
