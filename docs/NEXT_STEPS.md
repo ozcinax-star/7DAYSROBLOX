@@ -33,6 +33,7 @@ Yol haritası notu ve Kararlar tablosu).
 | Tarım | Bitti: tarla, 3 ekin, büyüme, hasat, tohum geri |
 | Jeneratör ve lamba | Bitti: benzin, aç/kapa, 48 stud'da 50 W, gürültü ve İz |
 | Grafik ayarları | Bitti: Auto / Low / Medium / High, yalnızca istemci, gece görüşü sabit |
+| Depolama sandığı | Bitti: 36 yuva, ortak, kırılınca torba |
 | UI cilası, ev değiştirme | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
 | Kapı 1: 80 zombiyle orta seviye telefonda 30 FPS | **Ölçülmedi**; kullanıcı erteledi |
 | Kapı 2: 3 kişilik test grubu "bir gece daha" diyor | Henüz yapılamaz |
@@ -229,7 +230,19 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
   ön ayara eklenir.
 - **Telefon FPS testi:** Low'un telefonda yetip yetmediği ölçülmedi (kapı 1 hâlâ kullanıcıda).
 
-### 16. Sonra
+### 16. Depolama sandığı ve arayüz (bitti, 31 Ekim)
+
+`fdef2f5`, `e3f36c2`. Kalanlar:
+- **Kilit:** 7DTD'de sandık kilitlenip şifrelenir; bizde herkes açar.
+- **Sürükle bırak ve yarım yığın:** sandığa yalnızca bütün yığın gider; bölmek için önce çantada
+  "Split".
+- **Yükseltme:** 7DTD'de ahşap sandık demir / çeliğe yükseltilir; demir yok.
+- **Sayılar:** 7DTD ahşap sandığın tarifi, canı ve yuva sayısı doğrulanamadı (bizim: 4 kereste,
+  150 can, 36 yuva).
+- **Kayıt:** sandık içeriği sunucu kapanınca kaybolur.
+- **Simgeler:** eşyalar hâlâ renkli kare; simge yok (görsel adım).
+
+### 17. Sonra
 
 - **Araç zinciri:** Kullanıcı `rokit install` ve `rojo plugin install` komutlarını kendisi çalıştırır.
   Sonra `stylua --check src tests`, `selene src`, `lune run tests/run`, `rojo build -o build.rbxl`
