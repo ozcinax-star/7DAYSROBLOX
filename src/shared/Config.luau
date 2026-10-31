@@ -70,6 +70,8 @@ export type BlockDef = {
 	Station: boolean?,
 	Bars: boolean?,
 	Trap: boolean?,
+	-- How tools damage it (Config.Tools Materials); Build.HarvestMaterial when nil.
+	HarvestMaterial: HarvestMaterial?,
 	Material: string,
 	Color: { number },
 	Transparency: number?,
@@ -569,12 +571,23 @@ Config.Build = {
 			Color = { 0.72, 0.56, 0.36 },
 			Transparency = 0.25,
 		},
-		-- woodShapes: 500 HP, repair 3 Wood; its next tier (cobblestone) comes with the stone tier.
+		-- woodShapes: 500 HP, repair 3 Wood, upgrades with 10 Cobblestone Rocks.
 		WoodBlock = {
 			Health = 500,
+			UpgradeTo = "CobblestoneBlock",
+			Upgrade = { Id = "CobblestoneRocks", Count = 10 },
 			Repair = { Id = "Wood", Count = 3 },
 			Material = "WoodPlanks",
 			Color = { 0.6, 0.44, 0.28 },
+		},
+		-- cobblestoneShapes: Mcobblestone_shapes 1500 HP, stone to tools, repair 8 Cobblestone Rocks.
+		-- Its next tier (concrete, 10 Concrete Mix from a cement mixer) is not in.
+		CobblestoneBlock = {
+			Health = 1500,
+			Repair = { Id = "CobblestoneRocks", Count = 8 },
+			HarvestMaterial = "Stone",
+			Material = "Cobblestone",
+			Color = { 0.55, 0.54, 0.5 },
 		},
 		-- 7DTD wood door: 1000 HP, two blocks tall. Repairs take 5 Wood (ours: half the recipe).
 		WoodDoor = {
@@ -725,6 +738,7 @@ Config.Items = {
 	Lumber = { Stack = 6000, Color = { 0.8, 0.62, 0.4 } },
 	ScrapIron = { Stack = 6000, Color = { 0.52, 0.36, 0.3 }, Raw = true }, -- resourceScrapIron
 	Clay = { Stack = 6000, Color = { 0.62, 0.45, 0.33 }, Raw = true }, -- resourceClayLump
+	CobblestoneRocks = { Stack = 1000, Color = { 0.5, 0.5, 0.48 } }, -- resourceCobblestones
 	CrushedSand = { Stack = 6000, Color = { 0.86, 0.78, 0.58 }, Raw = true }, -- resourceCrushedSand
 	-- terrDirt: fills one voxel of dug ground back in (ours: only where it was dug, PLAN).
 	Dirt = { Stack = 500, Color = { 0.45, 0.33, 0.22 }, Fill = "Ground" },
@@ -856,6 +870,12 @@ Config.Recipes = {
 	PotatoSeed = { Output = "PotatoSeed", Count = 1, Ingredients = costs({ Potato = 5 }), Seconds = 1 },
 	BlueberrySeed = { Output = "BlueberrySeed", Count = 1, Ingredients = costs({ Blueberries = 5 }), Seconds = 1 },
 	FarmPlot = { Output = "FarmPlot", Count = 1, Ingredients = costs({ Wood = 4, Clay = 100 }), Seconds = 20 },
+	-- resourceCobblestones: 1 Clay + 1 Small Stone in the backpack (0.4 s).
+	CobblestoneRocks = {
+		Output = "CobblestoneRocks",
+		Count = 1,
+		Ingredients = costs({ Clay = 1, SmallStone = 1 }),
+	},
 	-- terrDirt: 16 Clay, 3 s.
 	Dirt = { Output = "Dirt", Count = 1, Ingredients = costs({ Clay = 16 }), Seconds = 3 },
 	-- Two wood per lumber keeps 7DTD's wood costs when building parts ask for lumber.
@@ -957,6 +977,7 @@ Config.Crafting = {
 		"PipeShotgun",
 		"PipeMachineGun",
 		"Lumber",
+		"CobblestoneRocks",
 		"WoodFrame",
 		"WoodLadder",
 		"WoodDoor",
@@ -981,7 +1002,10 @@ Config.Crafting = {
 	-- Most crafts one queue slot may hold (7DTD's cap is unconfirmed).
 	MaxCount = 500,
 	-- 7DTD CraftingIngredientTime: seconds each ingredient adds to a craft, 1 when not listed.
-	IngredientSeconds = { Wood = 0.2, SmallStone = 0.2, PlantFiber = 0.2, Bone = 0.2 } :: { [string]: number },
+	-- Clay: 0.2 s, from Cobblestone Rocks taking 0.4 s with one Small Stone.
+	IngredientSeconds = { Wood = 0.2, SmallStone = 0.2, PlantFiber = 0.2, Bone = 0.2, Clay = 0.2 } :: {
+		[string]: number,
+	},
 	DefaultIngredientSeconds = 1,
 	-- How close (studs, character to the station's centre) a station recipe may be queued. Ours: 7DTD
 	-- opens the station itself at interaction reach. The job then runs in the player's queue.
@@ -1810,6 +1834,8 @@ Config.Debug = {
 		{ Id = "GasCan", Count = 300 },
 		{ Id = "Wood", Count = 50 },
 		{ Id = "SmallStone", Count = 20 },
+		{ Id = "Clay", Count = 20 },
+		{ Id = "CobblestoneRocks", Count = 20 },
 		{ Id = "PlantFiber", Count = 20 },
 		{ Id = "Lumber", Count = 20 },
 		{ Id = "WoodFrame", Count = 30 },

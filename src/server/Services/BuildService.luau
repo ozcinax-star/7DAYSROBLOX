@@ -7,8 +7,9 @@
 -- grow on (FarmService); it blocks nobody. Generators, lamps and storage crates are smaller boxes on
 -- the floor of their cell (PowerService and StorageService give them their prompts); lamps let
 -- zombies by. Wood spikes are a trap zombies walk into: it hurts and slows them and wears out. The
--- stone axe upgrades a frame to a wood block (3 hits, 4 Lumber) and repairs damaged blocks with wood;
--- other tools and the fist damage them.
+-- stone axe upgrades a frame to a wood block (3 hits, 4 Lumber) and a wood block to cobblestone
+-- (10 Cobblestone Rocks), and repairs damaged blocks with their repair item; other tools and the fist
+-- damage them (cobblestone as stone).
 -- Zombies path through the weakest wall and break it (ZombieService structure cells); blocks that
 -- lose their way to the ground fall.
 --
@@ -544,7 +545,8 @@ local function onWorldHit(player: Player, result: RaycastResult, toolId: string,
 	if toolId == BC.UpgradeTool then
 		work(player, block)
 	else
-		damageBlock(block, Harvest.blockDamage(tool.BlockDamage, tool.Materials[BC.HarvestMaterial]))
+		local material = BC.Blocks[block.kind].HarvestMaterial or BC.HarvestMaterial
+		damageBlock(block, Harvest.blockDamage(tool.BlockDamage, tool.Materials[material]))
 	end
 end
 

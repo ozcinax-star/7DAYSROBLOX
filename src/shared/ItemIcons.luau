@@ -11,6 +11,7 @@ ItemIcons.Glyphs = {
 	SmallStone = "🌑",
 	PlantFiber = "🌿",
 	Lumber = "📏",
+	CobblestoneRocks = "🧱",
 	ScrapIron = "🔩",
 	Clay = "🟤",
 	CrushedSand = "⏳",

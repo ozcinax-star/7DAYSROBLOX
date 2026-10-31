@@ -90,6 +90,7 @@ local Strings: { [string]: { [string]: string } } = {
 		ItemSmallStone = "Small Stone",
 		ItemPlantFiber = "Plant Fibers",
 		ItemLumber = "Lumber",
+		ItemCobblestoneRocks = "Cobblestone Rocks",
 		ItemScrapIron = "Scrap Iron",
 		ItemClay = "Clay Soil",
 		ItemCrushedSand = "Crushed Sand",

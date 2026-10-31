@@ -912,6 +912,23 @@ test("wood spikes: twelve hits wear out a new trap, 20 wood, zombies walk across
 	assert(Config.Items.WoodSpikes, "item")
 end)
 
+test("a wood block upgrades to cobblestone with 10 rocks; rocks are clay and stone", function()
+	local blocks = Config.Build.Blocks
+	expectEq(blocks.WoodBlock.UpgradeTo, "CobblestoneBlock", "next tier")
+	expectEq(blocks.WoodBlock.Upgrade and blocks.WoodBlock.Upgrade.Count, 10, "ten rocks")
+	expectEq(blocks.CobblestoneBlock.Health, 1500, "7DTD cobblestone")
+	expectEq(blocks.CobblestoneBlock.HarvestMaterial, "Stone", "tools hit it as stone")
+	local recipe = Config.Recipes.CobblestoneRocks
+	expectEq(#recipe.Ingredients, 2, "two ingredients")
+	expectEq(math.abs(Crafting.unitSeconds(recipe) - 0.4) < 1e-9, true, "0.4 s like 7DTD")
+	for id, def in blocks do
+		if def.UpgradeTo then
+			assert(blocks[def.UpgradeTo] and def.Upgrade and Config.Items[def.Upgrade.Id], `{id} upgrade`)
+		end
+		assert(Config.Items[def.Repair.Id], `{id} repair item`)
+	end
+end)
+
 print("Farming")
 
 test("crops ripen in two 7DTD stages and pay 2-3 produce and their seed back", function()
