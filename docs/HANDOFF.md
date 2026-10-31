@@ -351,6 +351,22 @@ haritada 53 demir kayası; demir kazma kayayı 15 vuruşta kırdı (hurda 60 →
 `UserInputService:GetKeysPressed()` W, D, S'yi sırayla basılı gösterdi (büyük ihtimalle kullanıcı aynı
 anda oyundaydı). Karaktere dokunan testler durduruldu.
 
+Sonraki oturum (kullanıcı isteği: "silahlar hissiyat versin, ortamda çok zombi var"):
+
+| Commit | İş |
+| --- | --- |
+| `ee72365` | Ortam nüfusu yarıya indi: oyuncu başına gündüz 3, gece 5; sunucu tavanı 40. Horde 20 / oyuncu kaldı |
+| `7c0e7ab` | Her boru silaha ve yaya kendi el yapımı modeli (`HeldItems` `GUNS`, `bow`); Creator Store kullanılmadı (PLAN "Silah görünümü") |
+| `cae90de` | Sopaya çiviler, mızrağa sivrilen uç, aletlere sap sargısı |
+
+Studio'da ölçülenler: 85 test geçti. Play'de tek oyuncu gündüz debug paneli `Zombies: 3`. Tüfek ve
+makineli elde doğru parçalarla kuruldu; üçüncü şahısta kalça hizasında, birinci şahısta kameraya
+girmiyor (makineli ekranın sağını epey kaplıyor). Konsolda oyun hatası yok.
+
+**Studio 3B ekran görüntüsü** (`screen_capture`) Edit'te de beyaz geliyor. Çözüm: computer-use ile
+"Roblox Studio" penceresine erişim al ve masaüstü ekran görüntüsü kullan. Edit'te kaynaklı (welded)
+parçalar yerine oturmaz; önizlemede kaynakları izleyip parçaları elle konumla ve sabitle.
+
 ## Mevcut durum
 
 | Alan | Durum |

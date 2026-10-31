@@ -1,6 +1,6 @@
 # Devam notu
 
-Yeni bir oturum için tek sayfalık özet. Durum 1 Kasım 2026 itibarıyla. Ayrıntılar:
+Yeni bir oturum için tek sayfalık özet. Durum 1 Kasım 2026 sonrası oturum itibarıyla. Ayrıntılar:
 [HANDOFF.md](HANDOFF.md) (geçmiş, ölçümler, tuzaklar), [NEXT_STEPS.md](NEXT_STEPS.md) (sıradaki işler,
 kullanıcı soruları), [PLAN.md](PLAN.md) (tasarım kararları; kodla çelişirse PLAN geçerli).
 
@@ -22,17 +22,18 @@ kullanıcı soruları), [PLAN.md](PLAN.md) (tasarım kararları; kodla çelişir
   - **Arayüz ve kamera:** omuz ve birinci şahıs kamera, vuruş animasyonları, görev zinciri
     (tutorial), eşya bilgi paneli.
 
-## Son oturum (31 Ekim, kullanıcı isteği: silah modelleri, daha az zombi)
+## Son oturum (1 Kasım sonrası; kullanıcı isteği: silah modelleri, daha az zombi)
 
 | Commit | İş |
 | --- | --- |
 | `ee72365` | Ortam nüfusu yarıya indi: oyuncu başına gündüz 3, gece 5; sunucu tavanı 40. Horde değişmedi |
-| sonraki | Her boru silaha ve yaya kendi el yapımı modeli (HeldItems `GUNS` ve `bow`) |
+| `7c0e7ab` | Her boru silaha ve yaya kendi el yapımı modeli (HeldItems `GUNS` ve `bow`) |
+| `cae90de` | Sopaya çivi, mızrağa sivri uç, aletlere sap sargısı |
 
 **Karar:** Creator Store yerine parça tabanlı modeller (PLAN "Silah görünümü" satırı).
-**Doğrulanmadı:** Oturumda Studio bağlı değildi. Studio açılınca önce `H.sync()` + `H.test(false)`,
-sonra Play'de GiveKit ile dört silahı ve yayı birinci ve üçüncü şahısta ekran görüntüsüyle kontrol et
-(boyut, eldeki duruş, kameraya girme). Zombi sayısını Debug panelindeki ZombieCount ile ölç.
+**Ölçüldü:** 85 test; Play'de `Zombies: 3` (tek oyuncu, gündüz); tüfek ve makineli birinci ve üçüncü
+şahısta masaüstü ekran görüntüsüyle bakıldı, konsol temiz. Kullanıcı hissiyatı değerlendirecek;
+makineli birinci şahısta büyük gelirse silah dinlenme pozu (`ViewmodelController` REST.Gun) ileri alınır.
 
 ## Önceki oturum (1 Kasım, iki kullanıcı testi)
 

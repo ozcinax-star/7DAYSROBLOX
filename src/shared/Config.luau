@@ -360,7 +360,7 @@ Config.Horde = {
 Config.Population = {
 	-- Seconds between director passes.
 	Interval = 2,
-	-- User decision (31 Oct 2026): the town felt crowded, so the ambient count is half the first
+	-- User decision: the town felt crowded, so the ambient count is half the first
 	-- numbers (6 / 10 a player, at most 80). The horde keeps its 20 a player.
 	DayPerPlayer = 3,
 	NightPerPlayer = 5,
