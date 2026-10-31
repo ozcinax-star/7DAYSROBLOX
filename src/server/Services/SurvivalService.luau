@@ -21,6 +21,7 @@ local Net = require(Shared.Net)
 local Vitals = require(Shared.Vitals)
 
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
+local ChallengeService = require(script.Parent.ChallengeService)
 local InventoryService = require(script.Parent.InventoryService)
 local LootService = require(script.Parent.LootService)
 local ThreatService = require(script.Parent.ThreatService)
@@ -298,6 +299,7 @@ local function onFistUse(player: Player, origin: Vector3, direction: Vector3): b
 	if state then
 		state.nextUseAt = os.clock() + SC.UseSeconds * (1 - Config.Melee.CooldownTolerance)
 		apply(player, state, SC.LakeDrink)
+		ChallengeService.record(player, "Drink", nil, 1)
 	end
 	-- Aimed at water: never a punch, even while the last drink is still going down.
 	return true

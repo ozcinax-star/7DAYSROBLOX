@@ -23,6 +23,7 @@ local Threat = require("../src/shared/Threat")
 local BuildGrid = require("../src/shared/BuildGrid")
 local ItemIcons = require("../src/shared/ItemIcons")
 local Vitals = require("../src/shared/Vitals")
+local Challenges = require("../src/shared/Challenges")
 
 local passed, failed = 0, 0
 
@@ -438,6 +439,51 @@ test("weighted pick covers the whole range", function()
 	expectEq(ZombieLook.pickWeighted({ 1, 3 }, 0.2), 1, "inside the first weight")
 	expectEq(ZombieLook.pickWeighted({ 1, 3 }, 0.3), 2, "inside the second weight")
 	expectEq(ZombieLook.pickWeighted({ 1, 3 }, 0.999), 2, "highest roll")
+end)
+
+print("Challenges")
+
+test("challenges follow 7DTD's basics and only name things the game has", function()
+	local seen = {}
+	for _, def in Config.Challenges do
+		assert(not seen[def.Id], `{def.Id} is unique`)
+		seen[def.Id] = true
+		for _, objective in def.Objectives do
+			local item = objective.Item
+			if objective.Kind == "Craft" then
+				local found = false
+				for _, recipe in Config.Recipes do
+					found = found or recipe.Output == item
+				end
+				assert(found, `{def.Id}: a recipe makes {item}`)
+			elseif objective.Kind == "Place" then
+				assert(item and Config.Build.Blocks[item] and Config.Build.Blocks[item].Placeable, `{def.Id}: {item}`)
+			elseif objective.Kind == "Upgrade" then
+				assert(item and Config.Build.Blocks[item], `{def.Id}: {item} is a block`)
+			elseif objective.Kind == "Gather" or objective.Kind == "Harvest" then
+				assert(item and Config.Items[item], `{def.Id}: {item} is an item`)
+			end
+			if objective.Held then
+				assert(Config.Tools[objective.Held], `{def.Id}: {objective.Held} is a tool`)
+			end
+		end
+	end
+	expectEq(Config.Challenges[1].Id, "GatherResources", "the tutorial starts by gathering")
+end)
+
+test("a challenge objective counts only its own kind, item and held tool", function()
+	local harvest = Config.Challenges[3].Objectives[1]
+	expectEq(Challenges.matches(harvest, "Harvest", "Wood", "StoneAxe"), true, "wood with the axe")
+	expectEq(Challenges.matches(harvest, "Harvest", "Wood", "Fist"), false, "not with the fist")
+	expectEq(Challenges.matches(harvest, "Craft", "Wood", "StoneAxe"), false, "not a craft")
+	local kill = { Kind = "Kill" :: Config.ChallengeKind, Count = 5 }
+	expectEq(Challenges.matches(kill, "Kill", nil, nil), true, "any kill")
+	local def = Config.Challenges[1]
+	expectEq(Challenges.isComplete(def, { 10, 10, 4 }), false, "one short")
+	expectEq(Challenges.isComplete(def, { 10, 12, 5 }), true, "all met")
+	local index, total = Challenges.position(2)
+	expectEq(index, 2, "second in its group")
+	expectEq(total > 1, true, "group size")
 end)
 
 print("Inventory")

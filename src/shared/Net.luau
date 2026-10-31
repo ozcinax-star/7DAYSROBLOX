@@ -55,6 +55,8 @@ local Definitions: { [string]: "RemoteEvent" | "UnreliableRemoteEvent" } = {
 	StorageAction = "RemoteEvent",
 	-- Server -> client: the open crate's slots ({ Inventory.Slot }), or false when it closed.
 	StorageUpdate = "RemoteEvent",
+	-- Server -> client: the tracked challenge (Challenges.View), or false when all are done.
+	ChallengeUpdate = "RemoteEvent",
 }
 
 local Net = {}

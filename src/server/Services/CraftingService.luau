@@ -30,6 +30,7 @@ local Types = require(Shared.Types)
 
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local BuildService = require(script.Parent.BuildService)
+local ChallengeService = require(script.Parent.ChallengeService)
 local InventoryService = require(script.Parent.InventoryService)
 local LootService = require(script.Parent.LootService)
 
@@ -171,6 +172,7 @@ local function deliver(player: Player, job: Job): boolean
 		return false
 	end
 	InventoryService.give(player, recipe.Output, recipe.Count, SOURCE)
+	ChallengeService.record(player, "Craft", recipe.Output, recipe.Count)
 	return true
 end
 

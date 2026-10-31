@@ -21,6 +21,7 @@ local Net = require(Shared.Net)
 local Types = require(Shared.Types)
 
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
+local ChallengeService = require(script.Parent.ChallengeService)
 local LootService = require(script.Parent.LootService)
 local MapService = require(script.Parent.MapService)
 local ThreatService = require(script.Parent.ThreatService)
@@ -91,8 +92,9 @@ local function fell(model: Model, player: Player)
 	task.delay(HC.FallSeconds + HC.FadeSeconds, model.Destroy, model)
 end
 
--- Damages an object for one hit by `player` and pays what that hit earned; breaks it at full damage.
-local function hit(entry: Entry, player: Player, damage: number, tool: Config.ToolDef)
+-- Damages an object for one hit by `player` with `toolId` and pays what that hit earned; breaks it at
+-- full damage.
+local function hit(entry: Entry, player: Player, damage: number, toolId: string, tool: Config.ToolDef)
 	local node = entry.node
 	local before = entry.damage
 	local after = math.min(node.Health, before + damage)
@@ -100,7 +102,11 @@ local function hit(entry: Entry, player: Player, damage: number, tool: Config.To
 	ToolService.reportHit(player, node.Health - after, node.Health)
 	for _, drop in node.Harvest do
 		local count = Harvest.toolCount(roll(drop), tool, drop.Id)
-		give(player, drop.Id, Harvest.payout(count, node.Health, before, after))
+		local paid = Harvest.payout(count, node.Health, before, after)
+		give(player, drop.Id, paid)
+		if paid > 0 then
+			ChallengeService.record(player, "Harvest", drop.Id, paid, toolId)
+		end
 	end
 	if after < node.Health then
 		return
@@ -121,7 +127,7 @@ local function hit(entry: Entry, player: Player, damage: number, tool: Config.To
 	end
 end
 
-local function onWorldHit(player: Player, result: RaycastResult, _toolId: string, tool: Config.ToolDef)
+local function onWorldHit(player: Player, result: RaycastResult, toolId: string, tool: Config.ToolDef)
 	local model = result.Instance.Parent
 	local entry = if model and model:IsA("Model") then entries[model] else nil
 	if entry == nil then
@@ -131,7 +137,7 @@ local function onWorldHit(player: Player, result: RaycastResult, _toolId: string
 	if entry.node.Material ~= "Earth" then
 		ThreatService.emit("Harvest", result.Position, player)
 	end
-	hit(entry, player, Harvest.blockDamage(tool.BlockDamage, tool.Materials[entry.node.Material]), tool)
+	hit(entry, player, Harvest.blockDamage(tool.BlockDamage, tool.Materials[entry.node.Material]), toolId, tool)
 end
 
 local function onPickup(player: Player, entry: Entry, part: BasePart)

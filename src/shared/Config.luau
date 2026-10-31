@@ -38,6 +38,14 @@ export type SurvivalStage = { Enter: number, Leave: number, Block: number }
 
 export type ItemCount = { Id: string, Count: number }
 
+-- What a challenge objective counts (7DTD challenge objective types): Gather (that many in the
+-- inventory), Craft (finished crafts of the item), Harvest (gathered by hitting the world while
+-- holding Held), Place (blocks placed), Upgrade (blocks upgraded to the item), Kill (zombies),
+-- Drink (from a lake).
+export type ChallengeKind = "Gather" | "Craft" | "Harvest" | "Place" | "Upgrade" | "Kill" | "Drink"
+export type ChallengeObjective = { Kind: ChallengeKind, Item: string?, Held: string?, Count: number }
+export type ChallengeDef = { Id: string, Group: string, Objectives: { ChallengeObjective } }
+
 -- A noise event: points added to the Noise meter and the hearing radius of its sound point (studs).
 export type NoiseEvent = { Noise: number, Radius: number }
 
@@ -1806,6 +1814,51 @@ Config.Inventory = {
 	FeedSeconds = 3,
 	FeedLines = 5,
 }
+
+-- 7DTD 3.2 challenges (challenges.xml): the linked "Basics of Survival" group is the game's tutorial,
+-- then "Homesteading" and "Advanced Survival". One challenge is tracked at a time and only it counts
+-- (7DTD links them). Left out because the game does not have them: clothes, land claim, torch, skill
+-- points, animals, dew collector. Boiled water stands in for charred meat. No rewards yet (7DTD gives
+-- XP and a trader quest). Progress is not saved yet.
+local function one(kind: ChallengeKind, item: string?, count: number?): { ChallengeObjective }
+	return { { Kind = kind, Item = item, Count = count or 1 } }
+end
+Config.Challenges = {
+	{
+		Id = "GatherResources",
+		Group = "Basics",
+		Objectives = {
+			{ Kind = "Gather", Item = "PlantFiber", Count = 10 },
+			{ Kind = "Gather", Item = "Wood", Count = 10 },
+			{ Kind = "Gather", Item = "SmallStone", Count = 5 },
+		},
+	},
+	{ Id = "CraftStoneAxe", Group = "Basics", Objectives = one("Craft", "StoneAxe") },
+	{
+		Id = "StoneAxeHarvest",
+		Group = "Basics",
+		Objectives = {
+			{ Kind = "Harvest", Item = "Wood", Held = "StoneAxe", Count = 10 },
+			{ Kind = "Harvest", Item = "SmallStone", Held = "StoneAxe", Count = 5 },
+		},
+	},
+	{ Id = "CraftWoodenClub", Group = "Basics", Objectives = one("Craft", "WoodenClub") },
+	{ Id = "CraftBow", Group = "Basics", Objectives = one("Craft", "PrimitiveBow") },
+	{ Id = "CraftArrows", Group = "Basics", Objectives = one("Craft", "StoneArrow") },
+	{ Id = "PlaceBedroll", Group = "Homesteading", Objectives = one("Place", "Bedroll") },
+	{ Id = "CraftFrames", Group = "Homesteading", Objectives = one("Craft", "WoodFrame") },
+	{ Id = "PlaceFrames", Group = "Homesteading", Objectives = one("Place", "WoodFrame") },
+	{ Id = "UpgradeFrames", Group = "Homesteading", Objectives = one("Upgrade", "WoodBlock") },
+	{ Id = "PlaceDoor", Group = "Homesteading", Objectives = one("Place", "WoodDoor") },
+	{ Id = "PlaceStorage", Group = "Homesteading", Objectives = one("Place", "StorageCrate") },
+	{ Id = "PlaceSpikes", Group = "Homesteading", Objectives = one("Place", "WoodSpikes") },
+	{ Id = "UpgradeCobblestone", Group = "Homesteading", Objectives = one("Upgrade", "CobblestoneBlock") },
+	{ Id = "PlaceCampfire", Group = "AdvancedSurvival", Objectives = one("Place", "Campfire") },
+	{ Id = "BoilWater", Group = "AdvancedSurvival", Objectives = one("Craft", "BottledWater") },
+	{ Id = "DrinkWater", Group = "AdvancedSurvival", Objectives = one("Drink") },
+	{ Id = "KillZombies", Group = "AdvancedSurvival", Objectives = one("Kill", nil, 5) },
+	{ Id = "PlaceFarmPlot", Group = "AdvancedSurvival", Objectives = one("Place", "FarmPlot") },
+} :: { ChallengeDef }
 
 Config.Remotes = {
 	-- Per-player rate limits (requests per second) for client -> server remotes.

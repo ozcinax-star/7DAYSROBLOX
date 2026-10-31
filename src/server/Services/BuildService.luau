@@ -37,6 +37,7 @@ local Localization = require(Shared.Localization)
 
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local BuildingKit = require(script.Parent.Parent.World.BuildingKit)
+local ChallengeService = require(script.Parent.ChallengeService)
 local InventoryService = require(script.Parent.InventoryService)
 local LootService = require(script.Parent.LootService)
 local MapService = require(script.Parent.MapService)
@@ -522,6 +523,7 @@ local function onPlace(player: Player, origin: Vector3, direction: Vector3, item
 		if def.Bed then
 			beds[player] = block
 		end
+		ChallengeService.record(player, "Place", itemId, 1)
 	end
 end
 
@@ -555,6 +557,7 @@ local function work(player: Player, block: Block)
 		block.upgrade = 0
 		styleBlock(block)
 		updateColumn(block.cx, block.cz)
+		ChallengeService.record(player, "Upgrade", nextKind, 1)
 	end
 end
 

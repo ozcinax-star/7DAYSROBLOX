@@ -31,6 +31,7 @@ type PlayerState = {
 }
 
 export type HeldChangedCallback = (player: Player, stack: Inventory.Stack?) -> ()
+export type ChangedCallback = (player: Player) -> ()
 
 local InventoryService = {}
 
@@ -39,6 +40,7 @@ local limiter: RateLimiter.RateLimiter
 local updateRemote: RemoteEvent
 local gainRemote: RemoteEvent
 local heldCallbacks: { HeldChangedCallback } = {}
+local changedCallbacks: { ChangedCallback } = {}
 
 local function isSlotIndex(value: unknown, max: number): boolean
 	return typeof(value) == "number" and value == value and value % 1 == 0 and value >= 1 and value <= max
@@ -94,6 +96,9 @@ local function flush()
 			state.dirty = false
 			updateRemote:FireClient(player, Inventory.copySlots(state.inventory), state.selected)
 			refreshHeld(player, state)
+			for _, callback in changedCallbacks do
+				task.spawn(callback, player)
+			end
 		end
 	end
 end
@@ -314,6 +319,11 @@ function InventoryService.wearHeld(player: Player, amount: number): number?
 end
 
 -- Registers a listener for changes of the item in a player's hand.
+-- Calls `callback` after a player's inventory changed (at most once a frame, after the client copy).
+function InventoryService.onChanged(callback: ChangedCallback)
+	table.insert(changedCallbacks, callback)
+end
+
 function InventoryService.onHeldChanged(callback: HeldChangedCallback)
 	table.insert(heldCallbacks, callback)
 end
