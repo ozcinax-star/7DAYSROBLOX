@@ -46,6 +46,7 @@ local Strings: { [string]: { [string]: string } } = {
 		InventoryBackpack = "Backpack",
 		InventoryClose = "Close",
 		InventorySplit = "Split",
+		InventoryDrop = "Drop",
 		InventoryBag = "Bag",
 
 		-- Tools

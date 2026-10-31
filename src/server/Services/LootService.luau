@@ -1,12 +1,13 @@
 --!strict
 -- LootService: loot bags on the ground (7DTD loot bags) and searchable furniture in town buildings
 -- (7DTD loot containers). A dying zombie drops a bag now and then (Shared/Loot), and other services
--- drop items that have no room in an inventory in one. Holding the interact key on a bag or a
--- container searches it: everything that fits goes into the inventory and the rest stays inside.
--- A bag vanishes when it is empty, after Config.Loot.BagSeconds (or its own lifetime), or when too
--- many bags exist (the oldest goes first; bags with their own lifetime, death bags, are kept).
--- A container is filled on its first search and again Config.Loot.ContainerRespawnDays in-game days
--- after it was last filled; all players share it. What bags and containers hold is server-only.
+-- drop items that have no room in an inventory in one, as does a player dropping a stack. Holding
+-- the interact key on a bag or a container searches it: everything that fits goes into the inventory
+-- and the rest stays inside. A bag vanishes when it is empty, after Config.Loot.BagSeconds (or its
+-- own lifetime), or when too many bags exist (the oldest goes first; bags with their own lifetime,
+-- death bags, are kept). A container is filled on its first search and again
+-- Config.Loot.ContainerRespawnDays in-game days after it was last filled; all players share it.
+-- What bags and containers hold is server-only.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -17,6 +18,7 @@ local Config = require(Shared.Config)
 local Inventory = require(Shared.Inventory)
 local Localization = require(Shared.Localization)
 local Loot = require(Shared.Loot)
+local Net = require(Shared.Net)
 local Types = require(Shared.Types)
 
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
@@ -70,6 +72,7 @@ local holdStarted: { [Player]: number } = {}
 local folder: Folder
 local groundParams: RaycastParams
 local searchLimiter: RateLimiter.RateLimiter
+local dropLimiter: RateLimiter.RateLimiter
 local random = Random.new()
 
 local function rand(): number
@@ -417,8 +420,28 @@ local function addContainers(map: Instance)
 	end
 end
 
+-- A player drops the whole stack in slot `index` in a bag at their feet (7DTD: G, or dragging an item
+-- out of the window). The slot index is checked by InventoryService.takeSlot.
+local function onDropRequest(player: Player, index: unknown)
+	if typeof(index) ~= "number" or not dropLimiter:allow(player) then
+		return
+	end
+	local character = player.Character
+	local root = character and character.PrimaryPart
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if root == nil or humanoid == nil or humanoid.Health <= 0 then
+		return
+	end
+	local stack = InventoryService.takeSlot(player, index)
+	if stack then
+		LootService.drop(root.Position, { stack }, true)
+	end
+end
+
 function LootService.init()
 	searchLimiter = RateLimiter.new(LC.SearchesPerSecond)
+	dropLimiter = RateLimiter.new(LC.DropsPerSecond)
+	Net.event("InventoryDrop")
 	folder = Instance.new("Folder")
 	folder.Name = "LootBags"
 	folder.Parent = Workspace
@@ -440,6 +463,7 @@ function LootService.start()
 			LootService.drop(Vector3.new(x, y, z), stacks, false)
 		end
 	end)
+	Net.event("InventoryDrop").OnServerEvent:Connect(onDropRequest)
 	Players.PlayerRemoving:Connect(function(player)
 		holdStarted[player] = nil
 	end)

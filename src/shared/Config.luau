@@ -1386,6 +1386,9 @@ Config.Loot = {
 	SearchSeconds = 1,
 	SearchDistance = 8,
 	SearchesPerSecond = 4,
+	-- Dropping a stack from the inventory (7DTD: G, or dragging it out of the window): at most this
+	-- often per player.
+	DropsPerSecond = 4,
 	-- Most bags in the world at once; a new bag past the cap removes the oldest (hordes of 120).
 	MaxBags = 60,
 	-- Items with no room in the inventory drop in a bag at the player's feet; a bag within this many

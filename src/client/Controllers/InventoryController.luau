@@ -6,7 +6,8 @@
 -- Moving items works the same with mouse, touch and gamepad cursor: pick a slot, then pick the slot
 -- to put it in (picking the same slot again cancels). Right-click, or the Split toggle on touch,
 -- picks up half a stack. With the backpack closed, a toolbelt slot (click, tap, 1-9/0, or the
--- gamepad bumpers) becomes the active one. Repair sends the picked tool to the crafting queue.
+-- gamepad bumpers) becomes the active one. Repair sends the picked tool to the crafting queue. Drop
+-- (or G) puts the picked stack, or with nothing picked the held one, on the ground in a bag.
 --
 -- Another panel (crafting) can be attached to the right of the backpack; the backpack then moves left
 -- and its slots shrink so both fit on the screen.
@@ -35,7 +36,9 @@ local BOTTOM_OFFSET = 10
 local BACKPACK_COLUMNS = 9
 local PANEL_PADDING = 12
 local TITLE_HEIGHT = 30
-local BUTTON_WIDTH = 90
+local BUTTON_WIDTH = 72
+-- Header buttons scale their text down to fit but never above the title's size.
+local BUTTON_TEXT_MAX = 18
 local NAME_HEIGHT = 24
 local DURABILITY_HEIGHT = 4
 local NAME_SHOW_SECONDS = 1.6
@@ -89,9 +92,11 @@ local backpackGrid: UIGridLayout
 local nameLabel: TextLabel
 local splitButton: TextButton
 local repairButton: TextButton
+local dropButton: TextButton
 local moveRemote: RemoteEvent
 local selectRemote: RemoteEvent
 local repairRemote: RemoteEvent
+local dropRemote: RemoteEvent
 local sidePanel: Frame? = nil
 local sideWidth = 0
 -- A panel shown in the side panel's place for a while (an open storage crate).
@@ -268,6 +273,7 @@ local function render()
 	end
 	splitButton.BackgroundColor3 = if pickHalf then PICKED_STROKE else SLOT_COLOR
 	repairButton.TextTransparency = if canRepair(picked) then 0 else DISABLED_TRANSPARENCY
+	dropButton.TextTransparency = if picked then 0 else DISABLED_TRANSPARENCY
 end
 
 local function selectSlot(index: number)
@@ -366,6 +372,9 @@ local function makeTextButton(parent: Instance, name: string, text: string, onCl
 	button.TextScaled = true
 	button.BackgroundColor3 = SLOT_COLOR
 	button.Parent = parent
+	local limit = Instance.new("UITextSizeConstraint")
+	limit.MaxTextSize = BUTTON_TEXT_MAX
+	limit.Parent = button
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 6)
 	corner.Parent = button
@@ -410,7 +419,7 @@ local function buildGui(playerGui: PlayerGui)
 
 	local title = makeLabel(backpack, "Title")
 	title.Position = UDim2.fromOffset(PANEL_PADDING, PANEL_PADDING)
-	title.Size = UDim2.new(1, -(PANEL_PADDING * 2 + BUTTON_WIDTH * 3 + SLOT_GAP * 3), 0, TITLE_HEIGHT)
+	title.Size = UDim2.new(1, -(PANEL_PADDING * 2 + BUTTON_WIDTH * 4 + SLOT_GAP * 4), 0, TITLE_HEIGHT)
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	title.TextSize = 20
 	title.Text = Localization.get("InventoryBackpack")
@@ -439,6 +448,17 @@ local function buildGui(playerGui: PlayerGui)
 	repairButton.AnchorPoint = Vector2.new(1, 0)
 	repairButton.Position = UDim2.new(1, -(PANEL_PADDING + (BUTTON_WIDTH + SLOT_GAP) * 2), 0, PANEL_PADDING)
 	repairButton.Size = UDim2.fromOffset(BUTTON_WIDTH, TITLE_HEIGHT)
+	dropButton = makeTextButton(backpack, "Drop", Localization.get("InventoryDrop"), function()
+		if picked then
+			dropRemote:FireServer(picked)
+			picked = nil
+			pickHalf = false
+			render()
+		end
+	end)
+	dropButton.AnchorPoint = Vector2.new(1, 0)
+	dropButton.Position = UDim2.new(1, -(PANEL_PADDING + (BUTTON_WIDTH + SLOT_GAP) * 3), 0, PANEL_PADDING)
+	dropButton.Size = UDim2.fromOffset(BUTTON_WIDTH, TITLE_HEIGHT)
 
 	local gridHolder = Instance.new("Frame")
 	gridHolder.Name = "Slots"
@@ -527,6 +547,18 @@ local function bindInput()
 	action("SlotPrevious", { Enum.KeyCode.ButtonL1 }, function()
 		selectSlot((selected - 2) % IC.ToolbeltSlots + 1)
 	end)
+	-- G (7DTD): the picked stack while the backpack is open, else the held one.
+	action("DropItem", { Enum.KeyCode.G }, function()
+		local index = if backpackOpen then picked else selected
+		if index and slots[index] then
+			dropRemote:FireServer(index)
+			if index == picked then
+				picked = nil
+				pickHalf = false
+				render()
+			end
+		end
+	end)
 	-- Not Tab (7DTD's key): the Roblox player list takes it before the game sees it (tested in Play).
 	action("ToggleBackpack", { Enum.KeyCode.I, Enum.KeyCode.ButtonY }, function()
 		setBackpackOpen(not backpackOpen)
@@ -614,6 +646,7 @@ function InventoryController.init()
 	moveRemote = Net.event("InventoryMove")
 	selectRemote = Net.event("InventorySelect")
 	repairRemote = Net.event("CraftRepair")
+	dropRemote = Net.event("InventoryDrop")
 end
 
 function InventoryController.start()
