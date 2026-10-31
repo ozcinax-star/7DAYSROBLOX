@@ -16,6 +16,9 @@ export type Stack = {
 	source: Types.ItemSource,
 	-- Tools only: remaining uses; 0 means broken (kept, but unusable until repaired).
 	durability: number?,
+	-- Loaded cartridges belong to this weapon, including when dropped, stored or repaired.
+	loadedRounds: number?,
+	loadedAmmo: string?,
 }
 
 export type Slot = Stack | false
@@ -82,7 +85,8 @@ function Inventory.add(
 	id: string,
 	count: number,
 	source: Types.ItemSource,
-	durability: number?
+	durability: number?,
+	metadata: Stack?
 ): number
 	local def = Config.Items[id]
 	if not isCount(count) then
@@ -111,7 +115,11 @@ function Inventory.add(
 		end
 		if slots[index] == false then
 			if def.Durability ~= nil then
-				slots[index] = { id = id, count = 1, source = source, durability = durability or def.Durability }
+				slots[index] = {
+					id = id, count = 1, source = source, durability = durability or def.Durability,
+					loadedRounds = if metadata then metadata.loadedRounds else nil,
+					loadedAmmo = if metadata then metadata.loadedAmmo else nil,
+				}
 				left -= 1
 			else
 				local moved = math.min(left, def.Stack)
@@ -189,7 +197,9 @@ function Inventory.remove(inv: Inventory, id: string, count: number): (boolean, 
 		local slot = slots[index]
 		if slot and slot.id == id then
 			local taken = math.min(left, slot.count)
-			table.insert(removed, { id = id, count = taken, source = slot.source, durability = slot.durability })
+			local removedStack = table.clone(slot)
+			removedStack.count = taken
+			table.insert(removed, removedStack)
 			slot.count -= taken
 			left -= taken
 			if slot.count == 0 then
@@ -334,7 +344,7 @@ function Inventory.transfer(from: Inventory, index: number, to: Inventory, toInd
 		return stack.count
 	end
 	local count = stack.count
-	local left = Inventory.add(to, stack.id, count, stack.source, stack.durability)
+	local left = Inventory.add(to, stack.id, count, stack.source, stack.durability, stack)
 	if left == 0 then
 		from.slots[index] = false
 	else
@@ -351,7 +361,7 @@ local function place(inv: Inventory, entry: Return): number
 	if entry.slot and Inventory.putSlot(inv, entry.slot, table.clone(stack)) then
 		return 0
 	end
-	return Inventory.add(inv, stack.id, stack.count, stack.source, stack.durability)
+	return Inventory.add(inv, stack.id, stack.count, stack.source, stack.durability, stack)
 end
 
 -- Adds every stack (a cancelled crafting job), all or nothing. Returns true, or false with the item id
@@ -375,7 +385,7 @@ function Inventory.copySlots(inv: Inventory): { Slot }
 	local copy: { Slot } = table.create(#inv.slots, false)
 	for index, slot in inv.slots do
 		if slot then
-			copy[index] = { id = slot.id, count = slot.count, source = slot.source, durability = slot.durability }
+			copy[index] = table.clone(slot)
 		end
 	end
 	return copy

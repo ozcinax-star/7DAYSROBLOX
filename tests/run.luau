@@ -1792,6 +1792,65 @@ test("every crafting recipe sits under a named category tab", function()
 	end
 end)
 
+print("Firearm and loaded inventory")
+local Firearm = require("../src/shared/Firearm")
+
+test("reload fills only available magazine space", function()
+	expectEq(Firearm.reloadCount(6, 2, 30), 4)
+	expectEq(Firearm.reloadCount(6, 2, 1), 1)
+	expectEq(Firearm.reloadCount(6, 6, 30), 0)
+	expectEq(Firearm.reloadCount(6, 0, 0), 0)
+end)
+
+test("reload and shot deadlines gate firing", function()
+	assert(Firearm.canFire(1, 0, 10, 10))
+	assert(not Firearm.canFire(0, 0, 10, 10))
+	assert(not Firearm.canFire(1, 11, 10, 10))
+	assert(not Firearm.canFire(1, 0, 11, 10))
+	expectNear(Firearm.progress(10, 12, 11), 0.5, 0.001)
+end)
+
+test("two copies of a gun keep independent cartridges when moved", function()
+	local inv = Inventory.new(2, 3)
+	Inventory.add(inv, "PipePistol", 2, "Craft")
+	local first, second = inv.slots[3] :: Inventory.Stack, inv.slots[4] :: Inventory.Stack
+	first.loadedAmmo, first.loadedRounds = "Ammo9mm", 2
+	second.loadedAmmo, second.loadedRounds = "Ammo9mm", 5
+	assert(Inventory.move(inv, 3, 1))
+	assert(Inventory.move(inv, 4, 2))
+	expectEq((inv.slots[1] :: Inventory.Stack).loadedRounds, 2)
+	expectEq((inv.slots[2] :: Inventory.Stack).loadedRounds, 5)
+	local snapshot = Inventory.copySlots(inv)
+	local copied = snapshot[1] :: Inventory.Stack
+	copied.loadedRounds = 0
+	expectEq((inv.slots[1] :: Inventory.Stack).loadedRounds, 2)
+end)
+
+test("fallback storage transfer preserves loaded ammunition", function()
+	local inv = Inventory.new(1, 2)
+	local crate = Inventory.new(0, 3)
+	Inventory.add(inv, "PipeMachineGun", 1, "Loot")
+	local gun = inv.slots[2] :: Inventory.Stack
+	gun.loadedAmmo, gun.loadedRounds = "Ammo762mm", 11
+	expectEq(Inventory.transfer(inv, 2, crate), 1)
+	local stored = crate.slots[1] :: Inventory.Stack
+	expectEq(stored.loadedRounds, 11)
+	expectEq(stored.loadedAmmo, "Ammo762mm")
+	expectEq(Inventory.transfer(crate, 1, inv), 1)
+	expectEq((inv.slots[2] :: Inventory.Stack).loadedRounds, 11)
+end)
+
+test("loaded weapon removal and refund preserve cartridges", function()
+	local inv = Inventory.new(1, 2)
+	Inventory.add(inv, "PipePistol", 1, "Craft")
+	local gun = inv.slots[2] :: Inventory.Stack
+	gun.loadedAmmo, gun.loadedRounds = "Ammo9mm", 4
+	local ok, removed = Inventory.remove(inv, "PipePistol", 1)
+	assert(ok)
+	expectEq(removed[1].loadedRounds, 4)
+	assert(Inventory.addAll(inv, { { stack = removed[1] } }))
+	expectEq((inv.slots[2] :: Inventory.Stack).loadedRounds, 4)
+end)
 print(`\n{passed} passed, {failed} failed`)
 if failed > 0 then
 	error("tests failed")

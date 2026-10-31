@@ -132,6 +132,7 @@ export type ToolDef = {
 -- keeps and its range in metres. Guns also have a magazine (rounds, then ReloadSeconds before the
 -- next shot), a random spread cone (degrees) and the noise event every shot makes.
 export type RangedDef = {
+	Automatic: boolean?,
 	Ammo: { string },
 	ShotSeconds: number,
 	DamageOffset: number,
@@ -1441,6 +1442,7 @@ Config.Ranged = {
 		-- gunMGT0PipeMachineGun: 335 rounds a minute while fire is held, 15-round magazine, -17 damage,
 		-- 90 m, 3 degree spread, aiming 0.22 of it. The XML gives no reload time; 3 s is ours.
 		PipeMachineGun = {
+			Automatic = true,
 			Ammo = { "Ammo762mm" },
 			ShotSeconds = 60 / 335,
 			DamageOffset = -17,
@@ -1481,6 +1483,50 @@ Config.Ranged = {
 	-- long the zoom takes (seconds). Ours; 7DTD zooms per weapon.
 	AimFieldOfView = 50,
 	AimZoomSeconds = 0.15,
+	-- Handling adaptations: movement worsens spread; the original 7DTD base damage/rate stay intact.
+	MoveSpreadMultiplier = 1.8,
+	AirSpreadMultiplier = 2.6,
+	MoveSpreadSpeed = 3,
+	AimWalkShare = 0.65,
+	EquipSeconds = 0.32,
+	ReloadRequestsPerSecond = 3,
+}
+
+-- Cosmetic handling offsets are measured from the fist, shared by viewmodels and avatar IK.
+export type HandlingDef = {
+	Hip: { number }, Aim: { number }, Support: { number }, Sight: { number }, Muzzle: { number },
+	Recoil: { number }, ReloadStyle: string,
+}
+Config.WeaponHandling = {
+	AimResponse = 14,
+	RecoilReturn = 15,
+	SwayReturn = 11,
+	SwayAmount = 0.45,
+	SwayLimit = 0.055,
+	BobRate = 0.5,
+	BobAmount = 0.024,
+	AimBobShare = 0.18,
+	SprintSpeed = 20,
+	WallReach = 3,
+	WallResponse = 12,
+	EquipDip = 0.65,
+	PoseSmoothSeconds = 0.08,
+	ElbowWidth = 1.4,
+	PoseInterval = 0.22,
+	Items = {
+		PipePistol = { Hip = { 0.62, -0.85, -2.05, 0, -3, -3 }, Aim = { 0, -0.7, -2.2, 0, 0, 0 },
+			Support = { -0.17, -0.12, 0.04 }, Sight = { 0, 0.7, -0.42 }, Muzzle = { 0, 0.54, -1.39 },
+			Recoil = { 2.1, 0.35, 0.11 }, ReloadStyle = "Cylinder" },
+		PipeRifle = { Hip = { 0.58, -1.1, -2.25, 0, -2, -2 }, Aim = { 0, -1.2, -2.4, 0, 0, 0 },
+			Support = { -0.02, -0.06, -0.9 }, Sight = { 0, 1.2, -0.7 }, Muzzle = { 0, 0.62, -2.52 },
+			Recoil = { 3.2, 0.35, 0.17 }, ReloadStyle = "Breech" },
+		PipeShotgun = { Hip = { 0.6, -0.83, -2.25, 0, -2, -2 }, Aim = { 0, -0.72, -2.4, 0, 0, 0 },
+			Support = { -0.02, -0.02, -0.7 }, Sight = { 0, 0.72, -0.7 }, Muzzle = { 0, 0.34, -1.97 },
+			Recoil = { 4.5, 0.45, 0.23 }, ReloadStyle = "Breech" },
+		PipeMachineGun = { Hip = { 0.58, -0.96, -2.15, 0, -3, -2 }, Aim = { 0, -0.98, -2.3, 0, 0, 0 },
+			Support = { -0.02, 0.04, -0.92 }, Sight = { 0, 0.98, -0.7 }, Muzzle = { 0, 0.69, -2.88 },
+			Recoil = { 1.15, 0.4, 0.09 }, ReloadStyle = "Magazine" },
+	} :: { [string]: HandlingDef },
 }
 
 local function drop(id: string, min: number, max: number?): Drop

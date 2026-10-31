@@ -5,6 +5,12 @@ Durum 1 Kasım 2026 itibarıyla. Önce [HANDOFF.md](HANDOFF.md) dosyasını oku.
 
 ## Neredeyiz
 
+**Silah kullanımı (1 Kasım 2026, Codex):** Şarjör/doldurma artık her silah için sunucuda gerçek;
+nişan, tepme, mermi paneli ve birinci/üçüncü şahıs tutuşu yenilendi. 90 test geçti. Kontroller:
+R/B Reload, RMB/L2 Aim; yakıt T. [WEAPON_HANDLING.md](WEAPON_HANDLING.md) kullanıcı testini içerir.
+Sıradaki görsel kontrol farklı avatar oranları ve telefondaki HUD/performans; sesler kullanıcı seçimi.
+Silindir/sürgü/şarjörün ayrı parça olarak sökülüp takıldığı animasyon henüz yok.
+
 **Görsel ek (31 Ekim 2026, Codex):** Kullanıcı önceliğiyle 13 alet ve silah modeli yenilendi.
 Detaylar, doğrulamalar ve kullanıcı testi [EQUIPMENT_ART.md](EQUIPMENT_ART.md) içinde.
 Binalar, mobilyalar, yerleştirilen eşyalar ve çevre bu görsel adımda değiştirilmedi.

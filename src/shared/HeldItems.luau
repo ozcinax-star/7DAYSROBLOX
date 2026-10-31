@@ -66,6 +66,32 @@ function HeldItems.build(id: string, hand: BasePart, grip: CFrame): Model
 		weld(hand, block, fist * CFrame.new(0, -0.3, 0))
 		model.PrimaryPart = block
 	end
+	local handling = Config.WeaponHandling.Items[id]
+	if handling and model.PrimaryPart then
+		-- An open rear notch and a narrow front post sit on the measured sight line.
+		local root = model.PrimaryPart
+		local function sight(name: string, size: Vector3, at: Vector3)
+			local p = part(model, name, size, Color3.fromRGB(47, 48, 43))
+			p.Material = Enum.Material.Metal
+			weld(root, p, root.CFrame:ToObjectSpace(hand.CFrame * fist * CFrame.new(at)))
+		end
+		local line = V(handling.Sight[1], handling.Sight[2], handling.Sight[3])
+		for _, side in { -1, 1 } do
+			sight("RearSight", V(0.035, 0.16, 0.075), line + V(side * 0.065, -0.08, 0))
+		end
+		sight("FrontSight", V(0.024, 0.12, 0.045), V(0, line.Y - 0.06, handling.Muzzle[3] + 0.12))
+	end
+	if model.PrimaryPart then
+		local root = model.PrimaryPart
+		local points = if handling then { SupportGrip = handling.Support, Sight = handling.Sight, Muzzle = handling.Muzzle }
+			else { SupportGrip = { 0, 0.38, -(length or 1) * 0.55 } }
+		for name, point in points do
+			local attachment = Instance.new("Attachment")
+			attachment.Name = name
+			attachment.CFrame = root.CFrame:ToObjectSpace(hand.CFrame * fist * CFrame.new(point[1], point[2], point[3]))
+			attachment.Parent = root
+		end
+	end
 	return model
 end
 

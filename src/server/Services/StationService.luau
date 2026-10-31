@@ -308,7 +308,7 @@ local function onPlaced(key: number, kind: string, part: BasePart)
 	local craft = addPrompt(part, "Craft", Enum.KeyCode.E, Enum.KeyCode.ButtonX, 0)
 	craft.ActionText = Localization.get(`StationCraft{kind}`)
 	craft.ObjectText = itemName(kind)
-	local fuelPrompt = addPrompt(part, "AddFuel", Enum.KeyCode.R, Enum.KeyCode.DPadUp, 1)
+	local fuelPrompt = addPrompt(part, "AddFuel", Enum.KeyCode.T, Enum.KeyCode.DPadUp, 1)
 	fuelPrompt.ActionText = Localization.get("StationAddFuel")
 	local lightPrompt = addPrompt(part, "Light", Enum.KeyCode.F, Enum.KeyCode.DPadDown, 2)
 	local station: Station = {

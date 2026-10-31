@@ -1,5 +1,14 @@
 # Devam notu
 
+## Güncel ek: silah kullanımı (1 Kasım 2026, Codex)
+
+Silah başına gerçek şarjör, R/B/touch doldurma, kısmi doldurma ve iptal, güvenilir mermi HUD'u,
+silaha göre tepme, yumuşak ADS, hareket saçılması, ortak gez/arpacık ve iki el tutuşu eklendi.
+R15 kolları gerçek eklem ölçülerinden çözülür; yakıt tuşu artık T. 90 test geçti. Studio'da
+tekli/otomatik ateş, pompalı, sayımlar, nişan hızı/FOV ve balta savruluşu kontrol edildi.
+Ayrıntı, ölçümler, sınırlar ve kullanıcı test adımları: [WEAPON_HANDLING.md](WEAPON_HANDLING.md).
+Ses seçimi ve fiziksel telefon FPS kapısı hâlâ bekliyor.
+
 ## Güncel ek: alet ve silah görselleri (31 Ekim 2026, Codex)
 
 Kullanıcı önceliğiyle 13 alet/silahın modelleri yenilendi; 7DTD ana görsel referans.
@@ -19,7 +28,7 @@ kullanıcı soruları), [PLAN.md](PLAN.md) (tasarım kararları; kodla çelişir
 - **Proje:** Roblox co-op zombi survival. Ana referans 7 Days to Die (7DTD). Rojo dosya yapısı,
   Luau `--!strict`. Kodu Claude yazar; kullanıcı test eder ve son kararı verir.
 - **Aşama:** PLAN yol haritasının 1. aşaması (prototip). Telefon FPS kapısı kullanıcı kararıyla ertelendi.
-- **Testler:** 85 test, hepsi geçiyor (Studio'da `H.test`).
+- **Testler:** 90 test, hepsi geçiyor (Studio'da `H.test`).
 - **Çalışan sistemler:**
   - **Dünya:** 2048×2048 harita, 37 bina, gündüz-gece, tehdit ve horde.
   - **Zombiler:** Humanoid'siz; sarsılarak yürür, eve girer.

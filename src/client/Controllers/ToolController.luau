@@ -19,11 +19,12 @@ local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
+
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Ballistics = require(Shared.Ballistics)
+local WeaponController = require(script.Parent.WeaponController)
+local EquipmentPoseController = require(script.Parent.EquipmentPoseController)
 local Config = require(Shared.Config)
 local Localization = require(Shared.Localization)
 local Melee = require(Shared.Melee)
@@ -104,8 +105,6 @@ local useRemote: RemoteEvent
 local aimRemote: RemoteEvent
 local aimButton: TextButton
 local aiming = false
--- The camera's field of view before the first zoom.
-local defaultFieldOfView: number? = nil
 local swings: { [Model]: Swing } = {}
 -- What a swing last wrote into each joint's Transform and the animation pose it turned, so a frame
 -- the Animator skips (a joint no track moves) is not turned twice; and which arm a character's next
@@ -114,8 +113,8 @@ local layered: { [Instance]: { base: CFrame, written: CFrame } } = setmetatable(
 local punchLeft: { [Model]: boolean } = setmetatable({}, { __mode = "k" }) :: any
 local holding: Source? = nil
 local nextSwingAt = 0
--- Rounds fired from each gun's magazine, as the server counts them.
-local roundsFired: { [string]: number } = {}
+-- Throttles the replicated aim pitch for other players' equipment poses.
+local nextPoseAt = 0
 local messageLabel: TextLabel
 local messageToken = 0
 
@@ -190,6 +189,7 @@ local function playSwing(character: Model?, toolId: string)
 	if character == nil then
 		return
 	end
+	EquipmentPoseController.release(character)
 	local style: SwingStyle = if toolId == FIST then "Punch" elseif toolId == "StoneSpear" then "Stab" else "Chop"
 	local left = false
 	if style == "Punch" then
@@ -200,6 +200,7 @@ local function playSwing(character: Model?, toolId: string)
 	if joints == nil then
 		return
 	end
+	character:SetAttribute("MeleePoseUntil", workspace:GetServerTimeNow() + MC.SwingMaxSeconds)
 	local playing = swings[character]
 	if playing then
 		restore(playing.joints)
@@ -422,7 +423,7 @@ local function sendUse(now: number, seconds: number)
 	end
 end
 
-local function trySwing(source: Source)
+local function trySwing(source: Source, repeated: boolean?)
 	local now = os.clock()
 	if now < nextSwingAt or not canSwing(source) then
 		return
@@ -443,34 +444,27 @@ local function trySwing(source: Source)
 	end
 	local ranged = held and Config.Ranged.Weapons[held.id]
 	if held and ranged then
-		-- A bow shoots (RangedService flies the arrow; ArrowController draws it).
+		if repeated and ranged.Magazine and not ranged.Automatic then return end
 		if held.durability == 0 then
 			showMessage(Localization.get("ToolBroken", { item = Localization.get(`Item{held.id}`) }))
 			nextSwingAt = now + MC.MessageSeconds
-		elseif not hasAmmo(ranged) then
-			showMessage(Localization.get(if ranged.Magazine then "NoBullets" else "NoAmmo"))
-			nextSwingAt = now + MC.MessageSeconds
-		else
-			-- The same magazine count the server keeps; a spent magazine waits for the reload.
-			local wait, kept = Ballistics.afterShot(ranged, (roundsFired[held.id] or 0) + 1)
-			roundsFired[held.id] = kept
-			ViewmodelController.act("Shoot")
-			sendUse(now, wait)
-			local magazine = ranged.Magazine
-			if magazine and kept == 0 then
-				showMessage(Localization.get("Reloading"))
-				-- Empty while reloading, full once the reload is over.
-				local id = held.id
-				InventoryController.setLoaded(id, 0)
-				task.delay(wait, function()
-					if roundsFired[id] == 0 then
-						InventoryController.setLoaded(id, magazine)
-					end
-				end)
-			elseif magazine then
-				InventoryController.setLoaded(held.id, magazine - kept)
-			end
+			return
 		end
+		if ranged.Magazine then
+			local state = WeaponController.getState()
+			if state == nil or state.reloadEnds > workspace:GetServerTimeNow() or state.readyAt > workspace:GetServerTimeNow() then return end
+			if state.loaded <= 0 then
+				if state.reserve > 0 then WeaponController.reload()
+				else showMessage(Localization.get("NoBullets")); nextSwingAt = now + MC.MessageSeconds end
+				return
+			end
+		elseif not hasAmmo(ranged) then
+			showMessage(Localization.get("NoAmmo")); nextSwingAt = now + MC.MessageSeconds
+			return
+		end
+		WeaponController.predictShot()
+		ViewmodelController.act("Shoot")
+		sendUse(now, ranged.ShotSeconds)
 		return
 	end
 	local toolId = if held and Config.Tools[held.id] then held.id else FIST
@@ -569,24 +563,16 @@ end
 
 -- Starts or stops aiming: the server tightens the spread, the camera zooms in or back out.
 local function setAiming(on: boolean)
-	if on and (aimableHeld() == nil or InventoryController.isBackpackOpen()) then
+	if on and (aimableHeld() == nil or InventoryController.isBackpackOpen() or WeaponController.reloadProgress()) then
 		return
 	end
 	if on == aiming then
 		return
 	end
 	aiming = on
-	aimRemote:FireServer(on)
+	aimRemote:FireServer(on, if workspace.CurrentCamera then math.asin(workspace.CurrentCamera.CFrame.LookVector.Y) else 0)
 	aimButton.BackgroundColor3 = if on then AIM_ON_COLOR else BUTTON_COLOR
-	local camera = workspace.CurrentCamera
-	if camera == nil then
-		return
-	end
-	if defaultFieldOfView == nil then
-		defaultFieldOfView = camera.FieldOfView
-	end
-	local goal = if on then Config.Ranged.AimFieldOfView else defaultFieldOfView :: number
-	TweenService:Create(camera, TweenInfo.new(Config.Ranged.AimZoomSeconds), { FieldOfView = goal }):Play()
+	WeaponController.setAiming(on)
 end
 
 -- Input Action System: one action for mouse / gamepad, one for the touch button.
@@ -653,12 +639,16 @@ function ToolController.start()
 	RunService.PreSimulation:Connect(stepSwings)
 	RunService.Heartbeat:Connect(function()
 		if holding then
-			trySwing(holding)
+			trySwing(holding, true)
 		end
 		-- Putting the gun away (or opening the backpack) ends aiming.
 		local gun = aimableHeld()
-		if aiming and (gun == nil or InventoryController.isBackpackOpen()) then
+		if aiming and (gun == nil or InventoryController.isBackpackOpen() or WeaponController.reloadProgress() or not WeaponController.isAiming()) then
 			setAiming(false)
+		end
+		if aiming and os.clock() >= nextPoseAt and workspace.CurrentCamera then
+			nextPoseAt = os.clock() + Config.WeaponHandling.PoseInterval
+			aimRemote:FireServer(true, math.asin(workspace.CurrentCamera.CFrame.LookVector.Y))
 		end
 		aimButton.Visible = UserInputService.TouchEnabled and gun ~= nil
 	end)
@@ -681,6 +671,7 @@ function ToolController.start()
 			end
 			local from = if character then character:GetPivot().Position else nil
 			if zombieId ~= 0 then
+				if attacker == player then WeaponController.hitConfirmed() end
 				ZombieRenderController.flinch(zombieId)
 				ImpactController.zombie(zombieId, head == true, from)
 			elseif typeof(point) == "Vector3" and typeof(normal) == "Vector3" and typeof(color) == "Color3" then

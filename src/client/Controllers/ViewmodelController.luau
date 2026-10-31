@@ -20,10 +20,12 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local HC = Config.WeaponHandling
 local HeldItems = require(Shared.HeldItems)
 local Melee = require(Shared.Melee)
 
 local InventoryController = require(script.Parent.InventoryController)
+local WeaponController = require(script.Parent.WeaponController)
 
 export type Action = "Shoot" | "Use" | "Place"
 type Kind = "Fist" | "Tool" | "Spear" | "Gun" | "Bow" | "Block"
@@ -37,8 +39,8 @@ local MC = Config.Melee
 local FIRST_PERSON_DISTANCE = 1.5
 local SKIN_COLOR = Color3.fromRGB(204, 160, 128)
 local SLEEVE_COLOR = Color3.fromRGB(62, 70, 58)
-local ARM_WIDTH = 0.42
-local SLEEVE_WIDTH = 0.5
+local ARM_WIDTH = 0.32
+local SLEEVE_WIDTH = 0.38
 -- Share of the arm, from the shoulder end, that the sleeve covers.
 local SLEEVE_SHARE = 0.55
 local HAND_SIZE = 0.42
@@ -47,14 +49,14 @@ local FIST_SIZE = 0.5
 local RIGHT_SHOULDER = Vector3.new(1.35, -2.1, -0.1)
 local LEFT_SHOULDER = Vector3.new(-1.35, -2.1, -0.1)
 -- Walking bob: phase speed per stud walked, and sideways / vertical size at walking speed.
-local BOB_RATE = 0.55
-local BOB_SIDE = 0.035
-local BOB_DROP = 0.045
+local BOB_RATE = HC.BobRate
+local BOB_SIDE = HC.BobAmount
+local BOB_DROP = HC.BobAmount * 1.3
 local BOB_SPEED = 16
 -- Turning lag: how far the arms trail a camera turn (studs per radian) and how fast they catch up.
-local SWAY = 0.5
-local SWAY_LIMIT = 0.12
-local SWAY_RETURN = 12
+local SWAY = HC.SwayAmount
+local SWAY_LIMIT = HC.SwayLimit
+local SWAY_RETURN = HC.SwayReturn
 local SHOOT_SECONDS = 0.25
 local BOW_SECONDS = 0.35
 local PLACE_SECONDS = 0.3
@@ -122,6 +124,11 @@ local rightHand: Part
 local leftArm: Part
 local leftSleeve: Part
 local leftHand: Part
+local rightUpper: Part
+local leftUpper: Part
+local handDetails: { { part: Part, hand: Part, offset: CFrame } } = {}
+local wallBlend = 0
+local sprintBlend = 0
 -- The held item's model and each part's offset from the grip, rebuilt when the held item changes.
 local itemModel: Model? = nil
 local itemParts: { BasePart } = {}
@@ -149,6 +156,27 @@ local function makePart(name: string, size: Vector3, color: Color3): Part
 	part.CastShadow = false
 	part.Parent = folder
 	return part
+end
+
+local function fromPose(p: { number }): CFrame
+	return pose(p[1], p[2], p[3], p[4], p[5], p[6])
+end
+
+local function makeFingers(hand: Part, side: number)
+	local glove = Color3.fromRGB(56, 61, 50)
+	hand.Material = Enum.Material.Fabric
+	for i = 0, 3 do
+		for segment = 1, 2 do
+			local finger = makePart("GlovedFinger", V(0.075, 0.064, 0.095), glove)
+			finger.Material = Enum.Material.Fabric
+			table.insert(handDetails, { part = finger, hand = hand,
+				offset = CFrame.new(side * (if segment == 1 then -0.12 else -0.065), 0.09 - i * 0.063,
+					if segment == 1 then -0.07 else -0.135) * CFrame.Angles(0, math.rad(side * 35), 0) })
+		end
+	end
+	local thumb = makePart("GlovedThumb", V(0.075, 0.14, 0.085), glove)
+	table.insert(handDetails, { part = thumb, hand = hand,
+		offset = CFrame.new(side * 0.12, 0.095, -0.02) * CFrame.Angles(0, 0, math.rad(side * -35)) })
 end
 
 local function kindOf(id: string?): Kind
@@ -231,7 +259,7 @@ local function posed(rest: CFrame, current: Motion, now: number): CFrame
 		local peak = if current.style == "Place"
 			then rest * CFrame.new(0, 0, -0.4)
 			elseif kind == "Bow" then rest * CFrame.new(0, 0, 0.25)
-			else rest * CFrame.new(0, 0.08, 0.3) * CFrame.Angles(math.rad(14), 0, 0)
+			else rest * CFrame.new(0, 0.015, 0.025) * CFrame.Angles(math.rad(1), 0, 0)
 		keys = { { at = 0.3, pose = peak } }
 	end
 	local from, fromAt = rest, 0
@@ -251,14 +279,18 @@ local function mirrored(cf: CFrame): CFrame
 end
 
 -- Places an arm from its shoulder to `hand` (world space) with its sleeve at the shoulder end.
-local function placeArm(arm: Part, sleeve: Part, shoulder: Vector3, hand: Vector3)
-	local length = math.max(0.1, (hand - shoulder).Magnitude)
-	local along = CFrame.lookAt(shoulder, hand)
-	arm.Size = Vector3.new(ARM_WIDTH, ARM_WIDTH, length)
-	arm.CFrame = along * CFrame.new(0, 0, -length / 2)
+local function placeArm(arm: Part, sleeve: Part, upper: Part, shoulder: Vector3, hand: Vector3, side: number)
+	local elbow = (shoulder + hand) / 2 + Vector3.new(side * 0.22, -0.27, 0.12)
+	local upperLength = math.max(0.1, (elbow - shoulder).Magnitude)
+	upper.Size = Vector3.new(upperLength, SLEEVE_WIDTH, SLEEVE_WIDTH)
+	upper.CFrame = CFrame.lookAt(shoulder, elbow) * CFrame.new(0, 0, -upperLength / 2) * CFrame.Angles(0, math.pi / 2, 0)
+	local length = math.max(0.1, (hand - elbow).Magnitude)
+	local along = CFrame.lookAt(elbow, hand)
+	arm.Size = Vector3.new(length, ARM_WIDTH, ARM_WIDTH)
+	arm.CFrame = along * CFrame.new(0, 0, -length / 2) * CFrame.Angles(0, math.pi / 2, 0)
 	local sleeveLength = length * SLEEVE_SHARE
-	sleeve.Size = Vector3.new(SLEEVE_WIDTH, SLEEVE_WIDTH, sleeveLength)
-	sleeve.CFrame = along * CFrame.new(0, 0, -sleeveLength / 2)
+	sleeve.Size = Vector3.new(sleeveLength, SLEEVE_WIDTH, SLEEVE_WIDTH)
+	sleeve.CFrame = along * CFrame.new(0, 0, -sleeveLength / 2) * CFrame.Angles(0, math.pi / 2, 0)
 end
 
 local function setShown(value: boolean)
@@ -315,52 +347,83 @@ local function onRender(dt: number)
 	lastLook = look
 	sway -= sway * math.min(1, dt * SWAY_RETURN)
 	sway = Vector2.new(math.clamp(sway.X, -SWAY_LIMIT, SWAY_LIMIT), math.clamp(sway.Y, -SWAY_LIMIT, SWAY_LIMIT))
+	local swayShare = 1 - WeaponController.aimAlpha() * 0.95
 	local offset = CFrame.new(
-		math.sin(bobPhase) * BOB_SIDE * strength + sway.X,
-		-math.abs(math.cos(bobPhase)) * BOB_DROP * strength + sway.Y,
+		math.sin(bobPhase) * BOB_SIDE * strength * (1 - WeaponController.aimAlpha() * (1 - HC.AimBobShare)) + sway.X * swayShare,
+		-math.abs(math.cos(bobPhase)) * BOB_DROP * strength * (1 - WeaponController.aimAlpha() * (1 - HC.AimBobShare)) + sway.Y * swayShare,
 		0
 	)
 	local view = camera.CFrame * offset
 
+	local handling = heldId and Config.WeaponHandling.Items[heldId]
 	local rest = REST[kind]
+	if handling then rest = fromPose(handling.Hip):Lerp(fromPose(handling.Aim), WeaponController.aimAlpha()) end
+	local reloading, reloadProgress = WeaponController.reloadProgress()
+	if reloading and handling then
+		local weight = math.sin(math.pi * reloadProgress) ^ 0.6
+		rest *= CFrame.new(0.12 * weight, -0.14 * weight, 0.28 * weight)
+			* CFrame.Angles(math.rad(-12 * weight), math.rad(-24 * weight), math.rad(-32 * weight))
+	end
+	local params = RaycastParams.new()
+	params.FilterDescendantsInstances = { character :: Model, folder }
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.IgnoreWater = true
+	local wall = Workspace:Raycast(camera.CFrame.Position, camera.CFrame.LookVector * Config.WeaponHandling.WallReach, params)
+	local blocked = if wall then 1 - wall.Distance / Config.WeaponHandling.WallReach else 0
+	wallBlend += (blocked - wallBlend) * (1 - math.exp(-Config.WeaponHandling.WallResponse * dt))
+	local sprint = if kind == "Gun" and speed > Config.WeaponHandling.SprintSpeed and not reloading then 1 else 0
+	sprintBlend += (sprint - sprintBlend) * math.min(1, dt * 10)
+	local equip = 1 - WeaponController.equipAlpha()
+	local kickPitch, kickYaw, kickBack = WeaponController.kick()
+	rest *= CFrame.new(0, -equip * Config.WeaponHandling.EquipDip - sprintBlend * 0.4 - wallBlend * 0.3, equip * 0.2 + kickBack)
+		* CFrame.Angles(math.rad(kickPitch * 0.6 + sprintBlend * -22 + wallBlend * 32), math.rad(kickYaw), math.rad(-equip * 15))
 	local right = if current and not current.left then posed(rest, current, now) else rest
 	local gripWorld = view * right
 	local fists = kind == "Fist"
-	rightHand.Size = Vector3.one * (if fists then FIST_SIZE else HAND_SIZE)
+	rightHand.Size = if fists then V(0.31, 0.32, 0.22) else V(0.28, 0.3, 0.16)
 	rightHand.CFrame = gripWorld
-	placeArm(rightArm, rightSleeve, (view * CFrame.new(RIGHT_SHOULDER)).Position, gripWorld.Position)
-	for index, part in itemParts do
-		part.CFrame = gripWorld * itemOffsets[index]
-	end
-
-	if fists ~= leftShown then
-		leftShown = fists
-		local parent = if fists then folder else nil
-		leftArm.Parent = parent
-		leftSleeve.Parent = parent
-		leftHand.Parent = parent
+	placeArm(rightArm, rightSleeve, rightUpper, (view * CFrame.new(RIGHT_SHOULDER)).Position, gripWorld.Position, 1)
+	for index, part in itemParts do part.CFrame = gripWorld * itemOffsets[index] end
+	local support = kind ~= "Block" and heldId ~= "WoodenClub"
+	if support ~= leftShown then
+		leftShown = support
+		local parent = if support then folder else nil
+		leftArm.Parent, leftSleeve.Parent, leftHand.Parent, leftUpper.Parent = parent, parent, parent, parent
 	end
 	if fists then
 		local left = if current and current.left then mirrored(posed(REST.Fist, current, now)) else LEFT_REST
 		local leftWorld = view * left
-		leftHand.Size = Vector3.one * FIST_SIZE
+		leftHand.Size = V(0.31, 0.32, 0.22)
 		leftHand.CFrame = leftWorld
-		placeArm(leftArm, leftSleeve, (view * CFrame.new(LEFT_SHOULDER)).Position, leftWorld.Position)
+		placeArm(leftArm, leftSleeve, leftUpper, (view * CFrame.new(LEFT_SHOULDER)).Position, leftWorld.Position, -1)
+	elseif support then
+		local itemRoot = itemModel and itemModel.PrimaryPart
+		local attachment = itemRoot and itemRoot:FindFirstChild("SupportGrip")
+		local at = if attachment and attachment:IsA("Attachment") then attachment.WorldPosition
+			else (gripWorld * CFrame.new(-0.1, 0.25, -0.7)).Position
+		if reloading and handling then
+			local start = V(handling.Support[1], handling.Support[2], handling.Support[3])
+			local goal = if handling.ReloadStyle == "Magazine" then V(-0.18, -0.72, -0.15)
+				elseif handling.ReloadStyle == "Cylinder" then V(-0.35, 0.24, -0.45) else V(-0.12, 0.28, -0.65)
+			local travel = math.sin(math.pi * reloadProgress) ^ 0.7
+			at = (gripWorld * CFrame.new(start:Lerp(goal, travel))).Position
+		end
+		leftHand.Size = V(0.28, 0.3, 0.16)
+		leftHand.CFrame = CFrame.new(at) * gripWorld.Rotation * CFrame.Angles(0, 0, math.rad(-70))
+		placeArm(leftArm, leftSleeve, leftUpper, (view * CFrame.new(LEFT_SHOULDER)).Position, at, -1)
+	end
+	for _, detail in handDetails do
+		detail.part.Parent = if detail.hand == leftHand and not support then nil else folder
+		detail.part.CFrame = detail.hand.CFrame * detail.offset
 	end
 end
 
-local function skinColor(): Color3
-	local character = player.Character
-	local colors = character and character:FindFirstChildOfClass("BodyColors")
-	return if colors then colors.RightArmColor3 else SKIN_COLOR
-end
-
 local function paint()
-	local color = skinColor()
+	local color = SKIN_COLOR
 	rightArm.Color = color
-	rightHand.Color = color
+	rightHand.Color = Color3.fromRGB(56, 61, 50)
 	leftArm.Color = color
-	leftHand.Color = color
+	leftHand.Color = Color3.fromRGB(56, 61, 50)
 end
 
 -- Plays the melee swing of `toolId` (the fist when it is not a tool) for the swing's duration.
@@ -400,6 +463,14 @@ function ViewmodelController.init()
 	leftSleeve = makePart("LeftSleeve", Vector3.one, SLEEVE_COLOR)
 	leftArm = makePart("LeftArm", Vector3.one, SKIN_COLOR)
 	leftHand = makePart("LeftHand", Vector3.one * FIST_SIZE, SKIN_COLOR)
+	rightUpper = makePart("RightUpperArm", Vector3.one, SLEEVE_COLOR)
+	leftUpper = makePart("LeftUpperArm", Vector3.one, SLEEVE_COLOR)
+	for _, limb in { rightArm, leftArm, rightSleeve, leftSleeve, rightUpper, leftUpper } do
+		limb.Shape = Enum.PartType.Cylinder
+		limb.Material = if limb == rightArm or limb == leftArm then Enum.Material.SmoothPlastic else Enum.Material.Fabric
+	end
+	makeFingers(rightHand, 1)
+	makeFingers(leftHand, -1)
 end
 
 function ViewmodelController.start()
@@ -408,7 +479,7 @@ function ViewmodelController.start()
 		paint()
 	end)
 	paint()
-	RunService.PreRender:Connect(onRender)
+	RunService:BindToRenderStep("EquipmentViewmodel", Enum.RenderPriority.Camera.Value + 3, onRender)
 end
 
 return ViewmodelController

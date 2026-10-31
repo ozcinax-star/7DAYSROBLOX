@@ -113,7 +113,10 @@ local function onRender()
 	local centred = touchOnly()
 		or UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter
 		or UserInputService:GetLastInputType() == Enum.UserInputType.Gamepad1
-	crosshair.Visible = centred and not free
+	local held = InventoryController.getHeld()
+	local weapon = held and Config.Ranged.Weapons[held.id]
+	crosshair.Visible = centred and not free and weapon == nil
+	UserInputService.MouseIconEnabled = not (centred and not free)
 end
 
 local function buildGui(playerGui: PlayerGui)

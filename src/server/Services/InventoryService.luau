@@ -194,13 +194,14 @@ function InventoryService.give(
 	id: string,
 	count: number,
 	source: Types.ItemSource,
-	durability: number?
+	durability: number?,
+	metadata: Inventory.Stack?
 ): number
 	local state = states[player]
 	if state == nil then
 		return count
 	end
-	local left = Inventory.add(state.inventory, id, count, source, durability)
+	local left = Inventory.add(state.inventory, id, count, source, durability, metadata)
 	if left < count then
 		markDirty(player)
 	end

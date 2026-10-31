@@ -149,7 +149,7 @@ local function takeAll(player: Player, inventory: Inventory.Inventory)
 	local slots = inventory.slots
 	for index, slot in slots do
 		if slot then
-			local left = InventoryService.give(player, slot.id, slot.count, slot.source, slot.durability)
+			local left = InventoryService.give(player, slot.id, slot.count, slot.source, slot.durability, slot)
 			if left <= 0 then
 				slots[index] = false
 			else
@@ -249,11 +249,11 @@ function LootService.drop(position: Vector3, stacks: { Inventory.Stack }, merge:
 	for _, stack in stacks do
 		local left = stack.count
 		if bag then
-			left = Inventory.add(bag.inventory, stack.id, left, stack.source, stack.durability)
+			left = Inventory.add(bag.inventory, stack.id, left, stack.source, stack.durability, stack)
 		end
 		if left > 0 then
 			bag = newBag(ground, seconds or LC.BagSeconds, seconds ~= nil)
-			left = Inventory.add(bag.inventory, stack.id, left, stack.source, stack.durability)
+			left = Inventory.add(bag.inventory, stack.id, left, stack.source, stack.durability, stack)
 		end
 		lost += left
 	end
@@ -326,7 +326,7 @@ local function fill(container: Container): Inventory.Inventory
 	if container.inventory == nil or day - container.filledDay >= LC.ContainerRespawnDays then
 		local inventory = Inventory.new(0, LC.BagSlots)
 		for _, stack in Loot.rollContainer(rand, container.kind, container.buildingLoot) do
-			Inventory.add(inventory, stack.id, stack.count, stack.source, stack.durability)
+			Inventory.add(inventory, stack.id, stack.count, stack.source, stack.durability, stack)
 		end
 		container.inventory = inventory
 		container.filledDay = day

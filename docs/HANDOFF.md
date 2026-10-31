@@ -6,6 +6,16 @@ dosyasında. Bu not 30 Ekim – 1 Kasım 2026'daki uzun çalışma oturumların�
 
 ## Proje ve roller
 
+**En güncel silah çalışması — 1 Kasım 2026:** [WEAPON_HANDLING.md](WEAPON_HANDLING.md).
+`RangedService` ve yeni saf `Firearm` şarjör/doldurma otoritesi; `WeaponController` güvenilir durum,
+HUD, ADS ve tepme; `EquipmentPoseController` gerçek R15 ölçülerinden kol çözümü. Mühimmat metadata'sı
+envanter/sandık/loot/tamir yollarında korunur. Eski istemci `loaded` tahmini kaldırıldı. 90 test geçti.
+MCP `require` ayrı önbellek verdiğinden gerçek envanter testleri Play'de geçici normal sunucu Script'i
+ile yapıldı. IKControl Transform yeni AnimationConstraint avatarında hedefi tutturmadı; bunun yerine
+omuz-dirsek-bilek Transform çözümü kullanıldı, destek eli hatası 0,000031 stud'dan az ölçüldü.
+Bu tek test avatarının ölçümüdür. Ses, fiziksel mobil FPS ve gecikmeli çok oyunculu test bekliyor.
+Yakıt R yerine T; R/B/touch Reload. Geçici test kameraları ve fixture'lar Play'e aitti.
+
 - Roblox için co-op zombi survival oyunu. Çekirdek fikir: oyuncu geliştikçe dünya daha tehlikeli olur.
 - **Kullanıcı:** proje sahibi; oyunu test eder, son kararı verir.
 - **Claude:** kodu yazar ve Studio MCP ile doğrular.

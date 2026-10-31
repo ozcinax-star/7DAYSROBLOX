@@ -99,6 +99,16 @@ end
 -- Starts or ends the sprint from the intent and the stamina left.
 local function updateSprint(player: Player, state: PlayerState)
 	local stamina = state.stats.stamina
+	if player:GetAttribute("WeaponAiming") == true then
+		setSprinting(player, state, false)
+		local humanoid = humanoidOf(player)
+		if humanoid then humanoid.WalkSpeed = SC.WalkSpeed * Config.Ranged.AimWalkShare end
+		return
+	end
+	if not state.sprinting then
+		local humanoid = humanoidOf(player)
+		if humanoid then humanoid.WalkSpeed = SC.WalkSpeed end
+	end
 	if state.sprinting and stamina <= 0 then
 		state.winded = true
 		setSprinting(player, state, false)

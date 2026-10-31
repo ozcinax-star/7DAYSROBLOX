@@ -117,7 +117,6 @@ local sideWidth = 0
 local overridePanel: Frame? = nil
 local slotsChangedCallbacks: { () -> () } = {}
 -- Rounds left in each gun's magazine as ToolController counts them (nil: full).
-local loaded: { [string]: number } = {}
 local backpackCallbacks: { (open: boolean) -> () } = {}
 local nameToken = 0
 
@@ -251,7 +250,7 @@ end
 
 -- Count text of a ranged weapon's slot (7DTD shows the ammo on the toolbelt): rounds in the magazine
 -- over the ammo carried for guns, the ammo carried for bows.
-local function ammoText(itemId: string, weapon: Config.RangedDef): string
+local function ammoText(stack: Inventory.Stack, weapon: Config.RangedDef): string
 	local carried = 0
 	for _, slot in slots do
 		if slot and table.find(weapon.Ammo, slot.id) then
@@ -262,7 +261,7 @@ local function ammoText(itemId: string, weapon: Config.RangedDef): string
 	if magazine == nil then
 		return tostring(carried)
 	end
-	return `{math.min(loaded[itemId] or magazine, carried)}/{carried}`
+	return Localization.get("WeaponAmmo", { loaded = stack.loadedRounds or 0, reserve = carried })
 end
 
 -- The info panel: the hovered slot's item, the item another panel points at, or else the picked
@@ -311,7 +310,7 @@ local function render()
 			view.name.Text = itemName(slot.id)
 			local ranged = Config.Ranged.Weapons[slot.id]
 			view.count.Text = if ranged
-				then ammoText(slot.id, ranged)
+				then ammoText(slot, ranged)
 				elseif slot.count > 1 then tostring(slot.count)
 				else ""
 			local maxDurability = if def then def.Durability else nil
@@ -782,16 +781,14 @@ function InventoryController.getToolbelt(): Frame?
 	return toolbelt
 end
 
--- ToolController reports the rounds left in a gun's magazine; its slot shows them.
-function InventoryController.setLoaded(itemId: string, rounds: number)
-	loaded[itemId] = rounds
-	render()
-end
-
 -- The stack in the active toolbelt slot as the server last sent it, or nil for an empty hand.
 function InventoryController.getHeld(): Inventory.Stack?
 	local slot = slots[selected]
 	return if slot then slot else nil
+end
+
+function InventoryController.getSelectedSlot(): number
+	return selected
 end
 
 function InventoryController.init()

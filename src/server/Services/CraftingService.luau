@@ -128,10 +128,12 @@ local function refund(player: Player, job: Job): boolean
 		local slot = entry.slot
 		local left = 0
 		if slot == nil or not InventoryService.putSlot(player, slot, table.clone(stack)) then
-			left = InventoryService.give(player, stack.id, stack.count, stack.source, stack.durability)
+			left = InventoryService.give(player, stack.id, stack.count, stack.source, stack.durability, stack)
 		end
 		if left > 0 then
-			table.insert(dropped, { id = stack.id, count = left, source = stack.source, durability = stack.durability })
+			local remainder = table.clone(stack)
+			remainder.count = left
+			table.insert(dropped, remainder)
 		end
 	end
 	if #dropped > 0 then
@@ -152,7 +154,7 @@ local function deliver(player: Player, job: Job): boolean
 		if InventoryService.room(player, tool.id, tool.source) < 1 then
 			return false
 		end
-		InventoryService.give(player, tool.id, 1, tool.source, repaired.durability)
+		InventoryService.give(player, tool.id, 1, tool.source, repaired.durability, repaired)
 		return true
 	end
 	local recipe = Config.Recipes[job.id]

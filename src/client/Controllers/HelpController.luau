@@ -57,6 +57,7 @@ local function build(playerGui: PlayerGui): Frame
 		},
 		{ Localization.get("KeyLeftMouse"), "HelpHit" },
 		{ Localization.get("KeyRightMouse"), "HelpAim" },
+		{ keyName(Enum.KeyCode.R), "WeaponReload" },
 		{ keyName(Enum.KeyCode.E), "HelpInteract" },
 		{ keyName(Enum.KeyCode.G), "HelpDrop" },
 		{ Localization.get("KeyShift"), "HelpRun" },

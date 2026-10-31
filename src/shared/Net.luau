@@ -22,8 +22,12 @@ local Definitions: { [string]: "RemoteEvent" | "UnreliableRemoteEvent" } = {
 	InventorySelect = "RemoteEvent",
 	-- Client -> server: drop the whole stack in an own slot on the ground (slot: number).
 	InventoryDrop = "RemoteEvent",
-	-- Client -> server: the player starts or stops aiming a gun (boolean).
+	-- Client -> server: the player starts/stops aiming (boolean), with finite look pitch (radians).
 	AimIntent = "RemoteEvent",
+	-- Client -> server: true requests a reload of the gun actually held; no client ammo counts.
+	ReloadWeapon = "RemoteEvent",
+	-- Server -> owner: reliable magazine/reserve, reload deadline and accepted-shot feedback.
+	WeaponState = "RemoteEvent",
 	-- Client -> server: swing the held tool (aim direction: unit Vector3 from the head).
 	UseTool = "RemoteEvent",
 	-- Server -> client: a swing happened (player, tool id or "Fist", hit zombie id or 0, head hit, and
@@ -47,7 +51,7 @@ local Definitions: { [string]: "RemoteEvent" | "UnreliableRemoteEvent" } = {
 	-- Client -> server: sprint held or released (boolean).
 	SprintIntent = "RemoteEvent",
 	-- Server -> client: an arrow, bullet or pellet left a weapon (arrow id, origin Vector3, velocity
-	-- Vector3, gravity, server launch time, ammo id, weapon item id).
+	-- Vector3, gravity, server launch time, ammo id, weapon item id, owner Player).
 	ArrowFired = "UnreliableRemoteEvent",
 	-- Server -> client: an arrow stopped (arrow id, Vector3 where, id of the zombie it hit or 0).
 	ArrowStopped = "UnreliableRemoteEvent",

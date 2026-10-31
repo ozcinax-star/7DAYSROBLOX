@@ -43,6 +43,7 @@ local ArrowController = {}
 
 local folder: Folder
 local flights: { [number]: Flight } = {}
+local lastFlash: { [Player]: number } = setmetatable({}, { __mode = "k" }) :: any
 -- Longest flight time of any bow and ammo pair (seconds).
 local longestFlight = 0
 
@@ -66,7 +67,7 @@ local function pose(flight: Flight, t: number): CFrame
 end
 
 -- A short flash of light where a gun fired.
-local function flash(origin: Vector3)
+local function flash(origin: Vector3, direction: Vector3)
 	local part = Instance.new("Part")
 	part.Name = "MuzzleFlash"
 	part.Size = Vector3.one * 0.2
@@ -82,8 +83,15 @@ local function flash(origin: Vector3)
 	light.Brightness = FLASH_BRIGHTNESS
 	light.Parent = part
 	part.Parent = folder
+	local flare = Instance.new("Part")
+	flare.Name, flare.Size, flare.Material = "MuzzleFlare", Vector3.new(0.12, 0.12, 0.38), Enum.Material.Neon
+	flare.Color, flare.Transparency, flare.Anchored = FLASH_COLOR, 0.25, true
+	flare.CanCollide, flare.CanTouch, flare.CanQuery, flare.CastShadow = false, false, false, false
+	flare.CFrame = CFrame.lookAt(origin, origin + direction)
+	flare.Parent = folder
 	task.delay(RC.FlashSeconds, function()
 		part:Destroy()
+		flare:Destroy()
 	end)
 end
 
@@ -110,7 +118,8 @@ local function onFired(
 	gravity: unknown,
 	launchedAt: unknown,
 	ammoId: unknown,
-	weaponId: unknown
+	weaponId: unknown,
+	owner: unknown
 )
 	if
 		typeof(id) ~= "number"
@@ -123,8 +132,20 @@ local function onFired(
 	end
 	remove(id)
 	local weapon = if typeof(weaponId) == "string" then RC.Weapons[weaponId] else nil
+	local muzzle = origin
+	if typeof(owner) == "Instance" and owner:IsA("Player") then
+		local character = owner.Character
+		local held = character and character:FindFirstChild("HeldItem")
+		if owner == game.Players.LocalPlayer then
+			local view = workspace:FindFirstChild("Viewmodel")
+			if view then held = view:FindFirstChild("HeldItem") or held end
+		end
+		local primary = held and held:IsA("Model") and held.PrimaryPart
+		local attachment = primary and primary:FindFirstChild("Muzzle")
+		if attachment and attachment:IsA("Attachment") then muzzle = attachment.WorldPosition end
+	end
 	if weapon and weapon.SoundId ~= "" then
-		playShot(origin, weapon.SoundId)
+		playShot(muzzle, weapon.SoundId)
 	end
 	local ammo = if typeof(ammoId) == "string" then RC.Ammo[ammoId] else nil
 	local tracer = ammo ~= nil and ammo.Tracer == true
@@ -134,7 +155,10 @@ local function onFired(
 		part.Size = Vector3.new(0.07, 0.07, RC.TracerLength)
 		part.Color = TRACER_COLOR
 		part.Material = Enum.Material.Neon
-		flash(origin)
+		if typeof(owner) ~= "Instance" or not owner:IsA("Player") or launchedAt - (lastFlash[owner] or 0) > 0.03 then
+			flash(muzzle, velocity.Unit)
+			if typeof(owner) == "Instance" and owner:IsA("Player") then lastFlash[owner] = launchedAt end
+		end
 	else
 		part.Name = "Arrow"
 		part.Size = Vector3.new(0.12, 0.12, RC.ArrowLength)
