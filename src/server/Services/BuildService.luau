@@ -1,9 +1,12 @@
 --!strict
--- BuildService: player-built blocks on the 4-stud grid (Shared/BuildGrid), 7DTD style. A frame or a
--- ladder in the hand is placed with "use" (ToolService hands it over with the head position and the
--- aim). The stone axe upgrades a frame to a wood block (3 hits, 4 Lumber) and repairs damaged blocks
--- with wood; other tools and the fist damage them. Zombies path through the weakest wall and break it
--- (ZombieService structure cells); blocks that lose their way to the ground fall.
+-- BuildService: player-built blocks on the 4-stud grid (Shared/BuildGrid), 7DTD style. A frame, a
+-- ladder or a door in the hand is placed with "use" (ToolService hands it over with the head position
+-- and the aim). A door takes its cell and the one above, hangs on the side its builder stood on and
+-- opens and closes with the interact key; closed, it is a wall zombies path through and break, open,
+-- they walk through it (7DTD zombies never open doors). The stone axe upgrades a frame to a wood block
+-- (3 hits, 4 Lumber) and repairs damaged blocks with wood; other tools and the fist damage them.
+-- Zombies path through the weakest wall and break it (ZombieService structure cells); blocks that
+-- lose their way to the ground fall.
 --
 -- Placement is checked on the server: the held item, the reach, a free cell (no block, map part,
 -- character or zombie), the playable ground outside town buildings, and support from the ground or a
@@ -19,6 +22,9 @@ local Config = require(Shared.Config)
 local Harvest = require(Shared.Harvest)
 local HeightField = require(Shared.World.HeightField)
 
+local Localization = require(Shared.Localization)
+
+local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local InventoryService = require(script.Parent.InventoryService)
 local MapService = require(script.Parent.MapService)
 local ThreatService = require(script.Parent.ThreatService)
@@ -42,6 +48,12 @@ type Block = {
 	-- Stone axe hits toward the next tier.
 	upgrade: number,
 	part: BasePart,
+	-- Doors: the key of the cell above (it maps to the same block), the side the panel hangs on and
+	-- whether it is open.
+	top: number?,
+	side: number,
+	open: boolean,
+	prompt: ProximityPrompt?,
 }
 
 local BuildService = {}
@@ -52,6 +64,7 @@ local count = 0
 local nextPlaceAt: { [Player]: number } = {}
 local groundParams: RaycastParams
 local mapOverlap: OverlapParams
+local doorLimiter: RateLimiter.RateLimiter
 
 local function setTrace()
 	ThreatService.setTraceSource(TRACE_SOURCE, count * Config.Threat.Trace.PerBuildPart)
@@ -83,9 +96,13 @@ local function updateColumn(cx: number, cz: number)
 	local ground = MapService.groundAt(x, z)
 	local health = 0
 	local blocking = false
+	-- A door fills two cells but counts once.
+	local counted: { [Block]: boolean } = {}
 	for cy = math.floor((ground - SIZE) / SIZE), math.floor((ground + BC.BodyHeight) / SIZE) do
 		local block = blocks[BuildGrid.key(cx, cy, cz)]
-		if block and not BC.Blocks[block.kind].Climbable and BuildGrid.obstructs(cy * SIZE, ground) then
+		local passable = block == nil or BC.Blocks[block.kind].Climbable or block.open
+		if block and not passable and not counted[block] and BuildGrid.obstructs(cy * SIZE, ground) then
+			counted[block] = true
 			blocking = true
 			health += block.health
 		end
@@ -94,7 +111,13 @@ local function updateColumn(cx: number, cz: number)
 end
 
 local function removeBlock(block: Block)
+	if blocks[block.key] ~= block then
+		return
+	end
 	blocks[block.key] = nil
+	if block.top then
+		blocks[block.top] = nil
+	end
 	count -= 1
 	block.part:Destroy()
 	updateColumn(block.cx, block.cz)
@@ -103,10 +126,12 @@ end
 -- Destroys a block, then every block that no longer reaches the ground (they fall and break).
 local function destroyBlock(block: Block)
 	removeBlock(block)
-	for _, key in BuildGrid.unsupported(blocks :: any, block.key) do
-		local falling = blocks[key]
-		if falling then
-			removeBlock(falling)
+	for _, removed in { block.key, block.top } do
+		for _, key in BuildGrid.unsupported(blocks :: any, removed) do
+			local falling = blocks[key]
+			if falling then
+				removeBlock(falling)
+			end
 		end
 	end
 	setTrace()
@@ -122,7 +147,68 @@ local function damageBlock(block: Block, amount: number)
 	updateColumn(block.cx, block.cz)
 end
 
-local function createBlock(cx: number, cy: number, cz: number, kind: string, grounded: boolean)
+local function zombieInside(x: number, y: number, z: number): boolean
+	local half = SIZE / 2 + ZOMBIE_RADIUS
+	for _, body in ZombieService.bodiesNear(Vector3.new(x, y, z), SIZE * 2) do
+		local feet = body.y + Config.Melee.HitBottom
+		local head = body.y + Config.Melee.HitTop
+		local overlapsXZ = math.abs(body.x - x) < half and math.abs(body.z - z) < half
+		if overlapsXZ and feet < y + SIZE / 2 and head > y - SIZE / 2 then
+			return true
+		end
+	end
+	return false
+end
+
+local function characterInside(center: CFrame, size: Vector3): boolean
+	local characters = OverlapParams.new()
+	characters.FilterType = Enum.RaycastFilterType.Include
+	local list: { Instance } = {}
+	for _, other in Players:GetPlayers() do
+		if other.Character then
+			table.insert(list, other.Character)
+		end
+	end
+	characters.FilterDescendantsInstances = list
+	return #Workspace:GetPartBoundsInBox(center, size, characters) > 0
+end
+
+local function setDoorOpen(block: Block, open: boolean)
+	block.open = open
+	block.part.CFrame = BuildGrid.doorCFrame(block.cx, block.cy, block.cz, block.side, open, BC.DoorThickness)
+	if block.prompt then
+		block.prompt.ActionText = Localization.get(if open then "DoorClose" else "DoorOpen")
+	end
+	updateColumn(block.cx, block.cz)
+end
+
+-- The interact key on a door: opens it, or closes it unless someone stands in its way.
+local function onDoorTriggered(player: Player, block: Block)
+	if not doorLimiter:allow(player) or blocks[block.key] ~= block then
+		return
+	end
+	local character = player.Character
+	local root = character and character.PrimaryPart
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if root == nil or humanoid == nil or humanoid.Health <= 0 then
+		return
+	end
+	local x, y, z = BuildGrid.center(block.cx, block.cy, block.cz)
+	-- The prompt sits on the panel; the server measures to the doorway's centre with some slack.
+	if (root.Position - Vector3.new(x, y + SIZE / 2, z)).Magnitude > BC.DoorReach + SIZE then
+		return
+	end
+	if block.open then
+		local inner = Vector3.new(SIZE, SIZE * 2, SIZE) - Vector3.one * BC.OverlapInset * 2
+		local center = CFrame.new(x, y + SIZE / 2, z)
+		if characterInside(center, inner) or zombieInside(x, y, z) or zombieInside(x, y + SIZE, z) then
+			return
+		end
+	end
+	setDoorOpen(block, not block.open)
+end
+
+local function createBlock(cx: number, cy: number, cz: number, kind: string, grounded: boolean, side: number)
 	local x, y, z = BuildGrid.center(cx, cy, cz)
 	local def = BC.Blocks[kind]
 	local part: BasePart
@@ -135,8 +221,13 @@ local function createBlock(cx: number, cy: number, cz: number, kind: string, gro
 		part = Instance.new("Part")
 	end
 	part.Anchored = true
-	part.Size = Vector3.one * SIZE
-	part.CFrame = CFrame.new(x, y, z)
+	if def.Door then
+		part.Size = Vector3.new(SIZE, SIZE * 2, BC.DoorThickness)
+		part.CFrame = BuildGrid.doorCFrame(cx, cy, cz, side, false, BC.DoorThickness)
+	else
+		part.Size = Vector3.one * SIZE
+		part.CFrame = CFrame.new(x, y, z)
+	end
 	part.TopSurface = Enum.SurfaceType.Smooth
 	part.BottomSurface = Enum.SurfaceType.Smooth
 	local key = BuildGrid.key(cx, cy, cz)
@@ -154,10 +245,30 @@ local function createBlock(cx: number, cy: number, cz: number, kind: string, gro
 		grounded = grounded,
 		upgrade = 0,
 		part = part,
+		top = if def.Door then BuildGrid.key(cx, cy + 1, cz) else nil,
+		side = side,
+		open = false,
+		prompt = nil,
 	}
 	styleBlock(block)
+	if def.Door then
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.ActionText = Localization.get("DoorOpen")
+		prompt.ObjectText = Localization.get(`Item{kind}`)
+		prompt.HoldDuration = 0
+		prompt.MaxActivationDistance = BC.DoorReach
+		prompt.RequiresLineOfSight = false
+		prompt.Triggered:Connect(function(player)
+			onDoorTriggered(player, block)
+		end)
+		prompt.Parent = part
+		block.prompt = prompt
+	end
 	part.Parent = folder
 	blocks[key] = block
+	if block.top then
+		blocks[block.top] = block
+	end
 	count += 1
 	updateColumn(cx, cz)
 	setTrace()
@@ -175,44 +286,28 @@ local function insideBuilding(cx: number, cz: number): boolean
 	return false
 end
 
-local function zombieInside(x: number, y: number, z: number): boolean
-	local half = SIZE / 2 + ZOMBIE_RADIUS
-	for _, body in ZombieService.bodiesNear(Vector3.new(x, y, z), SIZE * 2) do
-		local feet = body.y + Config.Melee.HitBottom
-		local head = body.y + Config.Melee.HitTop
-		local overlapsXZ = math.abs(body.x - x) < half and math.abs(body.z - z) < half
-		if overlapsXZ and feet < y + SIZE / 2 and head > y - SIZE / 2 then
-			return true
-		end
-	end
-	return false
-end
-
--- Whether a block may go into cell (cx, cy, cz); the second value tells if the ground carries it.
-local function canPlace(cx: number, cy: number, cz: number): (boolean, boolean)
-	if blocks[BuildGrid.key(cx, cy, cz)] or count >= BC.MaxPartsPerWorld then
-		return false, false
+-- Whether cell (cx, cy, cz) is free for a block: no block, map part, character or zombie in it, on
+-- playable dry ground outside town buildings.
+local function cellFree(cx: number, cy: number, cz: number): boolean
+	if blocks[BuildGrid.key(cx, cy, cz)] then
+		return false
 	end
 	local x, y, z = BuildGrid.center(cx, cy, cz)
 	if not HeightField.isPlayable(x, z) or HeightField.isWater(x, z) or insideBuilding(cx, cz) then
-		return false, false
+		return false
 	end
 	local inner = Vector3.one * (SIZE - BC.OverlapInset * 2)
 	local center = CFrame.new(x, y, z)
 	-- Map parts (walls, trunks, props) and characters may not end up inside a block.
 	if #Workspace:GetPartBoundsInBox(center, inner, mapOverlap) > 0 then
-		return false, false
+		return false
 	end
-	local characters = OverlapParams.new()
-	characters.FilterType = Enum.RaycastFilterType.Include
-	local list: { Instance } = {}
-	for _, other in Players:GetPlayers() do
-		if other.Character then
-			table.insert(list, other.Character)
-		end
-	end
-	characters.FilterDescendantsInstances = list
-	if #Workspace:GetPartBoundsInBox(center, inner, characters) > 0 or zombieInside(x, y, z) then
+	return not characterInside(center, inner) and not zombieInside(x, y, z)
+end
+
+-- Whether a block may go into cell (cx, cy, cz); the second value tells if the ground carries it.
+local function canPlace(cx: number, cy: number, cz: number): (boolean, boolean)
+	if count >= BC.MaxPartsPerWorld or not cellFree(cx, cy, cz) then
 		return false, false
 	end
 	local gx, gy, gz, length = BuildGrid.groundRay(cx, cy, cz)
@@ -258,8 +353,11 @@ local function onPlace(player: Player, origin: Vector3, direction: Vector3, item
 	local cx, cy, cz =
 		BuildGrid.target(p.X, p.Y, p.Z, n.X, n.Y, n.Z, if hit then { hit.cx, hit.cy, hit.cz } else nil)
 	local ok, grounded = canPlace(cx, cy, cz)
+	if ok and def.Door then
+		ok = cellFree(cx, cy + 1, cz)
+	end
 	if ok and InventoryService.consumeHeld(player, 1) then
-		createBlock(cx, cy, cz, itemId, grounded)
+		createBlock(cx, cy, cz, itemId, grounded, BuildGrid.sideToward(cx, cz, origin.X, origin.Z))
 	end
 end
 
@@ -314,7 +412,8 @@ local function onStructureHit(x: number, z: number, damage: number)
 	local weakest: Block? = nil
 	for cy = math.floor((ground - SIZE) / SIZE), math.floor((ground + BC.BodyHeight) / SIZE) do
 		local block = blocks[BuildGrid.key(cx, cy, cz)]
-		if block and not BC.Blocks[block.kind].Climbable and BuildGrid.obstructs(cy * SIZE, ground) then
+		local passable = block == nil or BC.Blocks[block.kind].Climbable or block.open
+		if block and not passable and BuildGrid.obstructs(cy * SIZE, ground) then
 			if weakest == nil or block.health < weakest.health then
 				weakest = block
 			end
@@ -338,6 +437,7 @@ function BuildService.clear()
 end
 
 function BuildService.init()
+	doorLimiter = RateLimiter.new(BC.DoorTogglesPerSecond)
 	folder = Instance.new("Folder")
 	folder.Name = BC.FolderName
 	folder.Parent = Workspace

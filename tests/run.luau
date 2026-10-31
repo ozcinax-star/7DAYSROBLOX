@@ -1107,6 +1107,36 @@ test("blocks that lose their way to the ground fall", function()
 	expectEq(falling[1], BuildGrid.key(9, 2, 9), "which block")
 end)
 
+test("a door hangs on its builder's side and swings into its own cell", function()
+	local size = Config.Build.GridSize
+	local t = Config.Build.DoorThickness
+	local mx, my, mz = BuildGrid.center(2, 0, 5)
+	expectEq(BuildGrid.sideToward(2, 5, mx, mz - 10), 0, "builder on -Z")
+	expectEq(BuildGrid.sideToward(2, 5, mx + 10, mz + 3), 1, "builder on +X")
+	expectEq(BuildGrid.sideToward(2, 5, mx - 1, mz + 10), 2, "builder on +Z")
+	expectEq(BuildGrid.sideToward(2, 5, mx - 10, mz), 3, "builder on -X")
+	local panel = Vector3.new(size, size * 2, t)
+	for side = 0, 3 do
+		for _, open in { false, true } do
+			local cf = BuildGrid.doorCFrame(2, 0, 5, side, open, t)
+			-- Every corner of the panel stays inside the door's two cells.
+			for _, corner in { { 1, 1, 1 }, { -1, -1, -1 }, { 1, -1, -1 }, { -1, 1, 1 } } do
+				local p = cf * (panel / 2 * Vector3.new(corner[1], corner[2], corner[3]))
+				local inside = math.abs(p.X - mx) <= size / 2 + 1e-6
+					and math.abs(p.Z - mz) <= size / 2 + 1e-6
+					and p.Y >= my - size / 2 - 1e-6
+					and p.Y <= my + size * 1.5 + 1e-6
+				expectEq(inside, true, `side {side} open {open}`)
+			end
+		end
+		local closed = BuildGrid.doorCFrame(2, 0, 5, side, false, t).Position
+		local outwards = { Vector3.new(0, 0, -1), Vector3.new(1, 0, 0), Vector3.new(0, 0, 1), Vector3.new(-1, 0, 0) }
+		local outward = outwards[side + 1]
+		local offset = (closed - Vector3.new(mx, closed.Y, mz)):Dot(outward)
+		expectNear(offset, size / 2 - t / 2, 1e-6, `closed door lies on side {side}`)
+	end
+end)
+
 test("containers roll their own picks and one more in a matching building", function()
 	local random = Random.new(7)
 	local function rand(): number

@@ -38,7 +38,8 @@ export type NoiseEvent = { Noise: number, Radius: number }
 -- A building block tier (7DTD material). Health: full cube hit points. Placeable: placed from the item
 -- of the same id. UpgradeTo / Upgrade: the next tier and what one upgrade costs. Repair: the item used
 -- for repairs and how many of it repair the block from nothing to full. Climbable: a ladder (players
--- climb it; zombies walk through it). Material and Color are the look.
+-- climb it; zombies walk through it). Door: a panel two cells tall that opens and closes with the
+-- interact key (zombies break it when it is closed). Material and Color are the look.
 export type BlockDef = {
 	Health: number,
 	Placeable: boolean?,
@@ -46,6 +47,7 @@ export type BlockDef = {
 	Upgrade: ItemCount?,
 	Repair: ItemCount,
 	Climbable: boolean?,
+	Door: boolean?,
 	Material: string,
 	Color: { number },
 	Transparency: number?,
@@ -452,6 +454,11 @@ Config.Build = {
 	RepairPerHit = 100,
 	-- Blocks are wood: tools damage them as wood (Config.Tools Materials).
 	HarvestMaterial = "Wood" :: HarvestMaterial,
+	-- Door panels: thickness (studs), how far away the open / close prompt works, and how often one
+	-- player may use it.
+	DoorThickness = 0.35,
+	DoorReach = 8,
+	DoorTogglesPerSecond = 4,
 	Blocks = {
 		-- frameShapes: 100 HP, upgrades with 8 Wood (4 Lumber here), repair 3 Wood.
 		WoodFrame = {
@@ -470,6 +477,15 @@ Config.Build = {
 			Repair = { Id = "Wood", Count = 3 },
 			Material = "WoodPlanks",
 			Color = { 0.6, 0.44, 0.28 },
+		},
+		-- 7DTD wood door: 1000 HP, two blocks tall. Repairs take 5 Wood (ours: half the recipe).
+		WoodDoor = {
+			Health = 1000,
+			Placeable = true,
+			Repair = { Id = "Wood", Count = 5 },
+			Door = true,
+			Material = "WoodPlanks",
+			Color = { 0.5, 0.36, 0.22 },
 		},
 		-- ladderWood: 150 HP, 3 Wood, repair 3 Wood.
 		WoodLadder = {
@@ -535,6 +551,7 @@ Config.Items = {
 	FirstAidBandage = { Stack = 5, Color = { 0.9, 0.88, 0.82 }, Use = { Heal = 30, HealRate = 2 } },
 	WoodFrame = { Stack = 500, Color = { 0.72, 0.56, 0.36 } }, -- frameShapes
 	WoodLadder = { Stack = 500, Color = { 0.55, 0.4, 0.25 } }, -- ladderWood
+	WoodDoor = { Stack = 500, Color = { 0.5, 0.36, 0.22 } }, -- oldWoodDoor
 	-- meleeToolRepairT0StoneAxe
 	StoneAxe = { Stack = 1, Durability = 250, Repair = STONE_REPAIR, Color = { 0.45, 0.42, 0.38 } },
 	-- meleeToolShovelT0StoneShovel
@@ -568,10 +585,12 @@ Config.Recipes = {
 		Ingredients = costs({ Lumber = 1, Wood = 1 }),
 		Seconds = 0.6,
 	},
+	-- 7DTD: 10 Wood, 2 s; here 5 Lumber, the same wood.
+	WoodDoor = { Output = "WoodDoor", Count = 1, Ingredients = costs({ Lumber = 5 }), Seconds = 2 },
 } :: { [string]: Recipe }
 
 Config.Crafting = {
-	Order = { "StoneAxe", "StoneShovel", "StonePickaxe", "Lumber", "WoodFrame", "WoodLadder", "Dirt" },
+	Order = { "StoneAxe", "StoneShovel", "StonePickaxe", "Lumber", "WoodFrame", "WoodLadder", "WoodDoor", "Dirt" },
 	-- 7DTD: a 4-slot queue; only the first slot works at a time.
 	QueueSlots = 4,
 	-- Most crafts one queue slot may hold (7DTD's cap is unconfirmed).

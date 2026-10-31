@@ -1,6 +1,6 @@
 --!strict
--- BuildController: while a block item is in the hand, a see-through cube shows where "use" will put
--- it, green when the spot looks free and supported, red otherwise. The cell comes from the same
+-- BuildController: while a block item is in the hand, a see-through cube (a panel for a door) shows
+-- where "use" will put it, green when the spot looks free and supported, red otherwise. The cell comes from the same
 -- raycast and Shared/BuildGrid math as the server's; the server decides.
 
 local Players = game:GetService("Players")
@@ -95,8 +95,16 @@ local function update()
 	local p, n = result.Position, result.Normal
 	local cx, cy, cz = BuildGrid.target(p.X, p.Y, p.Z, n.X, n.Y, n.Z, cellOfPart(result.Instance))
 	local x, y, z = BuildGrid.center(cx, cy, cz)
-	ghost.CFrame = CFrame.new(x, y, z)
 	local valid = not occupied(cx, cy, cz) and supported(cx, cy, cz)
+	if def.Door then
+		local side = BuildGrid.sideToward(cx, cz, head.Position.X, head.Position.Z)
+		ghost.Size = Vector3.new(BC.GridSize, BC.GridSize * 2, BC.DoorThickness) - Vector3.one * GHOST_INSET * 2
+		ghost.CFrame = BuildGrid.doorCFrame(cx, cy, cz, side, false, BC.DoorThickness)
+		valid = valid and not occupied(cx, cy + 1, cz)
+	else
+		ghost.Size = Vector3.one * (BC.GridSize - GHOST_INSET * 2)
+		ghost.CFrame = CFrame.new(x, y, z)
+	end
 	ghost.Color = if valid then VALID_COLOR else INVALID_COLOR
 	ghost.Parent = Workspace.CurrentCamera
 end

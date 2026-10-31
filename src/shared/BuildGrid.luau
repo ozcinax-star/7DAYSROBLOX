@@ -48,6 +48,37 @@ function BuildGrid.center(cx: number, cy: number, cz: number): (number, number, 
 	return (cx + 0.5) * SIZE, (cy + 0.5) * SIZE, (cz + 0.5) * SIZE
 end
 
+-- The side of cell (cx, cz) facing the point (x, z): 0 = -Z, 1 = +X, 2 = +Z, 3 = -X. A door hangs on
+-- the side its builder stood on.
+function BuildGrid.sideToward(cx: number, cz: number, x: number, z: number): number
+	local mx, _, mz = BuildGrid.center(cx, 0, cz)
+	local dx, dz = x - mx, z - mz
+	if math.abs(dz) >= math.abs(dx) then
+		return if dz < 0 then 0 else 2
+	end
+	return if dx > 0 then 1 else 3
+end
+
+-- Where the panel of a door in cell (cx, cy, cz) (and the cell above) sits: flat on side `side`
+-- when closed, swung into the cell around its hinge corner when open. The panel's size is
+-- (cell, two cells, `thickness`).
+function BuildGrid.doorCFrame(
+	cx: number,
+	cy: number,
+	cz: number,
+	side: number,
+	open: boolean,
+	thickness: number
+): CFrame
+	local x, y, z = BuildGrid.center(cx, cy, cz)
+	local half = SIZE / 2
+	-- In the frame of side 0 (the -Z face), hinged at the -X end of that face.
+	local placed = if open
+		then CFrame.new(-half + thickness / 2, half, 0) * CFrame.Angles(0, math.pi / 2, 0)
+		else CFrame.new(0, half, -half + thickness / 2)
+	return CFrame.new(x, y, z) * CFrame.Angles(0, -side * math.pi / 2, 0) * placed
+end
+
 -- The axis-aligned unit step closest to a surface normal.
 function BuildGrid.normalStep(nx: number, ny: number, nz: number): (number, number, number)
 	local ax, ay, az = math.abs(nx), math.abs(ny), math.abs(nz)

@@ -66,6 +66,8 @@ local Strings: { [string]: { [string]: string } } = {
 		ContainerStorage = "Storage",
 		ContainerEmpty = "{name} (empty)",
 		LootSearch = "Search",
+		DoorOpen = "Open",
+		DoorClose = "Close",
 
 		-- Crafting
 		CraftingTitle = "Crafting",
@@ -89,6 +91,7 @@ local Strings: { [string]: { [string]: string } } = {
 		ItemCloth = "Cloth",
 		ItemWoodFrame = "Wood Frame",
 		ItemWoodLadder = "Wood Ladder",
+		ItemWoodDoor = "Wood Door",
 		ItemCanChili = "Can of Chili",
 		ItemCanDogFood = "Can of Dog Food",
 		ItemBottledWater = "Bottled Water",
