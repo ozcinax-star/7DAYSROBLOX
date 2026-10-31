@@ -20,6 +20,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Crafting = require(Shared.Crafting)
 local Inventory = require(Shared.Inventory)
+local ItemIcons = require(Shared.ItemIcons)
 local Localization = require(Shared.Localization)
 local Net = require(Shared.Net)
 
@@ -235,6 +236,7 @@ local function render()
 			local c = if def then def.Color else { 0.5, 0.5, 0.5 }
 			view.icon.BackgroundColor3 = Color3.new(c[1], c[2], c[3])
 			view.icon.Visible = true
+			ItemIcons.apply(view.icon, slot.id)
 			view.name.Text = itemName(slot.id)
 			view.count.Text = if slot.count > 1 then tostring(slot.count) else ""
 			local maxDurability = if def then def.Durability else nil

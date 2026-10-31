@@ -21,6 +21,7 @@ local Loot = require("../src/shared/Loot")
 local DayClock = require("../src/shared/DayClock")
 local Threat = require("../src/shared/Threat")
 local BuildGrid = require("../src/shared/BuildGrid")
+local ItemIcons = require("../src/shared/ItemIcons")
 local Vitals = require("../src/shared/Vitals")
 
 local passed, failed = 0, 0
@@ -1056,6 +1057,7 @@ test("every recipe and repair is well formed", function()
 		assert(recipe.Tool == nil or Config.Items[recipe.Tool], `{id} needs an unknown tool`)
 	end
 	for id, item in Config.Items do
+		assert(ItemIcons.Glyphs[id], `{id} has no icon glyph`)
 		if item.Repair then
 			assert(item.Durability, `{id} repairs but has no durability`)
 			assert(Config.Items[item.Repair.Id], `{id} repairs with an unknown item`)

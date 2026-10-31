@@ -15,6 +15,7 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Crafting = require(Shared.Crafting)
+local ItemIcons = require(Shared.ItemIcons)
 local Localization = require(Shared.Localization)
 local Net = require(Shared.Net)
 
@@ -247,6 +248,7 @@ local function buildRow(parent: Instance, id: string, order: number)
 	swatch.Size = UDim2.fromOffset(SWATCH_SIZE, SWATCH_SIZE)
 	swatch.BackgroundColor3 = itemColor(recipe.Output)
 	swatch.Parent = frame
+	ItemIcons.apply(swatch, recipe.Output)
 
 	local textLeft = SWATCH_SIZE + 12
 	local controls = SMALL_BUTTON * 2 + COUNT_WIDTH + CRAFT_WIDTH + CONTROL_GAP * 4

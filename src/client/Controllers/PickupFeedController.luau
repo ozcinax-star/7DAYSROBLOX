@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local ItemIcons = require(Shared.ItemIcons)
 local Localization = require(Shared.Localization)
 local Net = require(Shared.Net)
 
@@ -53,6 +54,7 @@ local function newLine(id: string, color: Color3): (Frame, TextLabel)
 		swatch.BackgroundColor3 = Color3.new(item.Color[1], item.Color[2], item.Color[3])
 		swatch.BorderSizePixel = 0
 		swatch.Parent = frame
+		ItemIcons.apply(swatch, id)
 	end
 	local label = Instance.new("TextLabel")
 	label.Name = "Text"
