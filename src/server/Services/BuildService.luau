@@ -50,6 +50,8 @@ local SIZE = BC.GridSize
 -- Bars cage: post and rail thickness, slat thickness (studs).
 local BARS_THICKNESS = 0.35
 local BARS_SLAT = 0.22
+-- Frame skeleton: beam thickness (studs).
+local FRAME_BEAM = 0.3
 local TRACE_SOURCE = "Build"
 -- Zombie hit volume around its root, for keeping blocks out of zombies (Config.Melee).
 local ZOMBIE_RADIUS = Config.Melee.HitRadius
@@ -104,6 +106,46 @@ local function blockOf(instance: Instance): Block?
 	return if typeof(key) == "number" then blocks[key] else nil
 end
 
+-- A decoration piece on a block: no collision, no queries, removed when the block changes kind.
+local function decor(part: BasePart, name: string, size: Vector3, offset: CFrame, color: Color3): BasePart
+	local p = Instance.new("Part")
+	p.Name = name
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.CastShadow = false
+	p.Material = Enum.Material.Wood
+	p.Color = color
+	p.Size = size
+	p.CFrame = part.CFrame * offset
+	p:SetAttribute("Decor", true)
+	p.Parent = part
+	return p
+end
+
+-- 7DTD wood frame: twelve edge beams and a diagonal brace on each side, so the frame reads as open
+-- timber rather than a tinted box.
+local function addFrame(part: BasePart, color: Color3)
+	local half = SIZE / 2 - FRAME_BEAM / 2
+	local dark = color:Lerp(Color3.new(0, 0, 0), 0.25)
+	for _, a in { -1, 1 } do
+		for _, b in { -1, 1 } do
+			decor(part, "FrameBeam", Vector3.new(FRAME_BEAM, SIZE, FRAME_BEAM), CFrame.new(a * half, 0, b * half), color)
+			decor(part, "FrameBeam", Vector3.new(SIZE, FRAME_BEAM, FRAME_BEAM), CFrame.new(0, a * half, b * half), color)
+			decor(part, "FrameBeam", Vector3.new(FRAME_BEAM, FRAME_BEAM, SIZE), CFrame.new(a * half, b * half, 0), color)
+		end
+	end
+	local brace = math.sqrt(2) * (SIZE - FRAME_BEAM)
+	for i, side in { 1, -1 } do
+		local lean = math.rad(if i == 1 then 45 else -45)
+		decor(part, "FrameBrace", Vector3.new(FRAME_BEAM * 0.8, brace, FRAME_BEAM * 0.6),
+			CFrame.new(0, 0, side * half) * CFrame.Angles(0, 0, lean), dark)
+		decor(part, "FrameBrace", Vector3.new(FRAME_BEAM * 0.6, brace, FRAME_BEAM * 0.8),
+			CFrame.new(side * half, 0, 0) * CFrame.Angles(lean, 0, 0), dark)
+	end
+end
+
 local function styleBlock(block: Block)
 	local def = BC.Blocks[block.kind]
 	local part = block.part
@@ -111,6 +153,14 @@ local function styleBlock(block: Block)
 	part.Material = (Enum.Material :: any)[def.Material]
 	part.Color = Color3.new(def.Color[1], def.Color[2], def.Color[3])
 	part.Transparency = def.Transparency or 0
+	for _, child in part:GetChildren() do
+		if child:GetAttribute("Decor") then
+			child:Destroy()
+		end
+	end
+	if def.Frame then
+		addFrame(part, Color3.new(def.Color[1], def.Color[2], def.Color[3]))
+	end
 	part:SetAttribute("Kind", block.kind)
 	part:SetAttribute("Health", block.health)
 	part:SetAttribute("MaxHealth", def.Health)

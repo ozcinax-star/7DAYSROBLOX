@@ -78,6 +78,8 @@ export type BlockDef = {
 	Station: boolean?,
 	Bars: boolean?,
 	Trap: boolean?,
+	-- A 7DTD frame: an invisible solid box drawn as an open timber skeleton (edges and braces).
+	Frame: boolean?,
 	-- A respawn point (7DTD SleepingBag): its builder respawns on it.
 	Bed: boolean?,
 	-- How tools damage it (Config.Tools Materials); Build.HarvestMaterial when nil.
@@ -588,9 +590,10 @@ Config.Build = {
 			Upgrade = { Id = "Lumber", Count = 4 },
 			Repair = { Id = "Wood", Count = 3 },
 			Harvest = { { Id = "Wood", Min = 2, Max = 2 } },
+			Frame = true,
 			Material = "Wood",
 			Color = { 0.72, 0.56, 0.36 },
-			Transparency = 0.25,
+			Transparency = 1,
 		},
 		-- woodShapes: 500 HP, repair 3 Wood, upgrades with 10 Cobblestone Rocks.
 		WoodBlock = {
@@ -2220,6 +2223,8 @@ Config.Debug = {
 		{ Id = "IronFireaxe", Count = 1 },
 		{ Id = "IronShovel", Count = 1 },
 		{ Id = "Forge", Count = 1 },
+		{ Id = "WoodFrame", Count = 10 },
+		{ Id = "Lumber", Count = 40 },
 		{ Id = "Charcoal", Count = 20 },
 		{ Id = "ScrapIron", Count = 60 },
 		{ Id = "ForgedIron", Count = 20 },
