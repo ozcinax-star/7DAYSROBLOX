@@ -22,6 +22,7 @@ local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local InventoryService = require(script.Parent.InventoryService)
 local LootService = require(script.Parent.LootService)
 local MapService = require(script.Parent.MapService)
+local ThreatService = require(script.Parent.ThreatService)
 local ToolService = require(script.Parent.ToolService)
 local ZombieService = require(script.Parent.ZombieService)
 
@@ -90,6 +91,7 @@ local function fell(model: Model, player: Player)
 		local away = (base - root.Position) * Vector3.new(1, 0, 1)
 		local direction = if away.Magnitude > 1e-3 then away.Unit else Vector3.new(1, 0, 0)
 		fellRemote:FireAllClients(model, base, direction)
+		ThreatService.emit("TreeFall", base)
 	end
 	release(model)
 	task.delay(HC.FallSeconds + HC.FadeSeconds, model.Destroy, model)
@@ -124,6 +126,10 @@ local function onWorldHit(player: Player, result: RaycastResult, _toolId: string
 	local entry = if model and model:IsA("Model") then entries[model] else nil
 	if entry == nil then
 		return
+	end
+	-- Chopping and mining are heard (7DTD heat); cutting grass or a bush is not.
+	if entry.node.Material ~= "Earth" then
+		ThreatService.emit("Harvest", result.Position, player)
 	end
 	hit(entry, player, Harvest.blockDamage(tool.BlockDamage, tool.Materials[entry.node.Material]))
 end

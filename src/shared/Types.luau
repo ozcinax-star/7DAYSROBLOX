@@ -10,7 +10,7 @@ export type DayPhase = "Day" | "Night"
 
 export type ZombieState = "Idle" | "Wander" | "SeekSound" | "Search" | "Chase" | "AttackPlayer" | "AttackStructure"
 
-export type NoiseKind = "Gunshot" | "Sprint" | "DoorBreak" | "Generator"
+export type NoiseKind = "Gunshot" | "Sprint" | "DoorBreak" | "Generator" | "Harvest" | "TreeFall"
 
 -- A positional sound that zombies can hear. Plain numbers so pure modules stay Roblox-free.
 export type SoundPoint = {

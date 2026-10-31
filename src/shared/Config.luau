@@ -19,6 +19,9 @@ export type ItemDef = {
 
 export type ItemCount = { Id: string, Count: number }
 
+-- A noise event: points added to the Noise meter and the hearing radius of its sound point (studs).
+export type NoiseEvent = { Noise: number, Radius: number }
+
 -- A crafting recipe: Count of item Output from the ingredients. Seconds per craft when given,
 -- otherwise the ingredients' Config.Crafting.IngredientSeconds add up (7DTD).
 export type Recipe = {
@@ -101,12 +104,20 @@ Config.Threat = {
 	EarlyGameDays = 3,
 	EarlyGameMaxTier = 3,
 	-- Noise event strengths (added to the Noise meter) and hearing radii of the sound point they create (studs).
+	-- Harvest: a hit on a tree or a rock (7DTD: chopping and mining raise the heat map). TreeFall: the crash
+	-- of a felled tree.
 	Events = {
 		Gunshot = { Noise = 25, Radius = 180 },
 		Sprint = { Noise = 2, Radius = 30 },
 		DoorBreak = { Noise = 15, Radius = 120 },
 		Generator = { Noise = 4, Radius = 90 },
-	},
+		Harvest = { Noise = 1.5, Radius = 35 },
+		TreeFall = { Noise = 6, Radius = 70 },
+	} :: { [string]: NoiseEvent },
+	-- A player's events within this distance and time of their last sound point refresh that point
+	-- instead of making a new one, so steady chopping costs one zombie path, not one per hit.
+	SoundMergeDistance = 8,
+	SoundMergeSeconds = 4,
 	-- Sound points expire after this many seconds.
 	SoundPointLifetime = 20,
 	-- Server recalculation rate of the threat level (seconds).
@@ -199,10 +210,36 @@ Config.Zombie = {
 }
 
 Config.Horde = {
+	-- PLAN: a horde night brings 20 zombies per player in all; the threat tier does not change it.
 	ZombiesPerPlayer = 20,
+	-- The horde comes in this many waves, spread over the first WaveSpreadFraction of the night, so the
+	-- pressure lasts the whole night (7DTD keeps spawning until 04:00).
+	WavesPerNight = 4,
+	WaveSpreadFraction = 0.6,
 	-- Hard cap of zombies alive at once; the rest queue and arrive in waves.
 	MaxConcurrent = 120,
+	-- Seconds before queued zombies try again once the cap was reached.
 	WaveIntervalSeconds = 15,
+}
+
+-- Ambient zombie population (7DTD biome spawning): ThreatService keeps this many zombies around the
+-- living players, more at night and at higher threat tiers (PLAN: each tier raises the spawn rate).
+-- Horde nights pause it. Idle zombies farther than DespawnDistance from every player are removed and
+-- new ones spawn near the players, so the population follows them.
+Config.Population = {
+	-- Seconds between director passes.
+	Interval = 2,
+	-- PLAN budget is 60-80 zombies per server: 10 per player at night fills 60 with six players.
+	DayPerPlayer = 6,
+	NightPerPlayer = 10,
+	Max = 80,
+	-- Multiplier on the per-player count for threat tiers 1-5.
+	TierMultipliers = { 1, 1.15, 1.3, 1.45, 1.6 },
+	-- Most zombies queued or removed in one pass, so the count changes gradually.
+	MaxSpawnPerPass = 3,
+	MaxDespawnPerPass = 4,
+	-- Clients stop drawing zombies at ZombieVisual.RenderDistance (260), so a despawn is never seen.
+	DespawnDistance = 270,
 }
 
 Config.FlowField = {

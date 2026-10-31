@@ -15,6 +15,7 @@ local Harvest = require("../src/shared/Harvest")
 local Crafting = require("../src/shared/Crafting")
 local Loot = require("../src/shared/Loot")
 local DayClock = require("../src/shared/DayClock")
+local Threat = require("../src/shared/Threat")
 
 local passed, failed = 0, 0
 
@@ -942,6 +943,65 @@ test("horde nights come every n-th day", function()
 	expectEq(DayClock.isHordeDay(6, 7), false, "day 6")
 	expectEq(DayClock.isHordeDay(5, 5), true, "every 5")
 	expectEq(DayClock.isHordeDay(3, 0), false, "never")
+end)
+
+print("Threat")
+
+test("noise fades fast, trace rises at once and fades a few points a day", function()
+	local TC = Config.Threat
+	expectNear(Threat.decayNoise(100, 1), 100 * (1 - TC.Noise.DecayPerSecond), 1e-9, "one second")
+	expectNear(Threat.decayNoise(100, 0), 100, 1e-9, "no time")
+	expectNear(Threat.decayNoise(40, -3), 40, 1e-9, "negative time")
+	expectEq(Threat.addNoise(95, 20), TC.Noise.Max, "noise cap")
+	expectEq(Threat.addNoise(0, -5), 0, "never below zero")
+	expectEq(Threat.stepTrace(10, 30, 0.01), 30, "rises at once")
+	expectEq(Threat.stepTrace(30, 0, 1), 30 - TC.Trace.DecayPerDay, "one day of decay")
+	expectEq(Threat.stepTrace(30, 28, 5), 28, "never below what is built")
+	expectEq(Threat.stepTrace(0, 500, 0), TC.Trace.Max, "trace cap")
+	expectNear(Threat.level(10, 20), 10 + 20 * TC.NoiseWeight, 1e-9, "level")
+end)
+
+test("threat tiers follow the thresholds and the first days are capped", function()
+	local TC = Config.Threat
+	local late = TC.EarlyGameDays + 1
+	expectEq(Threat.tier(0, late), 1, "quiet")
+	expectEq(Threat.tier(TC.TierThresholds[2] - 0.01, late), 1, "just under tier 2")
+	expectEq(Threat.tier(TC.TierThresholds[2], late), 2, "tier 2")
+	expectEq(Threat.tier(TC.TierThresholds[5], late), 5, "tier 5")
+	expectEq(Threat.tier(500, late), 5, "above every threshold")
+	expectEq(Threat.tier(500, TC.EarlyGameDays), TC.EarlyGameMaxTier, "early game cap")
+	expectEq(Threat.tier(TC.TierThresholds[2], 1), 2, "low tiers are not changed early")
+end)
+
+test("the ambient target grows at night and with the tier, up to the cap", function()
+	local PC = Config.Population
+	expectEq(Threat.ambientTarget(0, "Night", 5), 0, "no players")
+	expectEq(Threat.ambientTarget(1, "Day", 1), PC.DayPerPlayer, "one player by day")
+	expectEq(Threat.ambientTarget(2, "Night", 1), 2 * PC.NightPerPlayer, "two players at night")
+	expectEq(Threat.ambientTarget(1, "Night", 5), math.round(PC.NightPerPlayer * PC.TierMultipliers[5]), "tier 5")
+	expectEq(Threat.ambientTarget(6, "Night", 5), PC.Max, "server cap")
+	expectEq(Threat.ambientTarget(1, "Day", 9), Threat.ambientTarget(1, "Day", 5), "tier clamped")
+end)
+
+test("a horde is 20 zombies per player in waves spread over the night", function()
+	local HC = Config.Horde
+	expectEq(#Threat.hordeWaves(0, 300), 0, "no players, no horde")
+	for _, players in { 1, 2, 3, 6 } do
+		local waves = Threat.hordeWaves(players, 300)
+		local total = 0
+		for _, wave in waves do
+			total += wave.count
+		end
+		expectEq(total, players * HC.ZombiesPerPlayer, `total for {players}`)
+		expectEq(#waves, HC.WavesPerNight, `waves for {players}`)
+		expectEq(waves[1].at, 0, "first wave at nightfall")
+		expectNear(waves[#waves].at, 300 * HC.WaveSpreadFraction, 1e-9, "last wave")
+		for index = 2, #waves do
+			if waves[index].at <= waves[index - 1].at then
+				error("waves out of order")
+			end
+		end
+	end
 end)
 
 print(`\n{passed} passed, {failed} failed`)
