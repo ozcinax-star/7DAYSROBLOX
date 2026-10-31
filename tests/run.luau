@@ -14,6 +14,7 @@ local Melee = require("../src/shared/Melee")
 local Harvest = require("../src/shared/Harvest")
 local Ballistics = require("../src/shared/Ballistics")
 local Farming = require("../src/shared/Farming")
+local Power = require("../src/shared/Power")
 local Crafting = require("../src/shared/Crafting")
 local Loot = require("../src/shared/Loot")
 local DayClock = require("../src/shared/DayClock")
@@ -857,6 +858,46 @@ test("crops ripen in two 7DTD stages and pay 2-3 produce and their seed back", f
 	assert(math.abs(slabY(-3) - h / 2) < 1e-4, "ground below: on the floor")
 	assert(math.abs(slabY(1.5) - (1.5 + h / 2)) < 1e-4, "ground inside: on the ground")
 	assert(math.abs(slabY(9) - (Config.Build.GridSize - h / 2)) < 1e-4, "kept in its cell")
+end)
+
+print("Power")
+
+test("generators burn 7DTD gas per watt and light the nearest lamps within their watts", function()
+	local PC = Config.Power
+	local day = Config.DayNight.CycleSeconds
+	expectNear(Power.burn(PC.LampWatts, day), 9, 1e-9, "a 5 W lamp burns 9 gas a day")
+	expectEq(Power.burn(0, day), 0, "no load, no gas")
+	expectEq(Power.refuel(0, 1000), PC.RefuelStep, "one step a use")
+	expectEq(Power.refuel(900.5, 1000), 99, "never past the tank")
+	expectEq(Power.refuel(0, 30), 30, "only what is carried")
+	expectEq(Power.refuel(PC.FuelCapacity, 50), 0, "full")
+
+	local sources = { { x = 0, y = 0, z = 0, watts = 10 }, { x = 100, y = 0, z = 0, watts = 50 } }
+	local lamps = {
+		{ x = 10, y = 0, z = 0 },
+		{ x = 20, y = 0, z = 0 },
+		{ x = -10, y = 0, z = 0 },
+		{ x = 90, y = 0, z = 0 },
+		{ x = 50, y = 0, z = 300 },
+	}
+	local lit = Power.assign(sources, lamps, 48, 5, 10)
+	expectEq(lit[1], 1, "nearest generator")
+	expectEq(lit[2], 1, "second lamp fits its 10 W")
+	expectEq(lit[3], nil, "out of watts, the other generator is out of reach")
+	expectEq(lit[4], 2, "the far lamp takes the far generator")
+	expectEq(lit[5], nil, "out of every radius")
+	lit = Power.assign(sources, lamps, 48, 5, 1)
+	expectEq(lit[1], 1, "first lamp lit")
+	expectEq(lit[2], nil, "world cap")
+
+	for id, def in Config.Build.Blocks do
+		if def.Generator or def.Lamp then
+			assert(def.Size and def.Placeable and Config.Items[id] and Config.Recipes[id], `{id} is a placed item`)
+		end
+	end
+	assert(Config.Items.GasCan.Fuel, "gas is fuel")
+	assert(Config.Build.Blocks.ElectricLamp.Passable, "zombies pass lamps")
+	assert(Config.Threat.GeneratorNoiseSeconds < Config.Threat.SoundMergeSeconds, "one sound point per generator")
 end)
 
 print("Crafting")

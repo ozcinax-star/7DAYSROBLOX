@@ -4,7 +4,9 @@
 -- head position and the aim). A door takes its cell and the one above, hangs on the side its builder
 -- stood on and opens and closes with the interact key; closed, it is a wall zombies path through and
 -- break, open, they walk through it (7DTD zombies never open doors). A farm plot is a low slab crops
--- grow on (FarmService); it blocks nobody. The stone axe upgrades a frame to a wood block
+-- grow on (FarmService); it blocks nobody. Generators and lamps are smaller boxes on the floor of
+-- their cell (PowerService gives them their prompt and light); lamps let zombies by. The stone axe
+-- upgrades a frame to a wood block
 -- (3 hits, 4 Lumber) and repairs damaged blocks with wood; other tools and the fist damage them.
 -- Zombies path through the weakest wall and break it (ZombieService structure cells); blocks that
 -- lose their way to the ground fall.
@@ -67,6 +69,7 @@ local groundParams: RaycastParams
 local mapOverlap: OverlapParams
 local doorLimiter: RateLimiter.RateLimiter
 local removedCallbacks: { (key: number) -> () } = {}
+local placedCallbacks: { (key: number, kind: string, part: BasePart) -> () } = {}
 
 local function setTrace()
 	ThreatService.setTraceSource(TRACE_SOURCE, count * Config.Threat.Trace.PerBuildPart)
@@ -92,10 +95,10 @@ local function styleBlock(block: Block)
 	part:SetAttribute("MaxHealth", def.Health)
 end
 
--- Ladders, open doors and farm plots let zombies through.
+-- Ladders, open doors, farm plots and lamps let zombies through.
 local function passable(block: Block): boolean
 	local def = BC.Blocks[block.kind]
-	return def.Climbable == true or def.Plot == true or block.open
+	return def.Climbable == true or def.Plot == true or def.Passable == true or block.open
 end
 
 -- Recomputes whether the column (cx, cz) blocks zombies and how costly it is to path through.
@@ -237,6 +240,9 @@ local function createBlock(cx: number, cy: number, cz: number, kind: string, gro
 	elseif def.Plot then
 		part.Size = Vector3.new(SIZE, BC.PlotHeight, SIZE)
 		part.CFrame = BuildGrid.plotCFrame(cx, cy, cz, MapService.heightAt(x, z), BC.PlotHeight)
+	elseif def.Size then
+		part.Size = Vector3.new(def.Size[1], def.Size[2], def.Size[3])
+		part.CFrame = BuildGrid.plotCFrame(cx, cy, cz, MapService.heightAt(x, z), def.Size[2])
 	else
 		part.Size = Vector3.one * SIZE
 		part.CFrame = CFrame.new(x, y, z)
@@ -285,6 +291,9 @@ local function createBlock(cx: number, cy: number, cz: number, kind: string, gro
 	count += 1
 	updateColumn(cx, cz)
 	setTrace()
+	for _, callback in placedCallbacks do
+		task.spawn(callback, key, kind, part)
+	end
 end
 
 local function insideBuilding(cx: number, cz: number): boolean
@@ -448,6 +457,20 @@ function BuildService.plotOf(instance: Instance): (number?, Vector3?)
 	end
 	local part = block.part
 	return block.key, part.Position + Vector3.new(0, part.Size.Y / 2, 0)
+end
+
+-- The key and kind of the block `instance` is, or nil.
+function BuildService.blockAt(instance: Instance): (number?, string?)
+	local block = blockOf(instance)
+	if block == nil then
+		return nil, nil
+	end
+	return block.key, block.kind
+end
+
+-- Registers a listener for placed blocks: key, kind and part.
+function BuildService.onPlaced(callback: (key: number, kind: string, part: BasePart) -> ())
+	table.insert(placedCallbacks, callback)
 end
 
 -- Registers a listener for blocks that are removed (destroyed, fallen or cleared), by block key.

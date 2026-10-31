@@ -122,6 +122,14 @@ local Strings: { [string]: { [string]: string } } = {
 		ItemPotatoSeed = "Potato Seed",
 		ItemBlueberrySeed = "Blueberry Seed",
 		ItemFarmPlot = "Farm Plot",
+		ItemGasCan = "Gas Can",
+		ItemMechanicalParts = "Mechanical Parts",
+		ItemElectricalParts = "Electrical Parts",
+		ItemGenerator = "Generator",
+		ItemElectricLamp = "Electric Lamp",
+		GeneratorTurnOn = "Turn on",
+		GeneratorTurnOff = "Turn off",
+		GeneratorStatus = "{name}  Gas {fuel}/{max}",
 		CropHarvest = "Harvest",
 
 		-- Shop signs

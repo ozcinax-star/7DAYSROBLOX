@@ -46,8 +46,9 @@ local level = 0
 local tier = 1
 local traceSources: { [string]: number } = {}
 local nextSoundId = 1
--- The last sound point each player made, refreshed while their next events stay close.
-local lastSounds: { [Player]: Types.SoundPoint } = {}
+-- The last sound point each player (or named source, like a generator) made, refreshed while their
+-- next events stay close.
+local lastSounds: { [Player | string]: Types.SoundPoint } = {}
 
 local directorEnabled = true
 local ambientCount = 0
@@ -155,16 +156,17 @@ local function endHorde()
 	ZombieService.endHorde()
 end
 
--- A noise event at `position`. Zombies in range walk to it; a player's events close in place and time
--- refresh their last sound point, so steady chopping makes one zombie path, not one per hit.
-function ThreatService.emit(kind: Types.NoiseKind, position: Vector3, player: Player?)
+-- A noise event at `position`. Zombies in range walk to it; a source's events close in place and time
+-- refresh its last sound point, so steady chopping (a player) or a running generator (its name) makes
+-- one zombie path, not one per hit.
+function ThreatService.emit(kind: Types.NoiseKind, position: Vector3, source: (Player | string)?)
 	local event = TC.Events[kind]
 	if event == nil then
 		return
 	end
 	noise = Threat.addNoise(noise, event.Noise)
 	local now = os.clock()
-	local point = if player then lastSounds[player] else nil
+	local point = if source then lastSounds[source] else nil
 	local merged = false
 	if point and now - point.createdAt <= TC.SoundMergeSeconds then
 		local dx = point.x - position.X
@@ -186,8 +188,8 @@ function ThreatService.emit(kind: Types.NoiseKind, position: Vector3, player: Pl
 			createdAt = now,
 		}
 		nextSoundId += 1
-		if player then
-			lastSounds[player] = point
+		if source then
+			lastSounds[source] = point
 		end
 	end
 	ZombieService.hearSound(point :: Types.SoundPoint)
@@ -197,6 +199,11 @@ end
 -- sum of all sources at once when it rises and fades slowly when it falls.
 function ThreatService.setTraceSource(name: string, points: number)
 	traceSources[name] = if points > 0 then points else nil
+end
+
+-- Drops a named source's last sound point (a removed generator).
+function ThreatService.forgetSource(source: string)
+	lastSounds[source] = nil
 end
 
 function ThreatService.getTier(): number

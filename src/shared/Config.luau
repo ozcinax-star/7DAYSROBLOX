@@ -26,6 +26,8 @@ export type ItemDef = {
 	Fill: string?,
 	-- A seed: the Config.Farming.Crops entry it plants on a farm plot.
 	Seed: string?,
+	-- Fuel that "use" pours into a generator (Config.Power).
+	Fuel: boolean?,
 }
 
 -- A hunger or thirst stage: reached at or below Enter (share of the max), left above Leave, and
@@ -42,7 +44,9 @@ export type NoiseEvent = { Noise: number, Radius: number }
 -- for repairs and how many of it repair the block from nothing to full. Climbable: a ladder (players
 -- climb it; zombies walk through it). Door: a panel two cells tall that opens and closes with the
 -- interact key (zombies break it when it is closed). Plot: a low farm plot slab that crops grow on;
--- it blocks nobody. Material and Color are the look.
+-- it blocks nobody. Size: a smaller box (studs) standing on the floor of its cell instead of a cube.
+-- Passable: zombies walk past it. Generator / Lamp: a generator or an electric lamp (PowerService).
+-- Material and Color are the look.
 export type BlockDef = {
 	Health: number,
 	Placeable: boolean?,
@@ -52,6 +56,10 @@ export type BlockDef = {
 	Climbable: boolean?,
 	Door: boolean?,
 	Plot: boolean?,
+	Size: { number }?,
+	Passable: boolean?,
+	Generator: boolean?,
+	Lamp: boolean?,
 	Material: string,
 	Color: { number },
 	Transparency: number?,
@@ -163,6 +171,8 @@ Config.Threat = {
 		PerBuildPart = 0.04,
 		PerLight = 1.5,
 		PerFire = 3,
+		-- A running generator (PLAN: generator power adds Trace).
+		PerGenerator = 3,
 	},
 	-- Threat = Trace + Noise * NoiseWeight.
 	NoiseWeight = 0.35,
@@ -178,7 +188,7 @@ Config.Threat = {
 		Gunshot = { Noise = 25, Radius = 180 },
 		Sprint = { Noise = 2, Radius = 30 },
 		DoorBreak = { Noise = 15, Radius = 120 },
-		Generator = { Noise = 4, Radius = 90 },
+		Generator = { Noise = 3, Radius = 90 },
 		Harvest = { Noise = 1.5, Radius = 35 },
 		TreeFall = { Noise = 6, Radius = 70 },
 	} :: { [string]: NoiseEvent },
@@ -188,6 +198,10 @@ Config.Threat = {
 	SoundMergeSeconds = 4,
 	-- Sound points expire after this many seconds.
 	SoundPointLifetime = 20,
+	-- A running generator makes its noise this often (7DTD: it is loud whenever it is on, loaded or
+	-- not). Below SoundMergeSeconds, so it keeps one sound point alive; Noise settles near
+	-- 3 / (1 - 0.95^3), about 21 (7 threat), for one generator.
+	GeneratorNoiseSeconds = 3,
 	-- Server recalculation rate of the threat level (seconds).
 	UpdateInterval = 0.5,
 }
@@ -538,6 +552,27 @@ Config.Build = {
 			Material = "Ground",
 			Color = { 0.36, 0.25, 0.16 },
 		},
+		-- generatorbank: its health is not on the wiki; ours is half a wood door, repaired with Scrap Iron.
+		Generator = {
+			Health = 500,
+			Placeable = true,
+			Repair = { Id = "ScrapIron", Count = 10 },
+			Size = { 3.2, 2.4, 2.2 },
+			Generator = true,
+			Material = "DiamondPlate",
+			Color = { 0.33, 0.4, 0.3 },
+		},
+		-- A lamp post (ours; 7DTD's bulbs hang on walls and ceilings and take wires). Zombies pass it.
+		ElectricLamp = {
+			Health = 100,
+			Placeable = true,
+			Repair = { Id = "ScrapIron", Count = 2 },
+			Size = { 0.4, 3.2, 0.4 },
+			Passable = true,
+			Lamp = true,
+			Material = "Metal",
+			Color = { 0.3, 0.3, 0.32 },
+		},
 	} :: { [string]: BlockDef },
 	-- Height of a farm plot slab (studs); crops stand on it.
 	PlotHeight = 0.8,
@@ -627,6 +662,12 @@ Config.Items = {
 	PotatoSeed = { Stack = 500, Color = { 0.6, 0.48, 0.3 }, Seed = "Potato" },
 	BlueberrySeed = { Stack = 500, Color = { 0.35, 0.4, 0.7 }, Seed = "Blueberry" },
 	FarmPlot = { Stack = 500, Color = { 0.36, 0.25, 0.16 } }, -- farmPlotBlockVariantHelper
+	-- Power (7DTD 1.0): gas fuels the generator; parts come from storage loot.
+	GasCan = { Stack = 5000, Color = { 0.75, 0.15, 0.12 }, Fuel = true }, -- ammoGasCan
+	MechanicalParts = { Stack = 500, Color = { 0.5, 0.52, 0.55 } }, -- resourceMechanicalParts
+	ElectricalParts = { Stack = 500, Color = { 0.85, 0.6, 0.2 } }, -- resourceElectricParts
+	Generator = { Stack = 10, Color = { 0.33, 0.4, 0.3 } }, -- generatorbank
+	ElectricLamp = { Stack = 100, Color = { 0.95, 0.85, 0.5 } },
 } :: { [string]: ItemDef }
 
 -- Backpack crafting (7DTD 1.0-3.2 recipes.xml). Recipes are keyed by id; Order lists them for the UI.
@@ -680,6 +721,22 @@ Config.Recipes = {
 	},
 	-- 7DTD: 10 Wood, 2 s; here 5 Lumber, the same wood.
 	WoodDoor = { Output = "WoodDoor", Count = 1, Ingredients = costs({ Lumber = 5 }), Seconds = 2 },
+	-- 7DTD generator bank: 15 Forged Iron, 15 Mechanical Parts, 21 Electrical Parts at a workbench
+	-- (1:45). We have no forge, workbench or perks, and one town instead of a county: 50 Scrap Iron
+	-- stand in for the forged iron and the parts are cut to what a sweep of the storage loot gives
+	-- (PLAN, Kararlar). The lamp is ours (7DTD bulb recipes vary and need a headlight).
+	Generator = {
+		Output = "Generator",
+		Count = 1,
+		Ingredients = costs({ ScrapIron = 50, MechanicalParts = 6, ElectricalParts = 8 }),
+		Seconds = 105,
+	},
+	ElectricLamp = {
+		Output = "ElectricLamp",
+		Count = 1,
+		Ingredients = costs({ ScrapIron = 4, ElectricalParts = 2 }),
+		Seconds = 10,
+	},
 } :: { [string]: Recipe }
 
 Config.Crafting = {
@@ -700,6 +757,8 @@ Config.Crafting = {
 		"CornSeed",
 		"PotatoSeed",
 		"BlueberrySeed",
+		"Generator",
+		"ElectricLamp",
 	},
 	-- 7DTD: a 4-slot queue; only the first slot works at a time.
 	QueueSlots = 4,
@@ -849,6 +908,35 @@ end
 
 -- Gathering. Health and drops follow 7DTD 1.0-3.2 blocks.xml (block names in the comments); see
 -- docs/REFERENCE_7DTD.md, Part B sections 0-3.
+-- Power (7DTD 1.0 generator bank and lights, without wires: PLAN keeps the wire network for later).
+-- A running generator lights the lamps within PowerRadius up to its watts, each lamp from one
+-- generator. Fuel burns only for the watts in use: 7DTD's 1.8 gas per watt per real hour against its
+-- 60-minute day becomes 1.8 per watt per in-game day here (as Config.Farming). One lamp burns
+-- 9 gas a day; a sweep of storage loot runs four lamps for about 3.5 days, so a base on a budget
+-- turns its generator off by day.
+Config.Power = {
+	-- One engine's worth (7DTD: 50 W per engine, up to 6; we have no engines yet).
+	GeneratorWatts = 50,
+	-- 7DTD basic light bulb: 5 W (the wiki lists 3-10 W for its lights).
+	LampWatts = 5,
+	FuelCapacity = 1000,
+	FuelPerWattDay = 1.8,
+	-- Gas one use pours in (7DTD: up to 250 per refuel press).
+	RefuelStep = 250,
+	PowerRadius = 48,
+	-- Most lit lamps in the world (phone light budget, PLAN).
+	MaxLitLamps = 40,
+	-- Server check rate (seconds).
+	CheckSeconds = 1,
+	-- On / off prompt: hold time, reach (studs) and toggles per second per player.
+	PromptReach = 8,
+	TogglesPerSecond = 4,
+	-- Lamp light (studs, brightness, colour 0-1 RGB). No shadows: phone budget.
+	LightRange = 20,
+	LightBrightness = 1.4,
+	LightColor = { 1, 0.85, 0.65 },
+}
+
 Config.Harvest = {
 	-- 7DTD oreWoodHarvest: the Harvest drops a tool's HarvestShare applies to. Plant fibre is paid in
 	-- full, and so are Destroy drops (untagged in 7DTD).
@@ -1076,6 +1164,11 @@ Config.Loot = {
 				{ Id = "StoneAxe", Min = 1, Max = 1, Weight = 0.5 },
 				{ Id = "StoneShovel", Min = 1, Max = 1, Weight = 0.5 },
 				{ Id = "StonePickaxe", Min = 1, Max = 1, Weight = 0.5 },
+				-- Power: the 48 storage pieces (24 rolling twice in metal buildings) give about 13 of
+				-- each part and 130 gas per sweep.
+				{ Id = "MechanicalParts", Min = 1, Max = 3, Weight = 2 },
+				{ Id = "ElectricalParts", Min = 1, Max = 3, Weight = 2 },
+				{ Id = "GasCan", Min = 10, Max = 30, Weight = 2 },
 			},
 		},
 	} :: { [string]: ContainerDef },
@@ -1243,6 +1336,9 @@ Config.Debug = {
 		{ Id = "FarmPlot", Count = 4 },
 		{ Id = "CornSeed", Count = 2 },
 		{ Id = "PotatoSeed", Count = 2 },
+		{ Id = "Generator", Count = 1 },
+		{ Id = "ElectricLamp", Count = 4 },
+		{ Id = "GasCan", Count = 300 },
 		{ Id = "Wood", Count = 50 },
 		{ Id = "SmallStone", Count = 20 },
 		{ Id = "PlantFiber", Count = 20 },

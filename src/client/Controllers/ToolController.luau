@@ -242,9 +242,9 @@ local function trySwing(source: Source)
 	end
 	local held = InventoryController.getHeld()
 	local item = held and Config.Items[held.id]
-	if held and (Config.Build.Blocks[held.id] or (item and (item.Fill or item.Seed))) then
-		-- A block, dirt or a seed in the hand is placed, not swung (BuildController shows where a block
-		-- goes).
+	if held and (Config.Build.Blocks[held.id] or (item and (item.Fill or item.Seed or item.Fuel))) then
+		-- A block, dirt, a seed or gas in the hand is placed or poured, not swung (BuildController shows
+		-- where a block goes).
 		sendUse(now, Config.Build.PlaceCooldown)
 		return
 	end
