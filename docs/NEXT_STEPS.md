@@ -33,6 +33,7 @@ Yol haritası notu ve Kararlar tablosu).
 | Boru tabanca | Bitti: 9 mm, şarjör 6, doldurma, sapma, atış gürültüsü; tutkal kamp ateşinde kemikten |
 | Boru tüfek, pompalı, makineli ve nişan | Bitti: 7DTD 3.2 sayıları, pompalıda 10 saçma, makinelide basılı tutunca otomatik atış; nişan sağ tık / L2 / dokunmatik "Aim" |
 | Tahta parmaklık | Bitti: 3 kereste, 300 can; zombiyi durdurur, mermi / ok / mızrak içinden geçer |
+| Kırık taş kademesi | Bitti: ahşap blok + 10 kırık taş → 1500 can; kırık taş 1 kil + 1 taş. Beton kademesi (çimento karıştırıcı) yok |
 | Tahta kazık tuzağı | Bitti: 20 odun; zombiye saniyede 33 hasar, hızını 0,18'e düşürür, 12 vuruşta kırılır |
 | Mobilya kırma | Bitti: 30 tür kasaba mobilyası 7DTD canı ve düşüşleriyle kırılır; kap içindekini döker; pencere camı tek vuruşta kırılır |
 | Tarım | Bitti: tarla, 3 ekin, büyüme, hasat, tohum geri |
@@ -331,6 +332,15 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Vuruş sıklığı:** 7DTD'nin değme başına hasar sıklığı XML'de yok; saniyede bir bizim.
 - **Kırılınca odun:** 7DTD kırılınca 2–6 odun düşürür; BuildService kırılan bloktan düşüş vermiyor.
 - **Demir kazık:** 4 dövme demirle yükseltme (dövme demir yok).
+
+### 20c. Kırık taş kademesi (bitti, 31 Ekim)
+
+`8b79d1a`. Kalanlar:
+- **Zombi yol maliyeti:** `BuildGrid.pathCost` 500 canda zaten tavana (`StructureCellCost` 8) vuruyor;
+  ahşap blok, kapı ve kırık taş yol bulmada aynı pahalılıkta. Zombi sütundaki en zayıf bloğa vurur ama
+  komşu sütunlardaki daha zayıf duvarı tercih etmez. Tavanı yükseltmek tüm yol bulmayı etkiler; ayrı adım.
+- **Beton:** 10 beton karışımı + çimento karıştırıcı (istasyon yok).
+- **Kırılınca düşüş:** 7DTD kırık taş bloktan kil ve taş verir; bloklar düşüş vermiyor.
 
 ### 21. Mobilya kırma (bitti, 31 Ekim)
 
