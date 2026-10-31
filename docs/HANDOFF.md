@@ -208,6 +208,13 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 | `499eb61` | `DigService`: araziye vuruş 4 stud'luk sütunun tepesinden bir voksel kazar; 7DTD can ve verimi (`Config.Dig`); kil ve kırık kum eşyaları; sütun yan komşusundan en çok 2 voksel aşağı iner; yasak yerler; kazının gerçek yüzeyi yükseklik ızgarasına döner, `MapService` çukur çevresinde yüksekliği ışınla okur; 12 stud altında kaya katmanı (1 test) |
 | `858d355` | Dirt (16 kil, 3 sn): kazılmış sütunu bir voksel doldurur, yalnızca eski yüksekliğine kadar; içinde oyuncu ya da zombi varken reddedilir |
 
+### 14. Bölüm: kapı ve takılan zombiler (1 Kasım)
+
+| Commit | Ne yapıldı |
+| --- | --- |
+| `3a803a8` | Zombinin yol ofseti (`SpreadRadius` 2,5) yol noktasının hücresinde tutulur (kenara 0,25 stud). Yarım hücreden büyük ofset hedefi zombinin kendi hücresine düşürüyordu; zombi oraya varıp sonsuza dek duruyordu. 80 kovalayan zombinin 10'u takılıyordu, düzeltmeden sonra hiçbiri |
+| `f84534b` | Ahşap kapı (7DTD: 1000 can, 2 hücre; 5 kereste, 2 sn): kuranın durduğu yüze asılır, etkileşim tuşuyla kendi hücresine doğru açılır; açıkken zombi geçer, kapalıyken duvardır; kapı aralığında oyuncu ya da zombi varken kapanmaz; `BuildGrid.sideToward`, `doorCFrame` (1 test) |
+
 ## Mevcut durum
 
 | Alan | Durum |
@@ -221,7 +228,7 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 | Gündüz-gece (`DayNightService` + `Shared/DayClock`) | Çalışıyor. Döngü 11 dk, %60 gündüz (06:00–18:30), kalanı uzun gece. Dünya 1. gün 08:00'de başlar. Sunucu yalnızca 1. günün şafağının sunucu saatini ve horde aralığını ReplicatedStorage özelliği olarak yayar; istemci saati her karede kendisi hesaplar. Her 7. gece horde gecesi (`HordeNightDefault`; lobi seçimi gelince 5–10). API: `getState`, `isNight`, `isHordeNight`, `onPhaseChanged(faz, gün, horde)`, `skipPhase` (debug). Zombiler gece 1,1 sn'de, gündüz 1,5 sn'de vurur (7DTD). İstemci: `DayNightController` güneşi, parlaklığı ve ortam ışığını saate göre ayarlar; sağ üstte "Day N  HH:MM" (horde gününde kırmızı) ve horde gecesinde "Horde night" etiketi ile kızıl ton. |
 | Tehdit ve nüfus (`ThreatService` + `Shared/Threat`) | Çalışıyor. Gürültü saniyede %5 söner; İz kaynakların toplamına hemen çıkar, düşünce günde 3 puan iner (kaynak henüz yok; `setTraceSource` inşa adımını bekliyor). Tehdit = İz + Gürültü × 0,35; 5 kademe (0/20/40/60/80); ilk 3 günde en fazla 3. Ağaca ve kayaya vuruş 1,5 gürültü ve 35 stud'luk ses, devrilen ağaç 6 / 70 stud; aynı oyuncunun 8 stud ve 4 sn içindeki vuruşları aynı ses noktasını tazeler. Ortam nüfusu: canlı oyuncu başına gündüz 6, gece 10 zombi, kademe çarpanı 1–1,6, en fazla 80; 2 sn'de bir en fazla 3 kuyruğa alınır, her oyuncudan 270 stud'dan uzak boştaki zombiler 4'er silinir (istemci 260'ta çizmeyi bırakır). Horde gecesi: oyuncu başına 20 zombi, gecenin ilk %60'ına yayılan 4 dalga; ortam spawn'ı durur; şafakta kalanlar sıradan zombiye döner. Oyuncu tehdidi görmez; yalnızca debug paneli. API: `emit(tür, konum, oyuncu?)`, `setTraceSource`, `getTier`, `setDirectorEnabled`, `getStats`. |
 | Hayatta kalma (`SurvivalService` + `Shared/Vitals`) | Çalışıyor. Can (Humanoid), dayanıklılık, yemek, su; hepsi 100 ve sunucuda. Her 0,5 sn: yemek oyun günü başına 30, su 40 düşer; dayanıklılık saniyede 10 dolar (su bandı: su ≥%50 ×1, ≥%25 ×0,5, altı ×0,25, 0'da hiç), dolan her puan 0,00408 yemek ve 0,00453 su yer; doğal can günde 60 (×su bandı), iyileşen her can 0,06 su. Açlık / susuzluk kademeleri %50 / %25 / %2'de (çıkış %52 / %27 / %4), her biri dayanıklılığın %20 / %40 / %60'ını bloklar ve ikisi toplanır (taban 10). Son kademede 2,2 sn'de 0,25 can (ikisi toplanır, gerçek zaman), doğal iyileşme yok. Vuruş aletin dayanıklılığını ister ve harcar. Koşma: Shift basılı, gamepad L3 veya dokunmatikte Run düğmesi aç/kapa; sunucu WalkSpeed 24 yapar, hareket ederken saniyede 4,5 düşer, 0'da biter, ancak 25'te yeniden başlar; 2 sn'de bir Sprint gürültüsü. Zıplama 20 (sunucu kökün yükselişinden sayar). Elde yiyecek / içecek / ilaç "use" ile kullanılır (1 sn): yemek saniyede 1 girer, can 0,5/sn (bandaj 2/sn). Boş el göl suyuna "use": +10 su, −5 can. Ölünce taşınan her ham kaynağın (odun, küçük taş, lif, hurda demir, kumaş) yarısı 5 dk'lık torbaya düşer, istatistikler doğunca dolu. Oyuncu öznitelikleri: `Stamina`, `StaminaCap`, `Food`, `Water`, `Hunger`, `Thirst`. Debug: `SetFood`, `SetWater`. |
-| İnşa (`BuildService` + `Shared/BuildGrid`) | Çalışıyor. 4 stud'luk küp ızgara; sütunları yol bulma ızgarasıyla aynı. Elde Wood Frame veya Wood Ladder varken "use" (sol tık, R2, Hit) bloğu koyar: sunucu baştan nişan yönünde 24 stud ışın atar, vurduğu bloğun yanına ya da yüzeyin hemen üstündeki hücreye koyar (zeminde blok toprağa en fazla bir hücre gömülür, havada durmaz). Ret: dolu hücre, harita parçası (duvar, ağaç, tabela), karakter veya zombi içinde, su, oynanmaz alan, kasaba binası tabanı, 2000 blok, zemin ya da komşu blok desteği yok. Taş balta bloğa vurunca hasar vermez: hasarlıysa vuruş başına 100 can tamir eder (7DTD'nin tam tamir için 3 odununun payı, yukarı yuvarlanmış), çerçeveyi 3 vuruşta 4 keresteyle ahşap bloğa çevirir. Diğer aletler ahşap çarpanıyla hasar verir. Yere bağlantısı kopan bloklar düşer (7DTD yapısal destek, yatay açıklık sınırı yok). Zombiyi engelleyen sütun (zeminden 2 ile 6 stud arası) yol bulmada blok canına göre 2–8 maliyetli hücre olur; kovalayan ya da sese giden zombi önündeki en zayıf bloğa 7 hasar vurur (1,5 / gece 1,1 sn). Merdiven `TrussPart`: oyuncu tırmanır, zombiyi engellemez. Bloklar zombi görüşünü keser, loot torbası üstlerine düşer, her blok İz'e 0,04 ekler. Kayıt yok. API: `getCount`, `clear` (debug). |
+| İnşa (`BuildService` + `Shared/BuildGrid`) | Çalışıyor. 4 stud'luk küp ızgara; sütunları yol bulma ızgarasıyla aynı. Elde Wood Frame, Wood Ladder veya Wood Door varken "use" (sol tık, R2, Hit) bloğu koyar: sunucu baştan nişan yönünde 24 stud ışın atar, vurduğu bloğun yanına ya da yüzeyin hemen üstündeki hücreye koyar (zeminde blok toprağa en fazla bir hücre gömülür, havada durmaz). Ret: dolu hücre, harita parçası (duvar, ağaç, tabela), karakter veya zombi içinde, su, oynanmaz alan, kasaba binası tabanı, 2000 blok, zemin ya da komşu blok desteği yok. Taş balta bloğa vurunca hasar vermez: hasarlıysa vuruş başına 100 can tamir eder (7DTD'nin tam tamir için 3 odununun payı, yukarı yuvarlanmış), çerçeveyi 3 vuruşta 4 keresteyle ahşap bloğa çevirir. Diğer aletler ahşap çarpanıyla hasar verir. Yere bağlantısı kopan bloklar düşer (7DTD yapısal destek, yatay açıklık sınırı yok). Zombiyi engelleyen sütun (zeminden 2 ile 6 stud arası) yol bulmada blok canına göre 2–8 maliyetli hücre olur; kovalayan ya da sese giden zombi önündeki en zayıf bloğa 7 hasar vurur (1,5 / gece 1,1 sn). Merdiven `TrussPart`: oyuncu tırmanır, zombiyi engellemez. Kapı (1000 can) iki hücre tutar (üst hücre boş olmalı), 0,35 stud kalınlığında bir panel: kuranın durduğu yüze asılır, `ProximityPrompt` (Open / Close) ile hücresinin içine 90° döner. Sunucu canlı karakteri, 8 + 4 stud mesafeyi ve saniyede 4 aç/kapa sınırını denetler; aralıkta karakter ya da zombi varken kapatmaz. Açık kapı yol bulmada boş hücre sayılır ve zombi vuruşu onu atlar; kapalı kapı 1000 canlı duvardır, bu yüzden zombi genellikle yanındaki daha zayıf bloğu kırar. Zombi kapı açmaz (7DTD). Kilit yok. Bloklar zombi görüşünü keser, loot torbası üstlerine düşer, her blok İz'e 0,04 ekler. Kayıt yok. API: `getCount`, `clear` (debug). |
 | Kamera (omuz/FPS) | **Yok.** Localization anahtarları (`CameraShoulder`, `CameraFirstPerson`) ve `Config.Camera` hazır. |
 | Vuruş (`ToolService` + `Shared/Melee`) | Çalışıyor. İstemci yalnızca nişan yönünü yollar. Sunucu: birim vektör, hız sınırı (4/sn), aletin 7DTD aralığı (60/APM + 0,1 sn, %12 tolerans), hedefi kendi baş konumundan seçer: menzildeki en yakın zombi (silindir + baktığı yöne eğik kafa küresi), arada duvar varsa vurmaz. Hasar 7DTD: yumruk 5, taş balta 6, taş kürek 9, taş kazma 7; kafaya ×2. Alet yalnızca isabette 1 aşınır; 0'da kullanılamaz. Dünyaya isabet `onWorldHit` dinleyicilerine gider (toplama). Oyunculara vuruş yok (PvP lobi seçeneği gelince). |
 | Toplama (`HarvestService` + `Shared/Harvest`) | Çalışıyor. 7DTD formülü: verimin üçte ikisi nesnenin toplam hasarıyla orantılı olarak vuruşlarda, üçte biri kıran vuruşta; iyi alet yalnızca hızlandırır. Hasar = aletin blok hasarı × malzeme çarpanı, tam sayıya kesilir, en az 1. Aynı nesneye vuran herkes aynı hasarı paylaşır. Ağaç: 300/30, 600/70, 900/110, 1200/150 (can/odun, boy ölçeğe göre). Çalı 1–3 odun, ot 2 lif, yerdeki taş 1 taş (E ile de alınır), kaya 400 can / 22 taş. Devrilen ağaç çarpışmayı hemen bırakır, altındaki yol hücreleri açılır, 3,5 sn sonra silinir. Hiçbir şey yeniden çıkmaz (7DTD). Sığmayan eşya kaybolur ve kırmızı satırla bildirilir (loot torbası gelince yere düşecek). |
@@ -235,8 +242,8 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 
 Ölçümler 30–31 Ekim 2026'da PC'de, Studio içinde alındı. Telefonda ölçüm yok.
 
-- **Testler:** 60/60 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
-  Inventory 6, Melee 5, Harvest 5, Crafting 6, Loot 3, DayClock 2, Threat 4, BuildGrid 3, Vitals 4).
+- **Testler:** 61/61 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
+  Inventory 6, Melee 5, Harvest 5, Crafting 6, Loot 3, DayClock 2, Threat 4, BuildGrid 4, Vitals 4).
   Testler yalnızca Studio düzeneğiyle çalıştırıldı; Lune ile hiç çalıştırılmadı.
 - **Zombi performansı:** 80 zombiyle tick ortalaması 0,04–0,17 ms, en kötü tick genelde 1,3–1,8 ms
   (bir kez 3,9 ms). Zombi başına 17 parça.
@@ -383,6 +390,16 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
   - Dirt: 2 kazıdan 44 kil, 2 Dirt üretildi; çukurun içinde dururken doldurma reddedildi; 8 stud
     yandan iki doldurmayla −8 → 0 (yüzey 0,00); eski yüksekliğin üstüne ve kazılmamış zemine
     doldurma reddedildi. Üretim panelinde Dirt satırı kaydırınca görünüyor.
+- **Kapı (Play, 1 Kasım):**
+  - Kapı 4 × 8 × 0,35 panel olarak kuruldu; Open / Close paneli açık konuma döndürüp geri getirdi;
+    aralıkta dururken Close reddedildi; kapalı kapıya yürüyen oyuncu panelin önünde durdu.
+  - 14 çerçeve + kapıdan 3×3 çit, oyuncu içinde, 1 zombi ve her saniye Noise: kapı açıkken zombi
+    28. saniyede kapıdan girdi, hiçbir blok hasar almadı. Kapı kapalıyken zombi kapıya dokunmadı
+    (1000 / 1000), doğudaki çerçeveyi kırdı (üstteki de düştü) ve 66. saniyede içeri girdi.
+- **Takılan zombiler (Play, 1 Kasım):** açık arazide 80 zombi ve 40 sn Noise sonrası 8 sn içinde
+  0,3 stud'dan az kımıldayan kovalayan / sese giden zombi: düzeltmeden önce 10 (biri oyuncudan
+  30 stud uzakta, yalnızca bir eksende kayarak), sonra 2 (ikisi de oyuncunun 5,4 stud yakınındaki
+  kalabalıkta); oyuncuya ulaşan 63 → 72.
 - **Konsol:** Sunucu ve istemcide 0 uyarı, 0 hata.
 
 ## Teknik notlar
@@ -449,7 +466,7 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
    local src = Http:GetAsync("http://127.0.0.1:8765/Harness.luau", true)
    Http.HttpEnabled = was
    local H = loadstring(src)()
-   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "60 passed, 0 failed"
+   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "61 passed, 0 failed"
    ```
    Düzenek place'e hiçbir şey bırakmaz.
 3. Her kod değişikliğinden sonra adım 1'deki bundle komutunu tekrar çalıştır, sonra `H.sync()`.

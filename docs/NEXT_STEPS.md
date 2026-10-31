@@ -27,7 +27,8 @@ Yol haritası notu ve Kararlar tablosu).
 | Hayatta kalma | Bitti: dayanıklılık, yemek, su, kademeler, koşma, zıplama, konserve / su / bandaj, gölden içme, ölüm torbası, HUD |
 | Bina kapları | Bitti: 174 aranabilir mobilya, ortak, 7 günde yeniden dolar |
 | Kazı | Bitti: 7DTD can ve verimi, kil / kırık kum / taş, adım kuralı, Dirt ile doldurma |
-| Kapı, silahlar, tarım | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
+| Ahşap kapı | Bitti: 1000 can, aç/kapa, açıkken zombi geçer, kapalıyken duvar |
+| Silahlar, tarım, jeneratör | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
 | Kapı 1: 80 zombiyle orta seviye telefonda 30 FPS | **Ölçülmedi**; kullanıcı erteledi |
 | Kapı 2: 3 kişilik test grubu "bir gece daha" diyor | Henüz yapılamaz |
 
@@ -127,7 +128,9 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 ### 8. İnşa (bitti, 31 Ekim)
 
 `c95e07a`, `7574e5f`, `123b9d8`. Kalanlar:
-- **Kapı:** 7DTD ahşap kapı 1000 can, 10 odun, 1×2 blok; aç/kapa ve kapalıyken zombi kırar.
+- **Kapı (bitti, 1 Kasım, `f84534b`):** kalanlar: kilit ve sahiplik yok (7DTD'de kilitli kapıyı
+  yalnızca sahibi ve arkadaşları açar); açılma / kapanma sesi ve kırılma gürültüsü yok; demir kapı,
+  kapak (hatch) ve garaj kapısı yok; kapı taş baltayla yükseltilmez.
 - **Taş kademesi:** ahşap blok → kırık taş (10 Cobblestone, 1500 can); taş ocağı / betonarme
   zinciri gelince.
 - **Şekiller:** yalnızca küp. 7DTD'de rampa, yarım blok, merdiven basamağı ve plaka var.

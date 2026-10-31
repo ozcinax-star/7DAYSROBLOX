@@ -53,6 +53,7 @@ Bu dosya PLAN.md'deki kapsam kuralının istediği referanstır: ana referans 7 
 | Göl suyu | El "Drink": +10 su, −5 can, %12 dizanteri | +10 su, −5 can; dizanteri yok | Dizanteri sonra |
 | Zombi torbasında içecek | Meyve suyu, çay, kahve, bira; düz su yok | Şişe su ve bulanık su | O içecekler yok |
 | Bandaj | Düz bandaj 0 can (yalnızca kanama); ilk yardım bandajı 30 can / 15 sn | Yalnızca ilk yardım bandajı, torbadan | Kanama yok |
+| Ahşap kapı | 10 odun, 2 sn, 1000 can; kilitlenir | 5 kereste (aynı odun), kilit yok | PLAN Kararlar: kapı |
 | Kazı | Her arazi bloğu (1 m) kazılır, tünel açılır; asfalt 1500 can; ana kaya 3 katman; Dirt her yere konur | 4 stud'luk sütun tepesi, tünel yok, en çok 2 voksel adım, asfalt kazılmaz, Dirt yalnızca kazılan yeri doldurur | PLAN Kararlar: kazı |
 | Bina kapları | POI kapları (dolap, buzdolabı, soğutucu, ilaç dolabı, çöp…), çoğunlukla çöp ve bozuk yemek; LootRespawnDays sunucu ayarı | 6 kap türü, sade eşya tabloları, yemek daha bol, 7 günde yeniden | PLAN Kararlar: bina kapları |
 | Ot ve yerdeki taş | Biyoma göre her yerde blok | 26 stud'luk orman hücrelerinde şansla; kasabada ot var, taş ve kaya yok | Parça sayısı; PLAN: kasabada kaya yok |
