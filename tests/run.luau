@@ -742,6 +742,32 @@ test("every node, tree size and tool is well formed", function()
 	end
 end)
 
+test("a dug voxel pays 7DTD's yield and the shovel digs earth fastest", function()
+	local Dig = Config.Dig.Materials
+	local _, shovelHits = chop(Dig.Ground, toolDamage("StoneShovel", "Earth"))
+	expectEq(shovelHits, 6, "stone shovel digs dirt in 6 hits")
+	local _, pickHits = chop(Dig.Ground, toolDamage("StonePickaxe", "Earth"))
+	expectEq(pickHits, 40, "stone pickaxe needs 40")
+	local _, stoneHits = chop(Dig.Rock, toolDamage("StonePickaxe", "Stone"))
+	expectEq(stoneHits, 20, "stone pickaxe digs stone in 20")
+	for name, node in Dig do
+		assert(node.Health >= 1, `{name} health`)
+		for _, d in node.Harvest do
+			assert(Config.Items[d.Id], `{name} drops unknown item {d.Id}`)
+			local total = 0
+			local done = 0
+			while done < node.Health do
+				local after = math.min(node.Health, done + toolDamage("StoneShovel", node.Material))
+				total += Harvest.payout(d.Max, node.Health, done, after)
+				done = after
+			end
+			expectEq(total, d.Max, `{name} pays all its {d.Id}`)
+		end
+	end
+	expectEq(Dig.Asphalt, nil, "roads cannot be dug")
+	expectEq(Dig.Water, nil, "water cannot be dug")
+end)
+
 print("Crafting")
 
 local Recipes = Config.Recipes

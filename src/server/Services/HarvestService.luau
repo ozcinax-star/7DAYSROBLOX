@@ -19,7 +19,6 @@ local Net = require(Shared.Net)
 local Types = require(Shared.Types)
 
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
-local InventoryService = require(script.Parent.InventoryService)
 local LootService = require(script.Parent.LootService)
 local MapService = require(script.Parent.MapService)
 local ThreatService = require(script.Parent.ThreatService)
@@ -55,15 +54,7 @@ local function roll(drop: Config.Drop): number
 end
 
 local function give(player: Player, id: string, count: number)
-	if count <= 0 then
-		return
-	end
-	local left = InventoryService.give(player, id, count, SOURCE)
-	local character = player.Character
-	local root = character and character.PrimaryPart
-	if left > 0 and root then
-		LootService.drop(root.Position, { { id = id, count = left, source = SOURCE } }, true)
-	end
+	LootService.giveOrDrop(player, id, count, SOURCE)
 end
 
 -- Stops every part of the model colliding and catching raycasts, then frees the navigation cells it

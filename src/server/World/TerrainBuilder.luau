@@ -14,8 +14,10 @@ local TerrainBuilder = {}
 local VOXEL = 4
 -- Voxel columns per WriteVoxels call (per axis).
 local CHUNK = 64
--- Below the surface layer the ground is plain dirt (rock in the mountains).
+-- Below the surface layer the ground is plain dirt (rock in the mountains), and rock deeper than
+-- ROCK_DEPTH under the surface (7DTD: forest ground, 3 dirt, then stone).
 local SURFACE_DEPTH = 4
+local ROCK_DEPTH = 12
 -- Measured in Studio: a solid column whose topmost non-empty voxel starts at b with occupancy o is
 -- meshed with its surface at b + 2 + 4 * o, so solid occupancy is computed against h - 2. Water has no
 -- such offset (surface = b + 4 * o).
@@ -118,7 +120,10 @@ function TerrainBuilder.build(grid: HeightGrid)
 						local voxelBottom = y0 + (iy - 1) * VOXEL
 						local fill = math.clamp((h - SOLID_SURFACE_OFFSET - voxelBottom) / VOXEL, 0, 1)
 						if fill > 0 then
-							matX[iy][iz] = if voxelBottom + VOXEL >= h - SURFACE_DEPTH then surface else under
+							matX[iy][iz] = if voxelBottom + VOXEL >= h - SURFACE_DEPTH
+								then surface
+								elseif voxelBottom + VOXEL <= h - ROCK_DEPTH then rockMaterial
+								else under
 							occX[iy][iz] = fill
 						end
 						if water and fill < 0.5 and voxelBottom < waterLevel then
@@ -138,6 +143,66 @@ function TerrainBuilder.build(grid: HeightGrid)
 			task.wait()
 		end
 	end
+end
+
+-- Lowest surface height a column may have with `layers` whole voxels left above the terrain bottom.
+function TerrainBuilder.floorHeight(layers: number): number
+	return math.floor(WorldLayout.TerrainBottom / VOXEL) * VOXEL + layers * VOXEL + SOLID_SURFACE_OFFSET
+end
+
+-- Centre (x, z) of column `index`.
+function TerrainBuilder.columnCentre(grid: HeightGrid, index: number): (number, number)
+	local cx, cz = index % grid.columns, index // grid.columns
+	return (cx + 0.5) * VOXEL - grid.half, (cz + 0.5) * VOXEL - grid.half
+end
+
+-- Rewrites the voxels of dry column `index` so its surface moves from `from` to `to`. Voxels keep their
+-- material; voxels that fill up from air take `fillMaterial`. Returns the material now on top. The
+-- grid's walking height is left to the caller: Roblox rounds narrow holes off, so the surface it
+-- meshes is not always the voxel height.
+function TerrainBuilder.writeColumn(
+	grid: HeightGrid,
+	index: number,
+	from: number,
+	to: number,
+	fillMaterial: Enum.Material
+): Enum.Material
+	local terrain = Workspace.Terrain
+	local x, z = TerrainBuilder.columnCentre(grid, index)
+	local y0 = math.floor(WorldLayout.TerrainBottom / VOXEL) * VOXEL
+	local layers = math.ceil((math.max(from, to) - y0) / VOXEL) + 1
+	local minCorner = Vector3.new(x - VOXEL / 2, y0, z - VOXEL / 2)
+	local region = Region3.new(minCorner, minCorner + Vector3.new(VOXEL, layers * VOXEL, VOXEL))
+	local materials, occupancy = terrain:ReadVoxels(region, VOXEL)
+	local airMaterial = Enum.Material.Air
+	local top = fillMaterial
+	for iy = 1, layers do
+		local voxelBottom = y0 + (iy - 1) * VOXEL
+		local fill = math.clamp((to - SOLID_SURFACE_OFFSET - voxelBottom) / VOXEL, 0, 1)
+		if fill > 0 then
+			if materials[1][iy][1] == airMaterial then
+				materials[1][iy][1] = fillMaterial
+			end
+			occupancy[1][iy][1] = fill
+			top = materials[1][iy][1]
+		else
+			materials[1][iy][1] = airMaterial
+			occupancy[1][iy][1] = 0
+		end
+	end
+	terrain:WriteVoxels(region, VOXEL, materials, occupancy)
+	grid.surfaces[index + 1] = top.Name
+	return top
+end
+
+-- Walking height of column `index`.
+function TerrainBuilder.heightOf(grid: HeightGrid, index: number): number
+	return buffer.readf32(grid.heights, index * 4)
+end
+
+-- Sets the walking height of column `index` (MapService.heightAt and the zombies follow it).
+function TerrainBuilder.setHeight(grid: HeightGrid, index: number, height: number)
+	buffer.writef32(grid.heights, index * 4, height)
 end
 
 -- Index of the 4-stud column containing (x, z), or nil outside the grid.

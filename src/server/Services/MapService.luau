@@ -59,6 +59,10 @@ local mapFolder: Folder? = nil
 local heightGrid: TerrainBuilder.HeightGrid? = nil
 -- Ground-floor walking height per height-grid column inside building footprints.
 local floorTops: { [number]: number } = {}
+-- Columns where the meshed terrain is not the grid's bilinear surface (around dug holes, which Roblox
+-- rounds off): heights there come from a ray at the point itself.
+local rough: { [number]: boolean } = {}
+local roughParams: RaycastParams? = nil
 local ready = false
 
 type Circle = { x: number, z: number, radius: number }
@@ -101,13 +105,34 @@ end
 
 -- Terrain height at (x, z).
 function MapService.heightAt(x: number, z: number): number
-	return TerrainBuilder.heightAt(assert(heightGrid, "MapService not initialized"), x, z)
+	local grid = assert(heightGrid, "MapService not initialized")
+	local height = TerrainBuilder.heightAt(grid, x, z)
+	local column = TerrainBuilder.columnAt(grid, x, z)
+	if column and rough[column] and roughParams then
+		local reach = Config.Dig.RoughRayReach
+		local hit = Workspace:Raycast(Vector3.new(x, height + reach, z), Vector3.new(0, -reach * 2, 0), roughParams)
+		if hit then
+			return hit.Position.Y
+		end
+	end
+	return height
+end
+
+-- Marks column `index` as one whose surface the height grid no longer describes (DigService).
+function MapService.markRough(index: number)
+	if roughParams == nil then
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Include
+		params.FilterDescendantsInstances = { Workspace.Terrain }
+		roughParams = params
+	end
+	rough[index] = true
 end
 
 -- Walking height at (x, z): the terrain, or a building's ground floor where one stands.
 function MapService.groundAt(x: number, z: number): number
 	local grid = assert(heightGrid, "MapService not initialized")
-	local ground = TerrainBuilder.heightAt(grid, x, z)
+	local ground = MapService.heightAt(x, z)
 	local column = TerrainBuilder.columnAt(grid, x, z)
 	local floorTop = if column then floorTops[column] else nil
 	if floorTop and floorTop > ground then

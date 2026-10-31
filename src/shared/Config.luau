@@ -514,6 +514,8 @@ Config.Items = {
 	PlantFiber = { Stack = 6000, Color = { 0.55, 0.63, 0.3 }, Raw = true }, -- resourceYuccaFibers
 	Lumber = { Stack = 6000, Color = { 0.8, 0.62, 0.4 } },
 	ScrapIron = { Stack = 6000, Color = { 0.52, 0.36, 0.3 }, Raw = true }, -- resourceScrapIron
+	Clay = { Stack = 6000, Color = { 0.62, 0.45, 0.33 }, Raw = true }, -- resourceClayLump
+	CrushedSand = { Stack = 6000, Color = { 0.86, 0.78, 0.58 }, Raw = true }, -- resourceCrushedSand
 	Cloth = { Stack = 250, Color = { 0.78, 0.72, 0.6 }, Raw = true }, -- resourceCloth
 	-- 7DTD 1.x-3.2 consumables. Food heals over time at 0.5 a second (buffHealHealth); canned food gives
 	-- no water since 1.0.
@@ -652,6 +654,72 @@ Config.Harvest = {
 	-- Loose rocks are picked up with the interact key from this far (studs), at most this often.
 	PickupDistance = 8,
 	PickupsPerSecond = 4,
+}
+
+-- Digging the ground (7DTD 1.0-3.2 terrain blocks; docs/REFERENCE_7DTD.md, Part B 4). A dig takes one
+-- 4-stud voxel off the top of a terrain column; 7DTD's block is 1 m, ours is 1.4 m.
+Config.Dig = {
+	-- Diggable terrain by Enum.Material name: health, damage category and yield of one voxel. Asphalt,
+	-- pavement and water are not here, so they cannot be dug (7DTD asphalt: 1500 HP, ours: never).
+	Materials = {
+		-- terrForestGround
+		Grass = {
+			Material = "Earth",
+			Health = 250,
+			Harvest = { drop("Clay", 22), drop("PlantFiber", 2) },
+			Destroy = {},
+		},
+		LeafyGrass = {
+			Material = "Earth",
+			Health = 250,
+			Harvest = { drop("Clay", 22), drop("PlantFiber", 2) },
+			Destroy = {},
+		},
+		-- terrDirt
+		Ground = { Material = "Earth", Health = 200, Harvest = { drop("Clay", 22) }, Destroy = {} },
+		Mud = { Material = "Earth", Health = 200, Harvest = { drop("Clay", 22) }, Destroy = {} },
+		-- terrSand
+		Sand = {
+			Material = "Earth",
+			Health = 100,
+			Harvest = { drop("CrushedSand", 11), drop("Clay", 2) },
+			Destroy = {},
+		},
+		-- terrGravel
+		Pebble = {
+			Material = "Earth",
+			Health = 200,
+			Harvest = { drop("CrushedSand", 8), drop("SmallStone", 9) },
+			Destroy = {},
+		},
+		-- terrSnow (its snowballs are not in)
+		Snow = { Material = "Earth", Health = 160, Harvest = {}, Destroy = {} },
+		-- terrStone
+		Rock = { Material = "Stone", Health = 500, Harvest = { drop("SmallStone", 55) }, Destroy = {} },
+		Slate = { Material = "Stone", Health = 500, Harvest = { drop("SmallStone", 55) }, Destroy = {} },
+	} :: { [string]: HarvestNode },
+	-- Whole voxels that always stay above the terrain bottom (7DTD: 3 layers of bedrock). With the
+	-- bottom at -24 a column at height 0 can be dug four deep.
+	BedrockLayers = 1,
+	-- A hit digs its column only this close (studs) under the column's surface; lower hits are on the
+	-- wall of a hole and do nothing (no tunnels, PLAN).
+	TopReach = 6,
+	-- A column is dug at most this many studs below any of its four side neighbours, so going deeper
+	-- takes a wider hole. Roblox terrain rounds a steeper step off: a one-column hole dug 12 deep shows
+	-- 8 deep, a 3 x 3 hole with a 16-deep centre shows it (measured).
+	MaxStep = 8,
+	-- A ray hit point is moved this far into the ground before picking its column.
+	SurfaceOffset = 0.05,
+	-- Studs around a town building's footprint that cannot be dug (its walls stand on that ground).
+	BuildingMargin = 4,
+	-- Collidable map parts (trees, rocks, props) closer than this to a column's sides keep it from
+	-- being dug.
+	OverlapInset = 0.15,
+	-- How far above a column's surface (studs) map parts and placed blocks are looked for.
+	ClearanceHeight = 4,
+	-- Around a dug column the ground height is read with a ray from this far above and below the grid's
+	-- estimate (studs): Roblox meshes holes rounder than the grid's straight lines.
+	RoughRayReach = 8,
 }
 
 -- Loot bags (7DTD 1.x-3.2 entityclasses.xml and loot.xml; docs/REFERENCE_7DTD.md, Part A 4).

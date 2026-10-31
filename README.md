@@ -58,6 +58,7 @@ rojo build -o build.rbxl      # full place build
 | `SurvivalService` | Server-owned stamina, food and water (`Shared/Vitals`, 7DTD numbers): drains per in-game day, hunger and thirst stages that block stamina, starvation, the stamina cost of swings and jumps, the sprint intent (WalkSpeed 16 / 24), food, drinks and medicine from the hand, drinking lake water, the death bag (half of the raw resources); Player attributes for the HUD |
 | `LootService` | Loot bags on the ground: zombie drops (`Shared/Loot`), a held search prompt that takes what fits, overflow drops from other services, lifetime and a world cap (death bags kept); searchable town furniture (174 containers, rolled on first search, refilled after 7 in-game days, wall check from the head) |
 | `HarvestService` | Gathering on `ToolService.onWorldHit`: trees, bushes, grass, boulders and loose rocks listed by `MapService.getHarvestables()`; 7DTD yields (`Shared/Harvest`), shared damage, tree felling with navigation reopening, loose-rock pick-up prompts |
+| `DigService` | Digging the terrain on `ToolService.onWorldHit`: one 4-stud voxel off the top of the column hit, 7DTD health and yield per material (`Config.Dig`: clay, crushed sand, small stones), at most two voxels below a side neighbour, no digging on roads, by buildings, by water, under trees, props or blocks, or into the last voxel; the meshed surface goes back into the height grid and MapService reads heights around holes with a ray |
 
 ### World modules (`src/server/World`)
 
@@ -67,7 +68,7 @@ rojo build -o build.rbxl      # full place build
 | `FloorPlan` | Pure plan reader: rooms (flood fill + kind from furniture), furniture facing, stairs |
 | `BuildingKit` | Turns a plan into a furnished model: plinth, facade + painted interior linings, casings, open doors, floors and ceilings per room, stairs with railings, gable or flat roof, signs |
 | `Furniture` | One model per furniture symbol; bodies collide, small dressing is decor |
-| `TerrainBuilder` | Writes terrain from the height field; bare ground under building footprints |
+| `TerrainBuilder` | Writes terrain from the height field (surface, dirt, rock 12 studs down); bare ground under building footprints; rewrites one column for digging |
 | `PropKit`, `Palette`, `PartFactory` | Props, colour/material styles, part creation (`decor` = no collision) |
 
 Building rules: walls stand on cell centre lines, every doorway and floor cell stays walkable for the

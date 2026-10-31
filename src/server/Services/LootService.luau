@@ -17,6 +17,7 @@ local Config = require(Shared.Config)
 local Inventory = require(Shared.Inventory)
 local Localization = require(Shared.Localization)
 local Loot = require(Shared.Loot)
+local Types = require(Shared.Types)
 
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local DayNightService = require(script.Parent.DayNightService)
@@ -254,6 +255,20 @@ function LootService.drop(position: Vector3, stacks: { Inventory.Stack }, merge:
 		lost += left
 	end
 	return lost
+end
+
+-- Gives `count` of `id` to the player; what has no room drops in a bag at their feet (7DTD drops it on
+-- the ground).
+function LootService.giveOrDrop(player: Player, id: string, count: number, source: Types.ItemSource)
+	if count <= 0 then
+		return
+	end
+	local left = InventoryService.give(player, id, count, source)
+	local character = player.Character
+	local root = character and character.PrimaryPart
+	if left > 0 and root then
+		LootService.drop(root.Position, { { id = id, count = left, source = source } }, true)
+	end
 end
 
 -- Number of bags on the ground (debug overlay, tests).
