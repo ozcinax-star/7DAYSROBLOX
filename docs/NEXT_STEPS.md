@@ -25,7 +25,8 @@ Yol haritası notu ve Kararlar tablosu).
 | Tehdit ve horde | Bitti: Gürültü / İz / 5 kademe, ortam nüfusu, oyuncu başına 20 zombilik horde dalgaları |
 | İnşa (ahşap) | Bitti: çerçeve, ahşap blok, merdiven; yükseltme, tamir, çökme, zombiler duvar kırar |
 | Hayatta kalma | Bitti: dayanıklılık, yemek, su, kademeler, koşma, zıplama, konserve / su / bandaj, gölden içme, ölüm torbası, HUD |
-| Kazı, kapı, silahlar, tarım, bina kapları | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
+| Bina kapları | Bitti: 174 aranabilir mobilya, ortak, 7 günde yeniden dolar |
+| Kazı, kapı, silahlar, tarım | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
 | Kapı 1: 80 zombiyle orta seviye telefonda 30 FPS | **Ölçülmedi**; kullanıcı erteledi |
 | Kapı 2: 3 kişilik test grubu "bir gece daha" diyor | Henüz yapılamaz |
 
@@ -101,7 +102,8 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **İçerik:** mermi ve kitap yok (silahlar gelince). Yiyecek, su ve bandaj eklendi.
 - **Üst üste torbalar:** aynı noktada ölen zombilerin torbaları üst üste duruyor; prompt en
   yakınını seçiyor.
-- **Bina loot'u:** binaların `Loot` özelliği (`Food`, `Medical`, …) aynı servisle kaplara bağlanacak.
+- **Bina loot'u:** bitti (`91a33a8`). Kalan: 7DTD'deki çöp kutusu, tuvalet, masa, dosya dolabı,
+  kitaplık kapları (eşyaları yok); kap penceresi (eşyayı tek tek alma); kayıt.
 
 ### 6. Gündüz-gece (bitti, 31 Ekim)
 
@@ -139,16 +141,13 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 ### 9. Hayatta kalma (bitti, 31 Ekim)
 
 `c46dd6a`, `3b49494`, `1d61b94`, `b74fe9c`. Kalanlar:
-- **Yiyecek kaynağı az.** Şimdilik yalnızca zombi torbası (%20 torba × ~%16 yemek ≈ 30 zombide bir
-  konserve; günde 2 konserve gerekir). 7DTD'de erken yemek evlerdeki dolap / buzdolabı / soğutucudan
-  ve avdan gelir. Sıradaki iş bina kapları (binaların `Loot` özelliği hazır).
+- **Yiyecek kaynağı:** zombi torbası (~30 zombide bir konserve) ve bina kapları (`91a33a8`). Av yok.
 - **Kamp ateşi ve pişirme:** bulanık su → su (tencere), et, mısır; pişmiş yemeğin +10 maks
   dayanıklılık etkisi.
 - **Dizanteri** (bulanık su ve göl %12), **kanama** (bandaj yalnızca onu durdurur), kırık bacak.
 - **Yabani yiyecek:** yaban mersini, yucca, mısır bitkileri (her biri 2 yemek).
 - **Ölüm torbası herkese açık;** sahibine özel değil.
 - **Telefon:** HUD üst ortada, Run düğmesi Hit'in solunda; ikisi de ölçülmedi.
-- **İçme ipucu** ("Use to drink") Play'de görülmedi; kamera kodla aşağı eğilemedi.
 
 ### 10. Kazılabilir zemin
 

@@ -195,6 +195,12 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 | `1d61b94` | Saf `Shared/Vitals` (7DTD sayıları, 4 test), `SurvivalService`, HUD + koşma (`SurvivalController`), konserve / su / bandaj, gölden içme, ölüm torbası |
 | `b74fe9c` | Koşan oyuncu 2 sn'de bir Sprint gürültüsü çıkarır |
 
+### 12. Bölüm: bina kapları (31 Ekim)
+
+| Commit | Ne yapıldı |
+| --- | --- |
+| `91a33a8` | 174 mobilya aranabilir kap (`Loot.rollContainer`, 1 test); ilk aramada dolar, 7 oyun günü sonra yeniden; duvar arkasından arama reddedilir; ölüm torbaları torba tavanından muaf |
+
 ## Mevcut durum
 
 | Alan | Durum |
@@ -214,6 +220,7 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 | Toplama (`HarvestService` + `Shared/Harvest`) | Çalışıyor. 7DTD formülü: verimin üçte ikisi nesnenin toplam hasarıyla orantılı olarak vuruşlarda, üçte biri kıran vuruşta; iyi alet yalnızca hızlandırır. Hasar = aletin blok hasarı × malzeme çarpanı, tam sayıya kesilir, en az 1. Aynı nesneye vuran herkes aynı hasarı paylaşır. Ağaç: 300/30, 600/70, 900/110, 1200/150 (can/odun, boy ölçeğe göre). Çalı 1–3 odun, ot 2 lif, yerdeki taş 1 taş (E ile de alınır), kaya 400 can / 22 taş. Devrilen ağaç çarpışmayı hemen bırakır, altındaki yol hücreleri açılır, 3,5 sn sonra silinir. Hiçbir şey yeniden çıkmaz (7DTD). Sığmayan eşya kaybolur ve kırmızı satırla bildirilir (loot torbası gelince yere düşecek). |
 | Crafting (`CraftingService` + `Shared/Crafting`) | Çalışıyor. 7DTD sırt çantası crafting'i: 4 işlik kuyruk, yalnızca ilk iş sunucu saatiyle ilerler (çanta kapalıyken de). Süre = Σ adet × malzeme süresi (odun, taş, lif 0,2 sn; diğerleri 1 sn), tarif kendi süresini verirse o. Malzemeler kuyruğa alınırken kaynaklarıyla düşer; iptal kalanı iade eder. Sığmayan ürün kuyrukta "No room" ile bekler. İadesi sığmayan iptal reddedilir ve kırmızı satırla bildirilir (loot torbası gelince yere düşebilir). Tamir: hasarlı taş alet + gereken taş (taş başına 300 dayanıklılık, 0,5 sn) kuyruğa girer; alet boşsa eski slotuna döner. Kuyruk oyuncu çıkınca kaybolur (kayıt yok). Tarifler: taş balta, taş kürek, taş kazma, kereste. |
 | Loot (`LootService` + `Shared/Loot`) | Çalışıyor. Ölen zombi %20 ihtimalle torba bırakır (7DTD %2–4). Torba: bir ortak seçim (3–10 hurda demir, 2–6 kumaş, 5–15 küçük taş, chili veya köpek maması konservesi, şişe su, bulanık su, ilk yardım bandajı) ve %15 ihtimalle %30–100 dayanıklılıkta taş alet. 18 slot, 20 dk ömür (7DTD 1.x), dünyada en fazla 60 torba (en eski silinir). E'yi 1 sn basılı tutunca sığan alınır, kalanı torbada kalır; boşalan torba silinir. Sunucu torbanın varlığını, canlı karakteri, mesafeyi, basılı tutma süresini ve hızı yeniden denetler. `LootService.drop(konum, yığınlar, birleştir)` başka servislerden de kullanılır: sığmayan toplama eşyası ve crafting iadesi oyuncunun ayağına düşer, 6 stud içindeki torbaya eklenir. Torba içeriği yalnızca sunucuda. |
+| Bina kapları (`LootService`) | Çalışıyor. `Config.Loot.ContainerFurniture` 11 mobilyayı 6 kap türüne bağlar (buzdolabı, dolap, raf, gardırop, ilaç dolabı, depo); haritada 174 kap. Her mobilyanın önünde (pivot önü, yarı yükseklik, en çok 3 stud) basılı tutulan "Search" istemi; görüş hattı kontrolü istemde kapalı, sunucu baştan noktaya ışınla duvarı kontrol eder. İlk aramada sunucu zar atar (her atış %25–35 boş; binanın `Loot` özelliği kap türünün `Bonus`'una uyarsa bir atış daha), 7 oyun günü sonra yeniden. Kap bütün oyuncular için ortak; boşalınca "(empty)" yazar. Mobilya modellerinin `WorldPivot`'u hücre tabanı, önü −Z. |
 | Kazı | **Sırada** (NEXT_STEPS). `ToolService.onWorldHit` kazı için, `ZombieService.onDied` loot için, `InventoryService.give/take/wearHeld` hepsi için hazır. |
 | Perk, kayıt, monetizasyon | Bilerek yazılmadı. |
 
@@ -221,8 +228,8 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 
 Ölçümler 30–31 Ekim 2026'da PC'de, Studio içinde alındı. Telefonda ölçüm yok.
 
-- **Testler:** 58/58 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
-  Inventory 6, Melee 5, Harvest 4, Crafting 6, Loot 2, DayClock 2, Threat 4, BuildGrid 3, Vitals 4).
+- **Testler:** 59/59 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
+  Inventory 6, Melee 5, Harvest 4, Crafting 6, Loot 3, DayClock 2, Threat 4, BuildGrid 3, Vitals 4).
   Testler yalnızca Studio düzeneğiyle çalıştırıldı; Lune ile hiç çalıştırılmadı.
 - **Zombi performansı:** 80 zombiyle tick ortalaması 0,04–0,17 ms, en kötü tick genelde 1,3–1,8 ms
   (bir kez 3,9 ms). Zombi başına 17 parça.
@@ -344,7 +351,17 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
     aletler, kereste, çerçeveler ve yiyecek kaldı. Doğunca can 100, yemek / su dolu.
   - HUD ekran görüntüsüyle doğrulandı: sol altta 4 çubuk, bloklanan dayanıklılık koyu, kademede
     etiket turuncu / kırmızı.
-  - Ölçülmeyenler: içme ipucu (kamera kodla eğilemedi), telefonda HUD (üst orta) ve Run düğmesi.
+  - İçme ipucu: kamera Scriptable + `MouseBehavior.LockCenter` ile suya bakınca 20 karenin 19'unda,
+    ufka bakınca hiç görünmedi.
+  - Ölçülmeyenler: telefonda HUD (üst orta) ve Run düğmesi.
+- **Bina kapları (Play, 31 Ekim):**
+  - 174 kap, hepsinde istem. Market buzdolabı: duvarın 6,5 stud arkasından arama reddedildi, odadan
+    kabul edildi.
+  - 12 farklı kap (dolap, buzdolabı, raf, depo, ilaç dolabı): 3 konserve, 3 su, 3 kumaş, 2 bandaj,
+    10 taş; hepsi "(empty)" oldu.
+  - 14 faz atlayıp 8. güne geçince aranmış 5 kaptan 5 eşya daha geldi.
+  - Test tuzağı: yakında birden çok istem varken `InputHoldBegin` yalnızca o an gösterilen istemde
+    çalışır (tuş başına tek istem). Testte diğer istemleri istemcide `Enabled = false` yap.
 - **Konsol:** Sunucu ve istemcide 0 uyarı, 0 hata.
 
 ## Teknik notlar
@@ -411,7 +428,7 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
    local src = Http:GetAsync("http://127.0.0.1:8765/Harness.luau", true)
    Http.HttpEnabled = was
    local H = loadstring(src)()
-   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "58 passed, 0 failed"
+   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "59 passed, 0 failed"
    ```
    Düzenek place'e hiçbir şey bırakmaz.
 3. Her kod değişikliğinden sonra adım 1'deki bundle komutunu tekrar çalıştır, sonra `H.sync()`.

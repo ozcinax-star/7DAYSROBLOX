@@ -228,6 +228,7 @@ Lobi, PvP ve hikâye için verilmiş kararlar.
 | Yeniden doğuş | İstatistikler dolu doğar (7DTD varsayılanı "XP Only"). Ceza PLAN'daki gibi: taşınan ham kaynakların (odun, küçük taş, lif, hurda demir, kumaş) yarısı 5 dk'lık torbaya düşer; kereste, blok, yiyecek ve aletler kalır | Ölüm cezası satırı; XP borcu yok çünkü XP yok |
 | Koşma | Yürüme Roblox varsayılanı 16 stud/sn, koşma 24 (7DTD m/s vermez). Shift basılı, gamepad L3 ve dokunmatik Run aç/kapa. 0'da biten koşu 25 dayanıklılıkta yeniden başlar (bizim; titremesin diye) | Horde 11 stud/sn: yürüyen oyuncu açık arazide kaçabilir |
 | Yeme, içme, gölden içme | Tek "use" düğmesi: elde yiyecek / içecek / bandaj varsa kullanılır, boş el göl suyuna bakıyorsa içer (7DTD'de el "Drink"), yoksa yumruk | Mobilde tek düğme |
+| Bina kapları | Kasaba mobilyası (buzdolabı, dolap, raf, gardırop, ilaç dolabı, depo) aranır; ilk aramada dolar, 7 oyun günü sonra yeniden (7DTD LootRespawnDays), bütün oyunculara ortak. Yiyecek ekonomisi bizim: 7DTD dolapları çoğunlukla çöp verir; burada ~90 yemek kabının her biri ortalama ~0,5 konserve ve ~0,5 su verir, 3 kişilik grup günde ~12 kap arayarak doyar ve kasaba yaklaşık bir haftada (yeniden dolma süresi) tükenir | Oturum ritmi kısa; zombi torbası tek başına doyurmaz (~30 zombide bir konserve) |
 | Sırt çantası tuşu | I (gamepad Y, mobilde Bag); Tab değil | Roblox oyuncu listesi Tab'ı oyundan önce alıyor (Play'de denendi) |
 
 ## Kaynaklar
