@@ -60,6 +60,8 @@ local hint: TextLabel
 local runButton: TextButton
 local bars: { [string]: Bar } = {}
 local healthConnection: RBXScriptConnection? = nil
+-- Counts watchHealth calls, so a call still waiting for an old character's Humanoid gives up.
+local healthWatch = 0
 -- Sprint wanted from the held key and from the toggles, and what the server was last told.
 local sprintHeld = false
 local sprintToggled = false
@@ -116,6 +118,7 @@ local function makeBar(order: number, key: string, color: Color3, withBlocked: b
 	local name = label("Name", Enum.TextXAlignment.Left)
 	name.Text = Localization.get(`Vital{key}`)
 	local value = label("Value", Enum.TextXAlignment.Right)
+	value.Text = ""
 	back.Parent = panel
 	return { fill = fill, blocked = blocked, name = name, value = value }
 end
@@ -144,16 +147,23 @@ local function refreshStats()
 end
 
 local function watchHealth(character: Model)
+	healthWatch += 1
+	local watch = healthWatch
 	if healthConnection then
 		healthConnection:Disconnect()
 		healthConnection = nil
 	end
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
+	if watch ~= healthWatch then
+		return
+	end
 	local function update()
 		setBar(bars.Health, humanoid.Health, humanoid.MaxHealth)
 	end
 	healthConnection = humanoid.HealthChanged:Connect(update)
 	update()
+	-- Once more next frame: the HUD once kept its placeholder after a respawn (not reproduced).
+	task.defer(update)
 end
 
 local function layout()
