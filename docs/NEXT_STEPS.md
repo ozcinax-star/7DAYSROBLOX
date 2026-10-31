@@ -23,7 +23,7 @@ Yol haritası notu ve Kararlar tablosu).
 | Zombi loot'u | Bitti: %20 torba, arama, sığmayan eşya ayağa düşer |
 | Gündüz-gece | Bitti: 11 dk döngü, gün sayacı, horde gecesi işareti, gece daha sık saldırı |
 | Tehdit ve horde | Bitti: Gürültü / İz / 5 kademe, ortam nüfusu, oyuncu başına 20 zombilik horde dalgaları |
-| İnşa (ahşap) | Bitti: çerçeve, ahşap blok, merdiven; yükseltme, tamir, çökme, zombiler duvar kırar |
+| İnşa (ahşap, kırık taş) | Bitti: çerçeve, ahşap blok, kırık taş blok, merdiven; yükseltme, tamir, çökme, zombiler duvar kırar, kırılan bloktan 7DTD düşüşü |
 | Hayatta kalma | Bitti: dayanıklılık, yemek, su, kademeler, koşma, zıplama, konserve / su / bandaj, gölden içme, ölüm torbası, HUD |
 | Bina kapları | Bitti: 174 aranabilir mobilya, ortak, 7 günde yeniden dolar |
 | Kazı | Bitti: 7DTD can ve verimi, kil / kırık kum / taş, adım kuralı, Dirt ile doldurma |
@@ -64,8 +64,9 @@ Her sorunun ilk seçeneği benim önerim.
    Öneri: kalıcılık adımına kadar böyle kalsın; o adımda kesilen nesneler id'leriyle kaydedilsin ve
    ot, çalı ve yerdeki taş birkaç oyun gününde geri gelsin. Ağaç ve kaya 7DTD gibi gelmesin; bunun
    yerine tohum dikimiyle ağaç yetiştirilsin.
-6. **Sesler:** Oyunda hiç ses yok. Kancalar hazır: `Config.Ranged.Weapons.PipePistol.SoundId` ve
-   `PrimitiveBow.SoundId` (atış), `Config.ZombieVisual.GroanSoundId` (inleme). Creator Store'daki
+6. **Sesler:** Oyunda hiç ses yok. Kancalar hazır: `Config.Ranged.Weapons.<silah>.SoundId` (atış:
+   `PrimitiveBow`, `PipePistol`, `PipeRifle`, `PipeShotgun`, `PipeMachineGun`),
+   `Config.ZombieVisual.GroanSoundId` (inleme). Creator Store'daki
    ücretsiz seslerin çoğu başka oyunlardan (COD, PvZ, CS:GO, Half-Life) koparılmış kullanıcı
    yüklemeleri; telif bildirimiyle silinebilirler. Roblox'un kendi yüklediği lisanslı ses kütüphanesi
    aramada çıkmadı. Öneri: sesleri sen dinleyip seç ya da kendi sesini yükle; kimliği
