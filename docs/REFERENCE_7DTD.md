@@ -54,6 +54,7 @@ Bu dosya PLAN.md'deki kapsam kuralının istediği referanstır: ana referans 7 
 | Zombi torbasında içecek | Meyve suyu, çay, kahve, bira; düz su yok | Şişe su ve bulanık su | O içecekler yok |
 | Bandaj | Düz bandaj 0 can (yalnızca kanama); ilk yardım bandajı 30 can / 15 sn | Yalnızca ilk yardım bandajı, torbadan | Kanama yok |
 | Sopa ve mızrak | Güçlü saldırı, mızrak fırlatma, kalite 1–6, sinsi saldırı ×2 | Yalnızca hafif saldırı, kalite yok; toplama payı aynı (%25, lif tam) | PLAN Kararlar: yakın dövüş silahları |
+| Tarım | Tarla 4 odun + 10 çürük et + 25 nitrat + 100 kil; tohum geri dönüşü ve bonus perkle; yabani ekin; pişirme | Tarla 4 odun + 100 kil; tohum hep geri, bonus %50; yabani ekin ve pişirme yok | PLAN Kararlar: tarım |
 | Yay ve ok | Ok tarifinde tüy; germe, yayılma, 20 m'den sonra hasar düşüşü; oklar toplanır | Tüy yerine lif; germe / yayılma / düşüş yok; ok kaybolur | PLAN Kararlar: yay ve ok |
 | Ahşap kapı | 10 odun, 2 sn, 1000 can; kilitlenir | 5 kereste (aynı odun), kilit yok | PLAN Kararlar: kapı |
 | Kazı | Her arazi bloğu (1 m) kazılır, tünel açılır; asfalt 1500 can; ana kaya 3 katman; Dirt her yere konur | 4 stud'luk sütun tepesi, tünel yok, en çok 2 voksel adım, asfalt kazılmaz, Dirt yalnızca kazılan yeri doldurur | PLAN Kararlar: kazı |

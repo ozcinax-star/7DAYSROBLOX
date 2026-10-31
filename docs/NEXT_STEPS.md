@@ -30,7 +30,8 @@ Yol haritası notu ve Kararlar tablosu).
 | Ahşap kapı | Bitti: 1000 can, aç/kapa, açıkken zombi geçer, kapalıyken duvar |
 | Yakın dövüş silahları | Bitti: tahta sopa, taş mızrak; toplamada dörtte bir verim |
 | Yay ve ok | Bitti: ilkel yay, taş ok, sunucuda yerçekimli uçuş |
-| Tarım, jeneratör, grafik ve UI cilası | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
+| Tarım | Bitti: tarla, 3 ekin, büyüme, hasat, tohum geri |
+| Jeneratör, grafik ve UI cilası, ev değiştirme | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
 | Kapı 1: 80 zombiyle orta seviye telefonda 30 FPS | **Ölçülmedi**; kullanıcı erteledi |
 | Kapı 2: 3 kişilik test grubu "bir gece daha" diyor | Henüz yapılamaz |
 
@@ -189,7 +190,20 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Tüy:** 7DTD'de kuş yuvasından; tüy kaynağı gelince ok tarifindeki lif tüye döner.
 - **Sinsi atış:** fark etmemiş zombiye çömelerek ×3 (7DTD); bizde çömelme yok.
 
-### 13. Sonra
+### 13. Tarım (bitti, 1 Kasım)
+
+`6303735`. Kalanlar:
+- **Pişirme:** 7DTD'de ürünler kamp ateşinde pişer (fırında patates, közde mısır); kamp ateşi yok,
+  ürünler çiğ yenir (2 yemek).
+- **Yabani ekin:** 7DTD'de doğada toplanabilir mısır / patates / yaban mersini var; bizde tohum
+  yalnızca mutfak kaplarından.
+- **Tarla tarifi:** 7DTD'nin çürük et (10) ve potasyum nitrat (25) malzemeleri yok; ikisi gelince tarife eklenir.
+- **Perk:** Living off the Land yok; tohum hep geri gelir, bonus %50 sabit.
+- **Işık ve su:** 7DTD'de ekin güneş ister; bizde çatı altında da büyür.
+- **Kayıt:** ekinler sunucu kapanınca kaybolur.
+- **Görsel:** ekin modelleri basit parçalar; aşama geçişinde efekt yok.
+
+### 14. Sonra
 
 - **Araç zinciri:** Kullanıcı `rokit install` ve `rojo plugin install` komutlarını kendisi çalıştırır.
   Sonra `stylua --check src tests`, `selene src`, `lune run tests/run`, `rojo build -o build.rbxl`
