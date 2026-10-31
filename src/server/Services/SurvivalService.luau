@@ -8,7 +8,8 @@
 -- - Sprinting is an intent remote; the server sets WalkSpeed and ends the sprint at 0 stamina.
 --   Footsteps of a sprint are a Sprint noise every Config.Survival.SprintNoiseSeconds.
 -- - Food, drinks and medicine are used from the hand; a fist "use" on lake water drinks it.
--- - Death drops half of each carried raw resource in a bag (PLAN); stats are full on respawn.
+-- - Death drops half of each carried raw resource in a bag (PLAN) and tells the player where
+--   (PlayerDied); stats are full on respawn.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -53,6 +54,7 @@ local SurvivalService = {}
 
 local states: { [Player]: PlayerState } = {}
 local sprintLimiter: RateLimiter.RateLimiter
+local diedRemote: RemoteEvent
 local elapsed = 0
 
 local function round(value: number): number
@@ -165,8 +167,9 @@ local function watchJumps()
 	end
 end
 
--- Half of each carried raw resource goes into a bag where the player died (PLAN).
-local function dropRaw(player: Player, position: Vector3)
+-- Half of each carried raw resource goes into a bag where the player died (PLAN). Returns whether a
+-- bag dropped.
+local function dropRaw(player: Player, position: Vector3): boolean
 	local costs: { [string]: number } = {}
 	local any = false
 	for id, def in Config.Items do
@@ -179,12 +182,13 @@ local function dropRaw(player: Player, position: Vector3)
 		end
 	end
 	if not any then
-		return
+		return false
 	end
 	local ok, removed = InventoryService.take(player, costs)
 	if ok then
 		LootService.drop(position, removed, false, SC.DeathBagSeconds)
 	end
+	return ok
 end
 
 local function onCharacter(player: Player, character: Model)
@@ -207,7 +211,8 @@ local function onCharacter(player: Player, character: Model)
 		humanoid.Died:Connect(function()
 			local root = character.PrimaryPart
 			if root and states[player] == state then
-				dropRaw(player, root.Position)
+				local dropped = dropRaw(player, root.Position)
+				diedRemote:FireClient(player, if dropped then root.Position else false, SC.DeathBagSeconds)
 			end
 		end)
 	)
@@ -319,6 +324,7 @@ end
 function SurvivalService.init()
 	sprintLimiter = RateLimiter.new(Config.Remotes.SprintRequestsPerSecond)
 	Net.event("SprintIntent")
+	diedRemote = Net.event("PlayerDied")
 end
 
 function SurvivalService.start()

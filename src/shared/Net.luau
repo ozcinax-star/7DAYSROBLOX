@@ -26,7 +26,8 @@ local Definitions: { [string]: "RemoteEvent" | "UnreliableRemoteEvent" } = {
 	AimIntent = "RemoteEvent",
 	-- Client -> server: swing the held tool (aim direction: unit Vector3 from the head).
 	UseTool = "RemoteEvent",
-	-- Server -> client: a swing happened (player, tool id or "Fist", hit zombie id or 0, head hit).
+	-- Server -> client: a swing happened (player, tool id or "Fist", hit zombie id or 0, head hit, and
+	-- for a world hit the point, surface normal and struck surface colour).
 	ToolSwing = "UnreliableRemoteEvent",
 	-- Server -> client: what the player's last swing hit in the world has this much health left
 	-- (remaining: number, maximum: number).
@@ -57,6 +58,9 @@ local Definitions: { [string]: "RemoteEvent" | "UnreliableRemoteEvent" } = {
 	StorageUpdate = "RemoteEvent",
 	-- Server -> client: the tracked challenge (Challenges.View), or false when all are done.
 	ChallengeUpdate = "RemoteEvent",
+	-- Server -> client: the player died (where their death bag dropped: Vector3, or false; seconds it
+	-- stays).
+	PlayerDied = "RemoteEvent",
 }
 
 local Net = {}

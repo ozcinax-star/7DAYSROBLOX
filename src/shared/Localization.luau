@@ -25,6 +25,14 @@ local Strings: { [string]: { [string]: string } } = {
 		CameraFree = "Free mouse",
 		CameraMode = "Camera: {mode}",
 
+		-- Death
+		DeathTitle = "You died",
+		DeathBag = "Half of your raw resources dropped in a bag where you died. It stays for {minutes} minutes.",
+		DeathKept = "You carried no raw resources, so nothing dropped.",
+		DeathRespawn = "Respawning in {seconds}",
+		DeathMarker = "Your bag",
+		DeathMarkerDistance = "{distance} m",
+
 		-- Debug overlay
 		DebugFps = "FPS: {value}",
 		DebugServerTick = "Server tick avg/max: {value} ms",
