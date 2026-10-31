@@ -1,6 +1,7 @@
 --!strict
--- DebugOverlayController: FPS, server tick time and zombie counts, plus stress-test buttons for
--- players the server marked as DebugAllowed. The server validates every command again.
+-- DebugOverlayController: FPS, server tick time and zombie counts, plus stress-test buttons, the
+-- threat level and the auto-spawn state for players the server marked as DebugAllowed (PLAN: players do
+-- not see the threat). The server validates every command again.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -104,6 +105,8 @@ function DebugOverlayController.start()
 	labels.Tick = makeLabel(panel, 2)
 	labels.Zombies = makeLabel(panel, 3)
 	labels.Rendered = makeLabel(panel, 4)
+	labels.Threat = makeLabel(panel, 5)
+	labels.Ambient = makeLabel(panel, 6)
 
 	local debugRemote = Net.event("DebugCommand")
 	local order = 0
@@ -131,10 +134,16 @@ function DebugOverlayController.start()
 	makeButton(buttons, order + 6, Localization.get("DebugSkipPhase"), function()
 		debugRemote:FireServer("SkipPhase")
 	end)
+	makeButton(buttons, order + 7, Localization.get("DebugToggleDirector"), function()
+		debugRemote:FireServer("Director")
+	end)
 
 	local player = Players.LocalPlayer
 	local function refreshAllowed()
-		buttons.Visible = player:GetAttribute(Net.Attributes.DebugAllowed) == true
+		local allowed = player:GetAttribute(Net.Attributes.DebugAllowed) == true
+		buttons.Visible = allowed
+		labels.Threat.Visible = allowed
+		labels.Ambient.Visible = allowed
 	end
 	player:GetAttributeChangedSignal(Net.Attributes.DebugAllowed):Connect(refreshAllowed)
 	refreshAllowed()
@@ -163,6 +172,23 @@ function DebugOverlayController.start()
 		labels.Zombies.Text = Localization.get("DebugZombieCount", { value = `{alive} (+{queued})` })
 		labels.Rendered.Text = Localization.get("DebugRendered", {
 			value = `{ZombieRenderController.getRenderedCount()} / {ZombieRenderController.getViewCount()}`,
+		})
+		local function number(name: string): number
+			local value = ReplicatedStorage:GetAttribute(name)
+			return if typeof(value) == "number" then value else 0
+		end
+		labels.Threat.Text = Localization.get("DebugThreat", {
+			tier = number(attributes.ThreatTier),
+			level = string.format("%.1f", number(attributes.ThreatLevel)),
+			noise = string.format("%.1f", number(attributes.ThreatNoise)),
+			trace = string.format("%.1f", number(attributes.ThreatTrace)),
+		})
+		local enabled = ReplicatedStorage:GetAttribute(attributes.DirectorEnabled) == true
+		labels.Ambient.Text = Localization.get("DebugAmbient", {
+			state = Localization.get(if enabled then "DebugOn" else "DebugOff"),
+			count = number(attributes.AmbientCount),
+			target = number(attributes.AmbientTarget),
+			horde = number(attributes.HordeLeft),
 		})
 	end
 end

@@ -52,6 +52,15 @@ Net.Attributes = {
 	-- World clock (DayNightService): server time of the dawn of day 1, and the horde night interval.
 	ClockEpoch = "ClockEpoch",
 	HordeEvery = "HordeEvery",
+	-- Threat and population, for the debug overlay only (PLAN: no threat meter on screen).
+	ThreatTier = "ThreatTier",
+	ThreatLevel = "ThreatLevel",
+	ThreatNoise = "ThreatNoise",
+	ThreatTrace = "ThreatTrace",
+	AmbientCount = "AmbientCount",
+	AmbientTarget = "AmbientTarget",
+	HordeLeft = "HordeLeft",
+	DirectorEnabled = "DirectorEnabled",
 }
 
 local function getFolder(): Folder

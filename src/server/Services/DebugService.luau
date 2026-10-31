@@ -14,6 +14,7 @@ local Net = require(Shared.Net)
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local DayNightService = require(script.Parent.DayNightService)
 local InventoryService = require(script.Parent.InventoryService)
+local ThreatService = require(script.Parent.ThreatService)
 local ZombieService = require(script.Parent.ZombieService)
 
 local DebugService = {}
@@ -39,10 +40,15 @@ local function onCommand(player: Player, command: unknown, value: unknown)
 		if typeof(value) ~= "number" or table.find(Config.Debug.StressCounts, value) == nil then
 			return
 		end
+		-- A stress test wants exactly this many zombies: the ambient director stays off until toggled.
+		ThreatService.setDirectorEnabled(false)
 		ZombieService.clear()
 		ZombieService.spawn(value)
 	elseif command == "Clear" then
+		ThreatService.setDirectorEnabled(false)
 		ZombieService.clear()
+	elseif command == "Director" then
+		ThreatService.setDirectorEnabled(not ThreatService.isDirectorEnabled())
 	elseif command == "SkipPhase" then
 		DayNightService.skipPhase()
 	elseif command == "GodMode" then
@@ -128,6 +134,15 @@ function DebugService.start()
 		ReplicatedStorage:SetAttribute(attributes.ZombieCount, stats.alive)
 		ReplicatedStorage:SetAttribute(attributes.ZombieQueued, stats.queued)
 		ReplicatedStorage:SetAttribute(attributes.ZombieStepsPerSecond, stats.stepsPerSecond)
+		local threat = ThreatService.getStats()
+		ReplicatedStorage:SetAttribute(attributes.ThreatTier, threat.tier)
+		ReplicatedStorage:SetAttribute(attributes.ThreatLevel, threat.level)
+		ReplicatedStorage:SetAttribute(attributes.ThreatNoise, threat.noise)
+		ReplicatedStorage:SetAttribute(attributes.ThreatTrace, threat.trace)
+		ReplicatedStorage:SetAttribute(attributes.AmbientCount, threat.ambient)
+		ReplicatedStorage:SetAttribute(attributes.AmbientTarget, threat.target)
+		ReplicatedStorage:SetAttribute(attributes.HordeLeft, threat.hordeLeft)
+		ReplicatedStorage:SetAttribute(attributes.DirectorEnabled, threat.directorEnabled)
 		heartbeats = 0
 	end
 end

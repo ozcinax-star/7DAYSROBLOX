@@ -35,6 +35,11 @@ local Strings: { [string]: { [string]: string } } = {
 		DebugGiveKit = "Give test items",
 		DebugClear = "Clear",
 		DebugSkipPhase = "Skip to next phase",
+		DebugToggleDirector = "Auto spawn on/off",
+		DebugThreat = "Threat: tier {tier}, {level} (noise {noise}, trace {trace})",
+		DebugAmbient = "Auto spawn {state}: {count} / {target}, horde left {horde}",
+		DebugOn = "on",
+		DebugOff = "off",
 
 		-- Inventory
 		InventoryBackpack = "Backpack",
