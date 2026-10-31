@@ -11,6 +11,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -288,6 +289,10 @@ function SurvivalController.init()
 end
 
 function SurvivalController.start()
+	-- The Roblox health bar in the top bar would repeat the HUD's health bar.
+	pcall(function()
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
+	end)
 	local gui = buildGui()
 	bindInput(gui)
 	for _, name in { A.Stamina, A.StaminaCap, A.Food, A.Water, A.Hunger, A.Thirst } do

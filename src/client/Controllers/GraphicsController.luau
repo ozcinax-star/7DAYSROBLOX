@@ -186,7 +186,7 @@ local function buildGui(playerGui: PlayerGui)
 	hint.Size = UDim2.new(1, -PADDING * 2, 0, HINT_HEIGHT)
 	hint.BackgroundTransparency = 1
 	hint.Font = Enum.Font.Gotham
-	hint.TextSize = 13
+	hint.TextSize = 14
 	hint.TextColor3 = MUTED_COLOR
 	hint.TextWrapped = true
 	hint.TextXAlignment = Enum.TextXAlignment.Left
