@@ -112,6 +112,7 @@ local Strings: { [string]: { [string]: string } } = {
 		NoBullets = "No ammo",
 		Reloading = "Reloading...",
 		ItemPipePistol = "Pipe Pistol",
+		ItemWoodBars = "Wood Bars",
 		ItemAmmo9mm = "9mm Ammo",
 		ItemMetalPipe = "Metal Pipe",
 		ItemGlue = "Glue",

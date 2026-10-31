@@ -31,6 +31,7 @@ ItemIcons.Glyphs = {
 	WoodFrame = "🔳",
 	WoodLadder = "🧗",
 	WoodDoor = "🚪",
+	WoodBars = "🚧",
 	StoneAxe = "🪓",
 	StoneShovel = "🥄",
 	StonePickaxe = "⛏",

@@ -65,7 +65,7 @@ local nextShotAt: { [Player]: number } = {}
 local fired: { [Player]: { [string]: number } } = {}
 local nextArrowId = 1
 
--- Walls, blocks and terrain stop arrows; characters (no friendly fire, no PvP) do not.
+-- Walls, blocks and terrain stop arrows; characters (no friendly fire, no PvP) and bars do not.
 local function worldParams(): RaycastParams
 	local ignored: { Instance } = {}
 	for _, other in Players:GetPlayers() do
@@ -77,6 +77,7 @@ local function worldParams(): RaycastParams
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = ignored
 	params.RespectCanCollide = true
+	params.CollisionGroup = Config.Build.ShotsGroup
 	return params
 end
 

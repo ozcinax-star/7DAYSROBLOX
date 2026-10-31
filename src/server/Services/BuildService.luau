@@ -18,6 +18,7 @@
 -- (persistence step).
 
 local CollectionService = game:GetService("CollectionService")
+local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
@@ -40,6 +41,9 @@ local ZombieService = require(script.Parent.ZombieService)
 
 local BC = Config.Build
 local SIZE = BC.GridSize
+-- Bars cage: post and rail thickness, slat thickness (studs).
+local BARS_THICKNESS = 0.35
+local BARS_SLAT = 0.22
 local TRACE_SOURCE = "Build"
 -- Zombie hit volume around its root, for keeping blocks out of zombies (Config.Melee).
 local ZOMBIE_RADIUS = Config.Melee.HitRadius
@@ -225,6 +229,42 @@ local function onDoorTriggered(player: Player, block: Block)
 	setDoorOpen(block, not block.open)
 end
 
+-- The wooden cage drawn on a bars block: corner posts, a top frame and two slats on every side.
+-- Decoration only; the block's own invisible box stops players and zombies.
+local function addCage(part: BasePart, color: Color3)
+	local half = SIZE / 2 - BARS_THICKNESS / 2
+	local function piece(size: Vector3, offset: Vector3)
+		local p = Instance.new("Part")
+		p.Name = "Bar"
+		p.Anchored = true
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CanTouch = false
+		p.CastShadow = false
+		p.Material = Enum.Material.Wood
+		p.Color = color
+		p.Size = size
+		p.CFrame = part.CFrame * CFrame.new(offset)
+		p.Parent = part
+	end
+	local post = Vector3.new(BARS_THICKNESS, SIZE, BARS_THICKNESS)
+	for _, corner in { { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } } do
+		piece(post, Vector3.new(corner[1] * half, 0, corner[2] * half))
+	end
+	local top = SIZE / 2 - BARS_THICKNESS / 2
+	piece(Vector3.new(SIZE, BARS_THICKNESS, BARS_THICKNESS), Vector3.new(0, top, half))
+	piece(Vector3.new(SIZE, BARS_THICKNESS, BARS_THICKNESS), Vector3.new(0, top, -half))
+	piece(Vector3.new(BARS_THICKNESS, BARS_THICKNESS, SIZE), Vector3.new(half, top, 0))
+	piece(Vector3.new(BARS_THICKNESS, BARS_THICKNESS, SIZE), Vector3.new(-half, top, 0))
+	local slat = Vector3.new(BARS_SLAT, SIZE, BARS_SLAT)
+	for _, along in { -SIZE / 6, SIZE / 6 } do
+		piece(slat, Vector3.new(along, 0, half))
+		piece(slat, Vector3.new(along, 0, -half))
+		piece(slat, Vector3.new(half, 0, along))
+		piece(slat, Vector3.new(-half, 0, along))
+	end
+end
+
 local function createBlock(cx: number, cy: number, cz: number, kind: string, grounded: boolean, side: number)
 	local x, y, z = BuildGrid.center(cx, cy, cz)
 	local def = BC.Blocks[kind]
@@ -274,6 +314,10 @@ local function createBlock(cx: number, cy: number, cz: number, kind: string, gro
 		prompt = nil,
 	}
 	styleBlock(block)
+	if def.Bars then
+		part.CollisionGroup = BC.BarsGroup
+		addCage(part, Color3.new(def.Color[1], def.Color[2], def.Color[3]))
+	end
 	if def.Door then
 		local prompt = Instance.new("ProximityPrompt")
 		prompt.ActionText = Localization.get("DoorOpen")
@@ -507,6 +551,9 @@ function BuildService.clear()
 end
 
 function BuildService.init()
+	PhysicsService:RegisterCollisionGroup(BC.BarsGroup)
+	PhysicsService:RegisterCollisionGroup(BC.ShotsGroup)
+	PhysicsService:CollisionGroupSetCollidable(BC.BarsGroup, BC.ShotsGroup, false)
 	doorLimiter = RateLimiter.new(BC.DoorTogglesPerSecond)
 	folder = Instance.new("Folder")
 	folder.Name = BC.FolderName

@@ -57,7 +57,8 @@ local fistCallback: FistCallback? = nil
 local staminaGate: StaminaGate? = nil
 
 -- Ray params that ignore every character (no friendly blocking, no PvP) and decor. Walls only
--- (`solid`) hide zombies; world hits also land on what the player walks through, such as grass.
+-- (`solid`) hide zombies, and bars do not (a spear reaches through them); world hits also land on what
+-- the player walks through, such as grass, and on bars.
 local function rayParams(solid: boolean): RaycastParams
 	local ignored: { Instance } = {}
 	for _, other in Players:GetPlayers() do
@@ -70,6 +71,9 @@ local function rayParams(solid: boolean): RaycastParams
 	params.FilterDescendantsInstances = ignored
 	params.IgnoreWater = true
 	params.RespectCanCollide = solid
+	if solid then
+		params.CollisionGroup = Config.Build.ShotsGroup
+	end
 	return params
 end
 

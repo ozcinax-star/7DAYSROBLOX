@@ -49,7 +49,9 @@ export type NoiseEvent = { Noise: number, Radius: number }
 -- it blocks nobody. Size: a smaller box (studs) standing on the floor of its cell instead of a cube.
 -- Passable: zombies walk past it. Generator / Lamp: a generator or an electric lamp (PowerService).
 -- Storage: a storage crate (StorageService). Station: a crafting station; recipes that name its kind
--- need one within Config.Crafting.StationReach (CraftingService).
+-- need one within Config.Crafting.StationReach (CraftingService). Bars: a see-through cage
+-- (Config.Build.BarsGroup): zombies cannot pass and break it like a wall, but shots, zombie sight and
+-- melee reach pass through it (PLAN: bars sit in their own collision group).
 -- Material and Color are the look.
 export type BlockDef = {
 	Health: number,
@@ -66,6 +68,7 @@ export type BlockDef = {
 	Lamp: boolean?,
 	Storage: boolean?,
 	Station: boolean?,
+	Bars: boolean?,
 	Material: string,
 	Color: { number },
 	Transparency: number?,
@@ -503,6 +506,10 @@ Config.ZombieVisual = {
 Config.Build = {
 	-- Workspace folder of the placed blocks (zombie sight and loot bags treat them as walls and floors).
 	FolderName = "Structures",
+	-- Collision groups: bars, and the group shots, zombie sight and melee wall checks cast with, which
+	-- does not collide with bars.
+	BarsGroup = "Bars",
+	ShotsGroup = "Shots",
 	-- CollectionService tag on town building models; their BuildMin / BuildMax (Vector2, footprint x
 	-- and z) and BuildTop attributes let the client preview the indoor rule below.
 	BuildingTag = "BuildArea",
@@ -570,6 +577,17 @@ Config.Build = {
 			Door = true,
 			Material = "WoodPlanks",
 			Color = { 0.5, 0.36, 0.22 },
+		},
+		-- Wooden bars (PLAN MVP "tahta parmaklık"; 7DTD only has forged iron bars): ours, between a
+		-- frame and a wood block. The cell is an invisible box; the cage is decoration.
+		WoodBars = {
+			Health = 300,
+			Placeable = true,
+			Repair = { Id = "Wood", Count = 3 },
+			Bars = true,
+			Material = "WoodPlanks",
+			Color = { 0.5, 0.36, 0.22 },
+			Transparency = 1,
 		},
 		-- ladderWood: 150 HP, 3 Wood, repair 3 Wood.
 		WoodLadder = {
@@ -711,6 +729,7 @@ Config.Items = {
 	WoodFrame = { Stack = 500, Color = { 0.72, 0.56, 0.36 } }, -- frameShapes
 	WoodLadder = { Stack = 500, Color = { 0.55, 0.4, 0.25 } }, -- ladderWood
 	WoodDoor = { Stack = 500, Color = { 0.5, 0.36, 0.22 } }, -- oldWoodDoor
+	WoodBars = { Stack = 500, Color = { 0.55, 0.4, 0.25 } },
 	-- meleeToolRepairT0StoneAxe
 	StoneAxe = { Stack = 1, Durability = 250, Repair = STONE_REPAIR, Color = { 0.45, 0.42, 0.38 } },
 	-- meleeToolShovelT0StoneShovel
@@ -809,6 +828,8 @@ Config.Recipes = {
 	WoodDoor = { Output = "WoodDoor", Count = 1, Ingredients = costs({ Lumber = 5 }), Seconds = 2 },
 	-- 7DTD's wooden storage crate recipe is not confirmed (players report a 7 s craft); ours is 4 Lumber.
 	StorageCrate = { Output = "StorageCrate", Count = 1, Ingredients = costs({ Lumber = 4 }), Seconds = 7 },
+	-- Ours: three lumber, like three frames' worth of wood.
+	WoodBars = { Output = "WoodBars", Count = 1, Ingredients = costs({ Lumber = 3 }) },
 	-- 7DTD 3.2 campfire: 5 Small Stone; cooking happens at a campfire. Times are the ingredients'
 	-- CraftingIngredientTime (river water 10, potato 10, corn 5).
 	Campfire = { Output = "Campfire", Count = 1, Ingredients = costs({ SmallStone = 5 }) },
@@ -882,6 +903,7 @@ Config.Crafting = {
 		"WoodFrame",
 		"WoodLadder",
 		"WoodDoor",
+		"WoodBars",
 		"StorageCrate",
 		"Dirt",
 		"FarmPlot",
@@ -1570,6 +1592,7 @@ Config.Debug = {
 		{ Id = "Potato", Count = 3 },
 		{ Id = "Corn", Count = 3 },
 		{ Id = "PipePistol", Count = 1 },
+		{ Id = "WoodBars", Count = 10 },
 		{ Id = "Ammo9mm", Count = 30 },
 		{ Id = "ElectricLamp", Count = 4 },
 		{ Id = "GasCan", Count = 300 },

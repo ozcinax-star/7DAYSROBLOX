@@ -1412,7 +1412,9 @@ end
 function ZombieService.start()
 	markNavigation()
 	buildBuildingNavs()
-	-- Player structures hide players too; BuildService creates their folder in init.
+	-- Player structures hide players too (bars do not); BuildService creates their folder and the
+	-- collision groups in init.
+	sightParams.CollisionGroup = Config.Build.ShotsGroup
 	sightParams.FilterDescendantsInstances = {
 		MapService.getMap(),
 		Workspace.Terrain,
