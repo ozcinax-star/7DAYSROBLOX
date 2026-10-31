@@ -1049,6 +1049,11 @@ test("every recipe and repair is well formed", function()
 		for _, ingredient in recipe.Ingredients do
 			assert(Config.Items[ingredient.Id], `{id} needs unknown item {ingredient.Id}`)
 		end
+		if recipe.Station then
+			local station = Config.Build.Blocks[recipe.Station]
+			assert(station and station.Station and Config.Items[recipe.Station], `{id} needs an unknown station`)
+		end
+		assert(recipe.Tool == nil or Config.Items[recipe.Tool], `{id} needs an unknown tool`)
 	end
 	for id, item in Config.Items do
 		if item.Repair then
@@ -1056,6 +1061,29 @@ test("every recipe and repair is well formed", function()
 			assert(Config.Items[item.Repair.Id], `{id} repairs with an unknown item`)
 		end
 	end
+end)
+
+test("cooking needs a campfire nearby and the cooking tool carried, which it keeps", function()
+	local water = Recipes.BoiledWater
+	local carried: { [string]: number } = { MurkyWater = 2 }
+	local function countOf(id: string): number
+		return carried[id] or 0
+	end
+	local near = false
+	local function stationNear(kind: string): boolean
+		return near and kind == "Campfire"
+	end
+	expectEq(Crafting.canUse(water, countOf, stationNear), false, "no campfire, no pot")
+	near = true
+	expectEq(Crafting.canUse(water, countOf, stationNear), false, "campfire but no pot")
+	carried.CookingPot = 1
+	expectEq(Crafting.canUse(water, countOf, stationNear), true, "campfire and pot")
+	expectEq(Crafting.costs(water, 2).CookingPot, nil, "the pot is not used up")
+	expectEq(Crafting.canUse(Recipes.BakedPotato, countOf, stationNear), true, "potatoes need no tool")
+	near = false
+	expectEq(Crafting.canUse(Recipes.BakedPotato, countOf, stationNear), false, "but a campfire")
+	expectEq(Crafting.canUse(Recipes.Campfire, countOf, stationNear), true, "the campfire itself is backpack crafting")
+	expectEq(Crafting.unitSeconds(Recipes.Campfire), 1, "five stones at 0.2 s")
 end)
 
 print("Loot")

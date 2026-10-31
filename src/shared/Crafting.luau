@@ -1,7 +1,7 @@
 --!strict
 -- Crafting: pure 7DTD backpack crafting math (docs/REFERENCE_7DTD.md Part A 3 and 1.7). Craft time,
--- ingredient totals, how many crafts the player can afford, the ingredient pool a queued job keeps
--- for refunds, and repair units.
+-- station and tool needs, ingredient totals, how many crafts the player can afford, the ingredient
+-- pool a queued job keeps for refunds, and repair units.
 
 local Config = require("./Config")
 local Inventory = require("./Inventory")
@@ -21,6 +21,19 @@ function Crafting.unitSeconds(recipe: Config.Recipe): number
 		seconds += ingredient.Count * (CC.IngredientSeconds[ingredient.Id] or CC.DefaultIngredientSeconds)
 	end
 	return seconds
+end
+
+-- Whether the recipe's station and tool are at hand: `stationNear(kind)` tells if a station of that
+-- kind is in reach, and the tool must be carried (7DTD: it sits in the station and is kept).
+function Crafting.canUse(
+	recipe: Config.Recipe,
+	countOf: (id: string) -> number,
+	stationNear: (kind: string) -> boolean
+): boolean
+	if recipe.Tool and countOf(recipe.Tool) < 1 then
+		return false
+	end
+	return recipe.Station == nil or stationNear(recipe.Station)
 end
 
 -- { [id] = count } of every ingredient for `count` crafts.

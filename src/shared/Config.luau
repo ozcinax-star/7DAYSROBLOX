@@ -46,7 +46,8 @@ export type NoiseEvent = { Noise: number, Radius: number }
 -- interact key (zombies break it when it is closed). Plot: a low farm plot slab that crops grow on;
 -- it blocks nobody. Size: a smaller box (studs) standing on the floor of its cell instead of a cube.
 -- Passable: zombies walk past it. Generator / Lamp: a generator or an electric lamp (PowerService).
--- Storage: a storage crate (StorageService).
+-- Storage: a storage crate (StorageService). Station: a crafting station; recipes that name its kind
+-- need one within Config.Crafting.StationReach (CraftingService).
 -- Material and Color are the look.
 export type BlockDef = {
 	Health: number,
@@ -62,18 +63,23 @@ export type BlockDef = {
 	Generator: boolean?,
 	Lamp: boolean?,
 	Storage: boolean?,
+	Station: boolean?,
 	Material: string,
 	Color: { number },
 	Transparency: number?,
 }
 
 -- A crafting recipe: Count of item Output from the ingredients. Seconds per craft when given,
--- otherwise the ingredients' Config.Crafting.IngredientSeconds add up (7DTD).
+-- otherwise the ingredients' Config.Crafting.IngredientSeconds add up (7DTD). Station: the block kind
+-- (a Station block) the player must stand near to queue it (7DTD craft_area). Tool: an item the
+-- player must carry, which is not used up (7DTD craft_tool, e.g. the cooking pot).
 export type Recipe = {
 	Output: string,
 	Count: number,
 	Ingredients: { ItemCount },
 	Seconds: number?,
+	Station: string?,
+	Tool: string?,
 }
 
 -- What a world object is made of, for tool damage (7DTD damage categories: earth covers dirt, grass and
@@ -607,6 +613,18 @@ Config.Build = {
 			Material = "Metal",
 			Color = { 0.3, 0.3, 0.32 },
 		},
+		-- 7DTD campfire: a cooking station, 100 hit points (MaxDamage), stone. A low ring zombies walk
+		-- past (ours: 7DTD zombies path around it).
+		Campfire = {
+			Health = 100,
+			Placeable = true,
+			Repair = { Id = "SmallStone", Count = 5 },
+			Size = { 3.2, 0.9, 3.2 },
+			Passable = true,
+			Station = true,
+			Material = "Slate",
+			Color = { 0.4, 0.38, 0.36 },
+		},
 	} :: { [string]: BlockDef },
 	-- Height of a farm plot slab (studs); crops stand on it.
 	PlotHeight = 0.8,
@@ -654,6 +672,18 @@ Config.Items = {
 	-- no water since 1.0.
 	-- foodCanChili
 	CanChili = { Stack = 10, Color = { 0.7, 0.25, 0.15 }, Use = { Food = 15, Heal = 7, HealRate = 0.5 } },
+	-- foodBakedPotato and foodCornOnTheCob (7DTD 3.2): 10 food, 5 health over time, 5 water lost.
+	-- Their +10 max stamina bonus is not in yet.
+	BakedPotato = {
+		Stack = 10,
+		Color = { 0.62, 0.42, 0.22 },
+		Use = { Food = 10, Water = -5, Heal = 5, HealRate = 0.5 },
+	},
+	CornOnTheCob = {
+		Stack = 10,
+		Color = { 0.9, 0.65, 0.15 },
+		Use = { Food = 10, Water = -5, Heal = 5, HealRate = 0.5 },
+	},
 	-- foodCanDogFood
 	CanDogFood = { Stack = 10, Color = { 0.55, 0.45, 0.3 }, Use = { Food = 10, Heal = 5, HealRate = 0.5 } },
 	-- drinkJarBoiledWater
@@ -702,6 +732,11 @@ Config.Items = {
 	ElectricalParts = { Stack = 500, Color = { 0.85, 0.6, 0.2 } }, -- resourceElectricParts
 	Generator = { Stack = 10, Color = { 0.33, 0.4, 0.3 } }, -- generatorbank
 	StorageCrate = { Stack = 10, Color = { 0.55, 0.42, 0.28 } }, -- cntStorageGeneric
+	Campfire = { Stack = 10, Color = { 0.45, 0.42, 0.4 } }, -- campfire
+	-- Cooking tools (7DTD toolCookingPot / toolCookingGrill): kept by the cook, found in kitchen
+	-- cupboards (7DTD also forges them; there is no forge).
+	CookingPot = { Stack = 1, Color = { 0.35, 0.36, 0.4 } },
+	CookingGrill = { Stack = 1, Color = { 0.25, 0.25, 0.27 } },
 	ElectricLamp = { Stack = 100, Color = { 0.95, 0.85, 0.5 } },
 } :: { [string]: ItemDef }
 
@@ -758,6 +793,33 @@ Config.Recipes = {
 	WoodDoor = { Output = "WoodDoor", Count = 1, Ingredients = costs({ Lumber = 5 }), Seconds = 2 },
 	-- 7DTD's wooden storage crate recipe is not confirmed (players report a 7 s craft); ours is 4 Lumber.
 	StorageCrate = { Output = "StorageCrate", Count = 1, Ingredients = costs({ Lumber = 4 }), Seconds = 7 },
+	-- 7DTD 3.2 campfire: 5 Small Stone; cooking happens at a campfire. Times are the ingredients'
+	-- CraftingIngredientTime (river water 10, potato 10, corn 5).
+	Campfire = { Output = "Campfire", Count = 1, Ingredients = costs({ SmallStone = 5 }) },
+	-- drinkJarBoiledWater: murky water in the cooking pot. Bottled water is 7DTD's boiled water jar.
+	BoiledWater = {
+		Output = "BottledWater",
+		Count = 1,
+		Ingredients = costs({ MurkyWater = 1 }),
+		Seconds = 10,
+		Station = "Campfire",
+		Tool = "CookingPot",
+	},
+	BakedPotato = {
+		Output = "BakedPotato",
+		Count = 1,
+		Ingredients = costs({ Potato = 1 }),
+		Seconds = 10,
+		Station = "Campfire",
+	},
+	CornOnTheCob = {
+		Output = "CornOnTheCob",
+		Count = 1,
+		Ingredients = costs({ Corn = 1 }),
+		Seconds = 5,
+		Station = "Campfire",
+		Tool = "CookingGrill",
+	},
 	-- 7DTD generator bank: 15 Forged Iron, 15 Mechanical Parts, 21 Electrical Parts at a workbench
 	-- (1:45). We have no forge, workbench or perks, and one town instead of a county: 50 Scrap Iron
 	-- stand in for the forged iron and the parts are cut to what a sweep of the storage loot gives
@@ -795,6 +857,10 @@ Config.Crafting = {
 		"CornSeed",
 		"PotatoSeed",
 		"BlueberrySeed",
+		"Campfire",
+		"BakedPotato",
+		"CornOnTheCob",
+		"BoiledWater",
 		"Generator",
 		"ElectricLamp",
 	},
@@ -805,6 +871,9 @@ Config.Crafting = {
 	-- 7DTD CraftingIngredientTime: seconds each ingredient adds to a craft, 1 when not listed.
 	IngredientSeconds = { Wood = 0.2, SmallStone = 0.2, PlantFiber = 0.2 } :: { [string]: number },
 	DefaultIngredientSeconds = 1,
+	-- How close (studs, character to the station's centre) a station recipe may be queued. Ours: 7DTD
+	-- opens the station itself at interaction reach. The job then runs in the player's queue.
+	StationReach = 10,
 }
 
 -- Melee stats by item id. "Fist" is the empty hand; any held item without an entry here (wood,
@@ -1206,6 +1275,9 @@ Config.Loot = {
 				{ Id = "Cloth", Min = 1, Max = 2, Weight = 1 },
 				{ Id = "CornSeed", Min = 1, Max = 2, Weight = 1 },
 				{ Id = "PotatoSeed", Min = 1, Max = 2, Weight = 1 },
+				-- About one of each per 25 cupboards searched.
+				{ Id = "CookingPot", Min = 1, Max = 1, Weight = 0.6 },
+				{ Id = "CookingGrill", Min = 1, Max = 1, Weight = 0.6 },
 			},
 		},
 		Shelf = {
@@ -1435,6 +1507,11 @@ Config.Debug = {
 		{ Id = "PotatoSeed", Count = 2 },
 		{ Id = "Generator", Count = 1 },
 		{ Id = "StorageCrate", Count = 2 },
+		{ Id = "Campfire", Count = 1 },
+		{ Id = "CookingPot", Count = 1 },
+		{ Id = "CookingGrill", Count = 1 },
+		{ Id = "Potato", Count = 3 },
+		{ Id = "Corn", Count = 3 },
 		{ Id = "ElectricLamp", Count = 4 },
 		{ Id = "GasCan", Count = 300 },
 		{ Id = "Wood", Count = 50 },

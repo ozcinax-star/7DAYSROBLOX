@@ -478,6 +478,16 @@ function BuildService.blockAt(instance: Instance): (number?, string?)
 	return block.key, block.kind
 end
 
+-- Whether a block of `kind` stands within `radius` studs of `position` (crafting stations).
+function BuildService.near(kind: string, position: Vector3, radius: number): boolean
+	for _, block in blocks do
+		if block.kind == kind and (block.part.Position - position).Magnitude <= radius then
+			return true
+		end
+	end
+	return false
+end
+
 -- Registers a listener for placed blocks: key, kind and part.
 function BuildService.onPlaced(callback: (key: number, kind: string, part: BasePart) -> ())
 	table.insert(placedCallbacks, callback)

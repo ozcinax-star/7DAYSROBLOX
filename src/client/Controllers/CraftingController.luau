@@ -1,9 +1,13 @@
 --!strict
 -- CraftingController: the crafting panel docked to the right of the backpack (7DTD's backpack crafting
 -- window). Each recipe shows its ingredients against what the player carries, a count and a Craft
--- button. The queue below shows the four jobs, counts the first one down, and cancels a job when it
--- is clicked. The server owns the queue (CraftingService); this only shows its copy and sends requests.
+-- button. Cooking recipes also show the station they need nearby and the tool they need carried. The
+-- queue below shows the four jobs, counts the first one down, and cancels a job when it is clicked.
+-- A station's "Cook" prompt opens the panel. The server owns the queue (CraftingService); this only
+-- shows its copy and sends requests.
 
+local Players = game:GetService("Players")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -17,6 +21,9 @@ local Net = require(Shared.Net)
 local InventoryController = require(script.Parent.InventoryController)
 
 local CC = Config.Crafting
+local BC = Config.Build
+-- How often the open panel looks for nearby stations (seconds).
+local STATION_CHECK_SECONDS = 0.5
 
 -- Layout (pixels).
 local PANEL_WIDTH = 340
@@ -65,6 +72,9 @@ local queueViews: { QueueView } = {}
 local jobs: { JobView } = {}
 -- Server time when `jobs` was sent.
 local sentAt = 0
+-- Station kinds in reach at the last check, as a sorted list joined by commas.
+local nearStations = ""
+local nextStationCheck = 0
 
 local function itemName(id: string): string
 	return Localization.get(`Item{id}`)
@@ -120,7 +130,39 @@ local function formatSeconds(seconds: number): string
 	return Localization.get("CraftingSeconds", { seconds = shown })
 end
 
--- Ingredients as "have/need item" pairs, green when there is enough for the chosen count.
+-- Whether a placed station of `kind` is within reach of the character (the server checks again).
+local function stationNear(kind: string): boolean
+	local character = Players.LocalPlayer.Character
+	local root = character and character.PrimaryPart
+	local structures = Workspace:FindFirstChild(BC.FolderName)
+	if root == nil or structures == nil then
+		return false
+	end
+	for _, part in structures:GetChildren() do
+		if
+			part:IsA("BasePart")
+			and part:GetAttribute("Kind") == kind
+			and (part.Position - root.Position).Magnitude <= CC.StationReach
+		then
+			return true
+		end
+	end
+	return false
+end
+
+local function stationsInReach(): string
+	local kinds = {}
+	for kind, def in BC.Blocks do
+		if def.Station and stationNear(kind) then
+			table.insert(kinds, kind)
+		end
+	end
+	table.sort(kinds)
+	return table.concat(kinds, ",")
+end
+
+-- Ingredients as "have/need item" pairs, green when there is enough for the chosen count; then the
+-- station and tool a cooking recipe needs, green when at hand.
 local function refreshRows()
 	for _, id in CC.Order do
 		local recipe = Config.Recipes[id]
@@ -135,9 +177,20 @@ local function refreshRows()
 			local hex = if have >= need then HAVE_HEX else MISSING_HEX
 			table.insert(parts, `<font color="{hex}">{have}/{need}</font> {itemName(ingredient.Id)}`)
 		end
+		if recipe.Station then
+			local hex = if stationNear(recipe.Station) then HAVE_HEX else MISSING_HEX
+			local text = Localization.get("CraftingStation", { station = itemName(recipe.Station) })
+			table.insert(parts, `<font color="{hex}">{text}</font>`)
+		end
+		if recipe.Tool then
+			local hex = if countOf(recipe.Tool) >= 1 then HAVE_HEX else MISSING_HEX
+			local text = Localization.get("CraftingTool", { tool = itemName(recipe.Tool) })
+			table.insert(parts, `<font color="{hex}">{text}</font>`)
+		end
 		row.ingredients.Text = table.concat(parts, "   ")
 		row.count.Text = Localization.get("CraftingCount", { count = count })
-		row.craft.TextTransparency = if most >= count then 0 else DISABLED_TRANSPARENCY
+		local usable = most >= count and Crafting.canUse(recipe, countOf, stationNear)
+		row.craft.TextTransparency = if usable then 0 else DISABLED_TRANSPARENCY
 	end
 end
 
@@ -220,7 +273,8 @@ local function buildRow(parent: Instance, id: string, order: number)
 	end
 	local craft = button(frame, "Craft", Localization.get("CraftingCraft"), function()
 		local count = counts[id] or 1
-		if Crafting.maxCount(recipe, countOf) >= count and #jobs < CC.QueueSlots then
+		local usable = Crafting.maxCount(recipe, countOf) >= count and Crafting.canUse(recipe, countOf, stationNear)
+		if usable and #jobs < CC.QueueSlots then
 			queueRemote:FireServer(id, count)
 		end
 	end)
@@ -354,8 +408,27 @@ function CraftingController.start()
 		refreshRows()
 	end)
 	RunService.Heartbeat:Connect(function()
-		if InventoryController.isBackpackOpen() and #jobs > 0 then
+		if not InventoryController.isBackpackOpen() then
+			return
+		end
+		if #jobs > 0 then
 			refreshQueue()
+		end
+		local now = os.clock()
+		if now >= nextStationCheck then
+			nextStationCheck = now + STATION_CHECK_SECONDS
+			local near = stationsInReach()
+			if near ~= nearStations then
+				nearStations = near
+				refreshRows()
+			end
+		end
+	end)
+	ProximityPromptService.PromptTriggered:Connect(function(prompt)
+		local kind = prompt.Parent and prompt.Parent:GetAttribute("Kind")
+		local def = if typeof(kind) == "string" then BC.Blocks[kind] else nil
+		if def and def.Station then
+			InventoryController.setBackpackOpen(true)
 		end
 	end)
 end
