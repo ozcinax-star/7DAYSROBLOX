@@ -15,6 +15,7 @@ mounts = [
     ("src/shared", "ReplicatedStorage/Shared"),
     ("src/server", "ServerScriptService/Server"),
     ("src/client", "StarterPlayer/StarterPlayerScripts/Client"),
+    ("src/character", "StarterPlayer/StarterCharacterScripts"),
 ]
 items = []
 for src, dest in mounts:

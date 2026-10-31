@@ -1,0 +1,4 @@
+--!strict
+-- Replaces Roblox's default character Health script, which heals 1% of max health per second. Here
+-- health comes back the 7DTD way: slowly while fed and watered (SurvivalService) and from food and
+-- medicine. This script is empty on purpose.

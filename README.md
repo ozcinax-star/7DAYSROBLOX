@@ -30,6 +30,7 @@ rojo build -o build.rbxl      # full place build
 | `src/shared` | `ReplicatedStorage.Shared` | `Config` (all balance numbers), `Localization` (all UI text), `Types`, `NavGrid`, `ZombieProtocol` (snapshot encoding), `ZombieLook` (zombie appearance from its id), `World/` (map layout, height field) |
 | `src/server` | `ServerScriptService.Server` | Bootstrap script + `Services/*` + `World/*` (terrain, building kit, floor plans, props) |
 | `src/client` | `StarterPlayer.StarterPlayerScripts.Client` | Bootstrap script + `Controllers/*` + `Modules/*` (`ZombieRig`: jointed zombie body and its procedural shamble) |
+| `src/character` | `StarterPlayer.StarterCharacterScripts` | `Health` (empty: replaces Roblox's default health regeneration) |
 | `tests` | not synced | Lune unit tests for pure modules |
 | `tools/studio` | not synced | Dev-only Studio MCP sync + test harness and the floor-plan checker (see `docs/HANDOFF.md`) |
 
