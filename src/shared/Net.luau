@@ -43,6 +43,11 @@ local Definitions: { [string]: "RemoteEvent" | "UnreliableRemoteEvent" } = {
 	ArrowFired = "UnreliableRemoteEvent",
 	-- Server -> client: an arrow stopped (arrow id, Vector3 where, id of the zombie it hit or 0).
 	ArrowStopped = "UnreliableRemoteEvent",
+	-- Client -> server: act on the open storage crate (action: "Take" crate slot | "Put" own slot,
+	-- crate slot? | "TakeAll" | "Close").
+	StorageAction = "RemoteEvent",
+	-- Server -> client: the open crate's slots ({ Inventory.Slot }), or false when it closed.
+	StorageUpdate = "RemoteEvent",
 }
 
 local Net = {}

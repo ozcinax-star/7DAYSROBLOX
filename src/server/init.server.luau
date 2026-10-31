@@ -19,6 +19,7 @@ local order = {
 	require(Services.BuildService),
 	require(Services.FarmService),
 	require(Services.PowerService),
+	require(Services.StorageService),
 	require(Services.SurvivalService),
 	require(Services.DebugService),
 }

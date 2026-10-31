@@ -93,7 +93,10 @@ local selectRemote: RemoteEvent
 local repairRemote: RemoteEvent
 local sidePanel: Frame? = nil
 local sideWidth = 0
+-- A panel shown in the side panel's place for a while (an open storage crate).
+local overridePanel: Frame? = nil
 local slotsChangedCallbacks: { () -> () } = {}
+local backpackCallbacks: { (open: boolean) -> () } = {}
 local nameToken = 0
 
 local function itemName(id: string): string
@@ -277,10 +280,16 @@ local function selectSlot(index: number)
 end
 
 local function setBackpackOpen(open: boolean)
+	local changed = open ~= backpackOpen
 	backpackOpen = open
 	backpack.Visible = open
 	picked = nil
 	render()
+	if changed then
+		for _, callback in backpackCallbacks do
+			task.spawn(callback, open)
+		end
+	end
 end
 
 local function onSlotActivated(index: number, half: boolean)
@@ -338,10 +347,11 @@ local function layout()
 	local panelHeight = TITLE_HEIGHT + cell * rows + SLOT_GAP * (rows - 1) + PANEL_PADDING * 3
 	backpack.Size = UDim2.fromOffset(panelWidth, panelHeight)
 	backpack.Position = UDim2.new(0.5, -side / 2, 1, -(BOTTOM_OFFSET + size + SLOT_GAP * 2))
-	local panel = sidePanel
-	if panel then
-		panel.Position = UDim2.new(1, SLOT_GAP, 0, 0)
-		panel.Size = UDim2.fromOffset(sideWidth, panelHeight)
+	for _, panel: Frame? in { sidePanel, overridePanel } do
+		if panel then
+			panel.Position = UDim2.new(1, SLOT_GAP, 0, 0)
+			panel.Size = UDim2.fromOffset(sideWidth, panelHeight)
+		end
 	end
 end
 
@@ -547,6 +557,44 @@ function InventoryController.attachSidePanel(panel: Frame, width: number)
 		panel.Parent = backpack
 		layout()
 	end
+end
+
+-- Shows `panel` where the side panel is (same size), hiding the side panel, until it is called with
+-- nil. The backpack must be built.
+function InventoryController.showSidePanel(panel: Frame?)
+	local old = overridePanel
+	if old and old ~= panel then
+		old.Visible = false
+	end
+	overridePanel = panel
+	if panel then
+		panel.AnchorPoint = Vector2.new(0, 0)
+		panel.Parent = backpack
+		panel.Visible = true
+	end
+	if sidePanel then
+		sidePanel.Visible = panel == nil
+	end
+	layout()
+end
+
+-- Opens or closes the backpack panel.
+function InventoryController.setBackpackOpen(open: boolean)
+	setBackpackOpen(open)
+end
+
+-- Calls `callback` with the new state whenever the backpack opens or closes.
+function InventoryController.onBackpackChanged(callback: (open: boolean) -> ())
+	table.insert(backpackCallbacks, callback)
+end
+
+-- The slot the player picked to move (nil when none), which is dropped: another panel takes it.
+function InventoryController.takePicked(): number?
+	local index = picked
+	picked = nil
+	pickHalf = false
+	render()
+	return index
 end
 
 -- The toolbelt frame once it is built (other HUD parts lay themselves out around it), or nil.

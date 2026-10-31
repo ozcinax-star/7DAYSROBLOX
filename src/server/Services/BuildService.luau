@@ -4,10 +4,10 @@
 -- head position and the aim). A door takes its cell and the one above, hangs on the side its builder
 -- stood on and opens and closes with the interact key; closed, it is a wall zombies path through and
 -- break, open, they walk through it (7DTD zombies never open doors). A farm plot is a low slab crops
--- grow on (FarmService); it blocks nobody. Generators and lamps are smaller boxes on the floor of
--- their cell (PowerService gives them their prompt and light); lamps let zombies by. The stone axe
--- upgrades a frame to a wood block
--- (3 hits, 4 Lumber) and repairs damaged blocks with wood; other tools and the fist damage them.
+-- grow on (FarmService); it blocks nobody. Generators, lamps and storage crates are smaller boxes on
+-- the floor of their cell (PowerService and StorageService give them their prompts); lamps let
+-- zombies by. The stone axe upgrades a frame to a wood block (3 hits, 4 Lumber) and repairs damaged
+-- blocks with wood; other tools and the fist damage them.
 -- Zombies path through the weakest wall and break it (ZombieService structure cells); blocks that
 -- lose their way to the ground fall.
 --

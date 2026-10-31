@@ -310,6 +310,29 @@ function Inventory.putSlot(inv: Inventory, index: number, stack: Stack): boolean
 	return true
 end
 
+-- Moves the stack in slot `index` of `from` into `to`: into slot `toIndex` when that is given and empty,
+-- otherwise wherever it fits (stacks first, like Inventory.add). What does not fit stays where it was.
+-- Returns how many items moved.
+function Inventory.transfer(from: Inventory, index: number, to: Inventory, toIndex: number?): number
+	local stack = from.slots[index]
+	if stack == false or stack == nil then
+		return 0
+	end
+	if toIndex and to.slots[toIndex] == false then
+		from.slots[index] = false
+		to.slots[toIndex] = stack
+		return stack.count
+	end
+	local count = stack.count
+	local left = Inventory.add(to, stack.id, count, stack.source, stack.durability)
+	if left == 0 then
+		from.slots[index] = false
+	else
+		stack.count = left
+	end
+	return count - left
+end
+
 -- A stack to give back, into `slot` when that slot is still empty.
 export type Return = { stack: Stack, slot: number? }
 

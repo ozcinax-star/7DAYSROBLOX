@@ -506,6 +506,24 @@ test("stacks from different sources stay apart", function()
 	assert(sources[1] ~= sources[2], "different sources")
 end)
 
+test("a crate takes a whole stack into a chosen slot or wherever it fits, keeping what has no room", function()
+	local player = Inventory.new(2, 2)
+	local crate = Inventory.new(0, Config.Storage.Slots)
+	player.slots[1] = { id = "Wood", count = 50, source = "Loot" }
+	player.slots[2] = { id = "StoneAxe", count = 1, source = "Loot", durability = 40 }
+	expectEq(Inventory.transfer(player, 1, crate, 5), 50, "whole stack moved")
+	expectEq(player.slots[1], false, "slot emptied")
+	expectEq((crate.slots[5] :: any).count, 50, "into the chosen slot")
+	expectEq(Inventory.transfer(player, 2, crate, 5), 1, "a taken slot falls back to the first free one")
+	expectEq((crate.slots[1] :: any).durability, 40, "the tool keeps its durability")
+	expectEq(Inventory.transfer(player, 3, crate, nil), 0, "empty slot moves nothing")
+	local small = Inventory.new(0, 1)
+	small.slots[1] = { id = "Wood", count = Config.Items.Wood.Stack - 10, source = "Loot" }
+	crate.slots[5] = { id = "Wood", count = 30, source = "Loot" }
+	expectEq(Inventory.transfer(crate, 5, small, nil), 10, "only what fits")
+	expectEq((crate.slots[5] :: any).count, 20, "the rest stays")
+end)
+
 test("removal is all or nothing, backpack first, and returns the sources", function()
 	local inv = Inventory.new(1, 2)
 	inv.slots[1] = { id = "Wood", count = 4, source = "Loot" }

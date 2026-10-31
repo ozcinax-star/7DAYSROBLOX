@@ -46,6 +46,7 @@ export type NoiseEvent = { Noise: number, Radius: number }
 -- interact key (zombies break it when it is closed). Plot: a low farm plot slab that crops grow on;
 -- it blocks nobody. Size: a smaller box (studs) standing on the floor of its cell instead of a cube.
 -- Passable: zombies walk past it. Generator / Lamp: a generator or an electric lamp (PowerService).
+-- Storage: a storage crate (StorageService).
 -- Material and Color are the look.
 export type BlockDef = {
 	Health: number,
@@ -60,6 +61,7 @@ export type BlockDef = {
 	Passable: boolean?,
 	Generator: boolean?,
 	Lamp: boolean?,
+	Storage: boolean?,
 	Material: string,
 	Color: { number },
 	Transparency: number?,
@@ -574,6 +576,17 @@ Config.Build = {
 			Material = "DiamondPlate",
 			Color = { 0.33, 0.4, 0.3 },
 		},
+		-- 7DTD wooden storage crate (cntStorageGeneric); its health is not on the wiki, ours is a wood
+		-- frame and a half. Repairs take 3 Wood like other wood.
+		StorageCrate = {
+			Health = 150,
+			Placeable = true,
+			Repair = { Id = "Wood", Count = 3 },
+			Size = { 3.6, 2.6, 2.8 },
+			Storage = true,
+			Material = "WoodPlanks",
+			Color = { 0.55, 0.42, 0.28 },
+		},
 		-- A lamp post (ours; 7DTD's bulbs hang on walls and ceilings and take wires). Zombies pass it.
 		ElectricLamp = {
 			Health = 100,
@@ -679,6 +692,7 @@ Config.Items = {
 	MechanicalParts = { Stack = 500, Color = { 0.5, 0.52, 0.55 } }, -- resourceMechanicalParts
 	ElectricalParts = { Stack = 500, Color = { 0.85, 0.6, 0.2 } }, -- resourceElectricParts
 	Generator = { Stack = 10, Color = { 0.33, 0.4, 0.3 } }, -- generatorbank
+	StorageCrate = { Stack = 10, Color = { 0.55, 0.42, 0.28 } }, -- cntStorageGeneric
 	ElectricLamp = { Stack = 100, Color = { 0.95, 0.85, 0.5 } },
 } :: { [string]: ItemDef }
 
@@ -733,6 +747,8 @@ Config.Recipes = {
 	},
 	-- 7DTD: 10 Wood, 2 s; here 5 Lumber, the same wood.
 	WoodDoor = { Output = "WoodDoor", Count = 1, Ingredients = costs({ Lumber = 5 }), Seconds = 2 },
+	-- 7DTD's wooden storage crate recipe is not confirmed (players report a 7 s craft); ours is 4 Lumber.
+	StorageCrate = { Output = "StorageCrate", Count = 1, Ingredients = costs({ Lumber = 4 }), Seconds = 7 },
 	-- 7DTD generator bank: 15 Forged Iron, 15 Mechanical Parts, 21 Electrical Parts at a workbench
 	-- (1:45). We have no forge, workbench or perks, and one town instead of a county: 50 Scrap Iron
 	-- stand in for the forged iron and the parts are cut to what a sweep of the storage loot gives
@@ -764,6 +780,7 @@ Config.Crafting = {
 		"WoodFrame",
 		"WoodLadder",
 		"WoodDoor",
+		"StorageCrate",
 		"Dirt",
 		"FarmPlot",
 		"CornSeed",
@@ -1368,6 +1385,18 @@ Config.Remotes = {
 	CraftRequestsPerSecond = 6,
 	-- Sprint on / off.
 	SprintRequestsPerSecond = 8,
+	-- Taking from and storing into an open crate, one click each.
+	StorageRequestsPerSecond = 12,
+}
+
+-- Storage crates (StorageService): slots per crate (6 x 6 in the panel; ours, 7DTD's count is not
+-- confirmed), how far from its centre a crate opens and stays open (studs), and how often the server
+-- closes crates whose viewers walked away or died.
+Config.Storage = {
+	Slots = 36,
+	Columns = 6,
+	Reach = 8,
+	CheckSeconds = 0.5,
 }
 
 Config.Debug = {
@@ -1396,6 +1425,7 @@ Config.Debug = {
 		{ Id = "CornSeed", Count = 2 },
 		{ Id = "PotatoSeed", Count = 2 },
 		{ Id = "Generator", Count = 1 },
+		{ Id = "StorageCrate", Count = 2 },
 		{ Id = "ElectricLamp", Count = 4 },
 		{ Id = "GasCan", Count = 300 },
 		{ Id = "Wood", Count = 50 },
