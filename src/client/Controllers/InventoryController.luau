@@ -549,6 +549,11 @@ function InventoryController.attachSidePanel(panel: Frame, width: number)
 	end
 end
 
+-- The toolbelt frame once it is built (other HUD parts lay themselves out around it), or nil.
+function InventoryController.getToolbelt(): Frame?
+	return toolbelt
+end
+
 -- The stack in the active toolbelt slot as the server last sent it, or nil for an empty hand.
 function InventoryController.getHeld(): Inventory.Stack?
 	local slot = slots[selected]

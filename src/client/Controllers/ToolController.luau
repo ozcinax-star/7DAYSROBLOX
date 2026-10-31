@@ -1,7 +1,8 @@
 --!strict
 -- ToolController: swings the held tool, or the fist; with a block in the hand the same input places
--- it (BuildService). Left mouse, gamepad R2, or the Hit button on touch; holding keeps swinging at the
--- tool's rate. The server decides what is hit; this client
+-- it (BuildService), with food, a drink or medicine it uses it, and a bare hand aimed at water drinks
+-- (SurvivalService). Left mouse, gamepad R2, or the Hit button on touch; holding keeps swinging at
+-- the tool's rate. A swing needs the tool's stamina. The server decides what is hit; this client
 -- only sends its aim and animates. Its own swing plays at once, other players' swings and the
 -- zombie stagger come from the server's ToolSwing broadcast.
 --
@@ -24,7 +25,10 @@ local InventoryController = require(script.Parent.InventoryController)
 local ZombieRenderController = require(script.Parent.ZombieRenderController)
 
 local MC = Config.Melee
+local SC = Config.Survival
 local FIST = "Fist"
+-- After an "out of stamina" refusal, the next try waits this long (stamina comes back meanwhile).
+local OUT_OF_STAMINA_RETRY = 0.3
 
 -- Shoulder angles about the joint's X axis (positive raises the arm forward): wind up overhead,
 -- chop down past the horizontal, then return. Shares are fractions of the swing duration.
@@ -197,6 +201,30 @@ function ToolController.aimDirection(): Vector3?
 	return direction.Unit
 end
 
+-- Whether a bare-hand "use" along `aim` reaches lake or river water (the server's drink check).
+function ToolController.waterInReach(aim: Vector3): boolean
+	local character = player.Character
+	local head = character and character:FindFirstChild("Head")
+	if character == nil or head == nil or not head:IsA("BasePart") then
+		return false
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { character }
+	params.IgnoreWater = false
+	local result = workspace:Raycast(head.Position, aim * SC.DrinkReach, params)
+	return result ~= nil and result.Instance == workspace.Terrain and result.Material == Enum.Material.Water
+end
+
+-- Sends a "use" that is not a swing (placing, eating, drinking), at most every `seconds`.
+local function sendUse(now: number, seconds: number)
+	local aim = ToolController.aimDirection()
+	if aim then
+		nextSwingAt = now + seconds
+		useRemote:FireServer(aim)
+	end
+end
+
 local function trySwing(source: Source)
 	local now = os.clock()
 	if now < nextSwingAt or not canSwing(source) then
@@ -205,11 +233,11 @@ local function trySwing(source: Source)
 	local held = InventoryController.getHeld()
 	if held and Config.Build.Blocks[held.id] then
 		-- A block in the hand is placed, not swung (BuildController shows where).
-		local aim = ToolController.aimDirection()
-		if aim then
-			nextSwingAt = now + Config.Build.PlaceCooldown
-			useRemote:FireServer(aim)
-		end
+		sendUse(now, Config.Build.PlaceCooldown)
+		return
+	end
+	if held and Config.Items[held.id] and Config.Items[held.id].Use then
+		sendUse(now, SC.UseSeconds)
 		return
 	end
 	local toolId = if held and Config.Tools[held.id] then held.id else FIST
@@ -220,6 +248,16 @@ local function trySwing(source: Source)
 	end
 	local aim = ToolController.aimDirection()
 	if aim == nil then
+		return
+	end
+	if toolId == FIST and ToolController.waterInReach(aim) then
+		sendUse(now, SC.UseSeconds)
+		return
+	end
+	local stamina = player:GetAttribute(Net.Attributes.Stamina)
+	if typeof(stamina) == "number" and stamina < Config.Tools[toolId].StaminaLoss then
+		showMessage(Localization.get("OutOfStamina"))
+		nextSwingAt = now + OUT_OF_STAMINA_RETRY
 		return
 	end
 	nextSwingAt = now + Melee.interval(Config.Tools[toolId].AttacksPerMinute, MC.SwingDelay)

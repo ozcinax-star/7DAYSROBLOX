@@ -8,14 +8,25 @@ local Config = {}
 -- crafting queue (7DTD RepairTools / RepairAmount / RepairTime).
 export type RepairDef = { Id: string, Amount: number, Seconds: number }
 
+-- What using an item from the hand does (food, drink, medicine; 7DTD consumables): Food and Water
+-- points, Heal health given over time at HealRate per second, Damage health taken at once.
+export type UseDef = { Food: number?, Water: number?, Heal: number?, HealRate: number?, Damage: number? }
+
 -- An item. Stack: most per slot. Color: placeholder icon colour (0-1 RGB) until icons exist.
 -- Durability: tools only, uses when new; tools never stack. Repair: tools that can be repaired.
+-- Raw: a raw resource (half of what is carried drops on death, PLAN). Use: a consumable.
 export type ItemDef = {
 	Stack: number,
 	Color: { number },
 	Durability: number?,
 	Repair: RepairDef?,
+	Raw: boolean?,
+	Use: UseDef?,
 }
+
+-- A hunger or thirst stage: reached at or below Enter (share of the max), left above Leave, and
+-- blocking Block of max stamina.
+export type SurvivalStage = { Enter: number, Leave: number, Block: number }
 
 export type ItemCount = { Id: string, Count: number }
 
@@ -59,7 +70,7 @@ export type ToolDef = {
 	BlockDamage: number,
 	AttacksPerMinute: number,
 	Range: number,
-	-- Not used until stamina exists.
+	-- Stamina one swing costs; a swing needs at least this much (7DTD).
 	StaminaLoss: number,
 	Materials: { [HarvestMaterial]: number },
 }
@@ -494,12 +505,24 @@ end
 -- Items. Stack sizes and durabilities follow 7 Days to Die 1.0+ (item id in each comment); Lumber and
 -- the stone pickaxe are ours (PLAN, Kararlar).
 Config.Items = {
-	Wood = { Stack = 6000, Color = { 0.55, 0.38, 0.22 } }, -- resourceWood
-	SmallStone = { Stack = 6000, Color = { 0.56, 0.56, 0.54 } }, -- resourceRockSmall
-	PlantFiber = { Stack = 6000, Color = { 0.55, 0.63, 0.3 } }, -- resourceYuccaFibers
+	Wood = { Stack = 6000, Color = { 0.55, 0.38, 0.22 }, Raw = true }, -- resourceWood
+	SmallStone = { Stack = 6000, Color = { 0.56, 0.56, 0.54 }, Raw = true }, -- resourceRockSmall
+	PlantFiber = { Stack = 6000, Color = { 0.55, 0.63, 0.3 }, Raw = true }, -- resourceYuccaFibers
 	Lumber = { Stack = 6000, Color = { 0.8, 0.62, 0.4 } },
-	ScrapIron = { Stack = 6000, Color = { 0.52, 0.36, 0.3 } }, -- resourceScrapIron
-	Cloth = { Stack = 250, Color = { 0.78, 0.72, 0.6 } }, -- resourceCloth
+	ScrapIron = { Stack = 6000, Color = { 0.52, 0.36, 0.3 }, Raw = true }, -- resourceScrapIron
+	Cloth = { Stack = 250, Color = { 0.78, 0.72, 0.6 }, Raw = true }, -- resourceCloth
+	-- 7DTD 1.x-3.2 consumables. Food heals over time at 0.5 a second (buffHealHealth); canned food gives
+	-- no water since 1.0.
+	-- foodCanChili
+	CanChili = { Stack = 10, Color = { 0.7, 0.25, 0.15 }, Use = { Food = 15, Heal = 7, HealRate = 0.5 } },
+	-- foodCanDogFood
+	CanDogFood = { Stack = 10, Color = { 0.55, 0.45, 0.3 }, Use = { Food = 10, Heal = 5, HealRate = 0.5 } },
+	-- drinkJarBoiledWater
+	BottledWater = { Stack = 10, Color = { 0.55, 0.75, 0.95 }, Use = { Water = 20 } },
+	-- drinkJarRiverWater: 5 health at once; its 12 % dysentery chance is not in yet.
+	MurkyWater = { Stack = 10, Color = { 0.45, 0.5, 0.4 }, Use = { Water = 10, Damage = 5 } },
+	-- medicalFirstAidBandage: 30 health over about 15 s (it also stops bleeding, which is not in yet).
+	FirstAidBandage = { Stack = 5, Color = { 0.9, 0.88, 0.82 }, Use = { Heal = 30, HealRate = 2 } },
 	WoodFrame = { Stack = 500, Color = { 0.72, 0.56, 0.36 } }, -- frameShapes
 	WoodLadder = { Stack = 500, Color = { 0.55, 0.4, 0.25 } }, -- ladderWood
 	-- meleeToolRepairT0StoneAxe
@@ -636,10 +659,18 @@ Config.Loot = {
 	-- cobblestones, food, drinks, medical, duct tape...) and has a 50 % group that includes tiered
 	-- tools. We only have raw resources and stone tools yet: one common pick, and a stone tool at a
 	-- worn share of its durability.
+	-- 7DTD zPackReg picks food, drinks and medical about 15 % of the time each. Its drinks are juices and
+	-- teas we do not have, so water stands in; the medical share is halved (only the healing bandage
+	-- exists here).
 	ZombieCommon = {
 		{ Id = "ScrapIron", Min = 3, Max = 10, Weight = 3 },
 		{ Id = "Cloth", Min = 2, Max = 6, Weight = 3 },
 		{ Id = "SmallStone", Min = 5, Max = 15, Weight = 2 },
+		{ Id = "CanChili", Min = 1, Max = 1, Weight = 1.2 },
+		{ Id = "CanDogFood", Min = 1, Max = 1, Weight = 1 },
+		{ Id = "BottledWater", Min = 1, Max = 1, Weight = 1.2 },
+		{ Id = "MurkyWater", Min = 1, Max = 1, Weight = 1 },
+		{ Id = "FirstAidBandage", Min = 1, Max = 1, Weight = 1 },
 	} :: { LootPick },
 	ZombieToolChance = 0.15,
 	ZombieTools = { "StoneAxe", "StoneShovel", "StonePickaxe" },
@@ -694,6 +725,74 @@ Config.Melee = {
 	MessageSeconds = 1.6,
 }
 
+-- Player survival stats (7DTD playerMale, buffStatusHungry01-03 and buffStatusThirsty01-03 in 1.0-3.2;
+-- docs/REFERENCE_7DTD.md part B section 6). Health is the Humanoid's (max 100); the rest is server state.
+Config.Survival = {
+	MaxStamina = 100,
+	MaxFood = 100,
+	MaxWater = 100,
+	-- The server updates every player this often (7DTD ticks stats every 0.5 s).
+	TickSeconds = 0.5,
+	-- StaminaChangeOT: 10 a second, scaled by the water band. Sprinting nets -4.5 a second
+	-- (perc_add -1.45) while moving; each jump costs 20.
+	StaminaRegen = 10,
+	SprintDrain = 4.5,
+	JumpCost = 20,
+	-- 7DTD drains 30 food and 40 water and heals about 60 health per real hour, one day at its default
+	-- day length; here the same amounts go per in-game day (Config.DayNight.CycleSeconds).
+	FoodPerDay = 30,
+	WaterPerDay = 40,
+	HealthPerDay = 60,
+	-- What regenerating costs: food and water per stamina point, water per health point.
+	FoodPerStamina = 0.00408,
+	WaterPerStamina = 0.00453,
+	WaterPerHealth = 0.06,
+	-- Eaten food goes in at this many points a second (buffHealFood).
+	FoodPerSecond = 1,
+	-- Hunger and thirst stages, buffStatusHungry01-03 / Thirsty01-03. Hunger and thirst block stamina
+	-- separately and the two add up.
+	Stages = {
+		{ Enter = 0.5, Leave = 0.52, Block = 0.2 },
+		{ Enter = 0.25, Leave = 0.27, Block = 0.4 },
+		{ Enter = 0.02, Leave = 0.04, Block = 0.6 },
+	} :: { SurvivalStage },
+	-- The last stage (starving, dehydrated): this much health every StarveInterval seconds for each of
+	-- the two (real time), no natural healing, and starving cuts stamina regen by StarveRegenCut.
+	StarveDamage = 0.25,
+	StarveInterval = 2.2,
+	StarveRegenCut = 0.1,
+	-- Water bands on stamina and health regen (EntityStats.GetWaterPercent): the first band whose Min
+	-- share the water reaches; empty water stops all regen.
+	WaterBands = {
+		{ Min = 0.5, Factor = 1 },
+		{ Min = 0.25, Factor = 0.5 },
+		{ Min = 0, Factor = 0.25 },
+	} :: { { Min: number, Factor: number } },
+	-- Blocked stamina never takes the bar below this. Ours: the 7DTD floor is unknown, and both stats
+	-- at their last stage would block all of it.
+	MinStaminaCap = 10,
+	-- Speeds in studs a second. 7DTD gives no m/s; walking keeps the Roblox default (the horde's jog
+	-- is slower, PLAN) and sprinting is half again as fast.
+	WalkSpeed = 16,
+	SprintSpeed = 24,
+	-- A sprint starts only with this much stamina and ends at 0.
+	SprintMinStamina = 5,
+	-- The character counts as sprinting while its ground speed is this much above WalkSpeed.
+	SprintSpeedMargin = 1,
+	-- A jump is counted when the character rises faster than this share of its jump speed.
+	JumpDetectShare = 0.6,
+	-- Eating, drinking and using medicine take this long (one use at a time).
+	UseSeconds = 1,
+	-- Drinking from a lake or river with the bare hand (meleeHandPlayer "Drink"): like murky water.
+	-- Reach is from the head, in studs.
+	LakeDrink = { Water = 10, Damage = 5 } :: UseDef,
+	DrinkReach = 9,
+	-- Death (PLAN): this share of each carried raw resource drops in a bag that lasts DeathBagSeconds;
+	-- equipment stays. Stats come back full on respawn (the default 7DTD death penalty).
+	DeathDropShare = 0.5,
+	DeathBagSeconds = 300,
+}
+
 Config.Inventory = {
 	-- 7DTD: a 10-slot toolbelt (keys 1-0) and a 5 x 9 backpack.
 	ToolbeltSlots = 10,
@@ -718,6 +817,8 @@ Config.Remotes = {
 	UseToolRequestsPerSecond = 4,
 	-- Queueing, cancelling and repairing.
 	CraftRequestsPerSecond = 6,
+	-- Sprint on / off.
+	SprintRequestsPerSecond = 8,
 }
 
 Config.Debug = {
@@ -744,6 +845,10 @@ Config.Debug = {
 		{ Id = "Lumber", Count = 20 },
 		{ Id = "WoodFrame", Count = 30 },
 		{ Id = "WoodLadder", Count = 5 },
+		{ Id = "CanChili", Count = 3 },
+		{ Id = "BottledWater", Count = 3 },
+		{ Id = "MurkyWater", Count = 3 },
+		{ Id = "FirstAidBandage", Count = 2 },
 	} :: { ItemCount },
 }
 

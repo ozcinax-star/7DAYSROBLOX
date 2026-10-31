@@ -36,11 +36,14 @@ local Definitions: { [string]: "RemoteEvent" | "UnreliableRemoteEvent" } = {
 	CraftRepair = "RemoteEvent",
 	-- Server -> client: the player's crafting queue ({ CraftingService.JobView }, server time: number).
 	CraftUpdate = "RemoteEvent",
+	-- Client -> server: sprint held or released (boolean).
+	SprintIntent = "RemoteEvent",
 }
 
 local Net = {}
 
--- Attribute names shared by server and client. Stats live on ReplicatedStorage, DebugAllowed on Player.
+-- Attribute names shared by server and client. Stats live on ReplicatedStorage; DebugAllowed and the
+-- survival stats on Player.
 Net.Attributes = {
 	TickMs = "ServerTickMs",
 	TickMaxMs = "ServerTickMaxMs",
@@ -61,6 +64,14 @@ Net.Attributes = {
 	AmbientTarget = "AmbientTarget",
 	HordeLeft = "HordeLeft",
 	DirectorEnabled = "DirectorEnabled",
+	-- Survival stats of a player, on that Player (SurvivalService): current values, the stamina the
+	-- bar can hold, and the hunger and thirst stages.
+	Stamina = "Stamina",
+	StaminaCap = "StaminaCap",
+	Food = "Food",
+	Water = "Water",
+	Hunger = "Hunger",
+	Thirst = "Thirst",
 }
 
 local function getFolder(): Folder

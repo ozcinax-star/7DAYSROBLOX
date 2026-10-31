@@ -14,6 +14,7 @@ local Net = require(Shared.Net)
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local DayNightService = require(script.Parent.DayNightService)
 local InventoryService = require(script.Parent.InventoryService)
+local SurvivalService = require(script.Parent.SurvivalService)
 local ThreatService = require(script.Parent.ThreatService)
 local ZombieService = require(script.Parent.ZombieService)
 
@@ -76,6 +77,17 @@ local function onCommand(player: Player, command: unknown, value: unknown)
 		local id = ZombieService.nearest(root.Position, Config.Debug.KillRadius)
 		if id then
 			ZombieService.damage(id, math.huge, player)
+		end
+	elseif command == "SetFood" or command == "SetWater" then
+		-- Survival tests: puts the stat at `value` (0 to its max) right away.
+		local max = if command == "SetFood" then Config.Survival.MaxFood else Config.Survival.MaxWater
+		if typeof(value) ~= "number" or value ~= value or value < 0 or value > max then
+			return
+		end
+		if command == "SetFood" then
+			SurvivalService.setStats(player, value, nil)
+		else
+			SurvivalService.setStats(player, nil, value)
 		end
 	elseif command == "GiveKit" then
 		for _, entry in Config.Debug.TestKit do

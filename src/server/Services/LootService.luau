@@ -135,7 +135,7 @@ local function onSearch(player: Player, bag: Bag)
 	end
 end
 
-local function newBag(ground: Vector3): Bag
+local function newBag(ground: Vector3, seconds: number): Bag
 	local model = Instance.new("Model")
 	model.Name = "LootBag"
 	local center = ground + Vector3.new(0, SACK_SIZE * 0.42, 0)
@@ -170,7 +170,7 @@ local function newBag(ground: Vector3): Bag
 	prompt.Parent = sack
 
 	model.Parent = folder
-	bag.expiry = task.delay(LC.BagSeconds, remove, bag)
+	bag.expiry = task.delay(seconds, remove, bag)
 	table.insert(bags, bag)
 	while #bags > LC.MaxBags do
 		remove(bags[1])
@@ -193,8 +193,9 @@ local function bagNear(position: Vector3, distance: number): Bag?
 end
 
 -- Puts `stacks` in a bag on the ground below `position`. With `merge`, a bag within
--- Config.Loot.MergeDistance is topped up first. Returns how many items did not fit in any bag.
-function LootService.drop(position: Vector3, stacks: { Inventory.Stack }, merge: boolean): number
+-- Config.Loot.MergeDistance is topped up first. A new bag lasts `seconds` (Config.Loot.BagSeconds by
+-- default). Returns how many items did not fit in any bag.
+function LootService.drop(position: Vector3, stacks: { Inventory.Stack }, merge: boolean, seconds: number?): number
 	local ground = groundAt(position)
 	local bag = if merge then bagNear(ground, LC.MergeDistance) else nil
 	local lost = 0
@@ -204,7 +205,7 @@ function LootService.drop(position: Vector3, stacks: { Inventory.Stack }, merge:
 			left = Inventory.add(bag.inventory, stack.id, left, stack.source, stack.durability)
 		end
 		if left > 0 then
-			bag = newBag(ground)
+			bag = newBag(ground, seconds or LC.BagSeconds)
 			left = Inventory.add(bag.inventory, stack.id, left, stack.source, stack.durability)
 		end
 		lost += left

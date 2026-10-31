@@ -17,6 +17,7 @@ local Loot = require("../src/shared/Loot")
 local DayClock = require("../src/shared/DayClock")
 local Threat = require("../src/shared/Threat")
 local BuildGrid = require("../src/shared/BuildGrid")
+local Vitals = require("../src/shared/Vitals")
 
 local passed, failed = 0, 0
 
@@ -1072,6 +1073,88 @@ test("blocks that lose their way to the ground fall", function()
 	local falling = BuildGrid.unsupported(blocks, removed)
 	expectEq(#falling, 1, "the top of the tower falls")
 	expectEq(falling[1], BuildGrid.key(9, 2, 9), "which block")
+end)
+
+local SC = Config.Survival
+local DAY = Config.DayNight.CycleSeconds
+
+local function run(stats: Vitals.Stats, seconds: number, input: Vitals.Input): (number, number)
+	local healed, damage = 0, 0
+	for _ = 1, math.round(seconds / SC.TickSeconds) do
+		local h, d = Vitals.step(stats, SC.TickSeconds, input)
+		healed += h
+		damage += d
+	end
+	return healed, damage
+end
+
+test("hunger and thirst stages have 7DTD's margins", function()
+	expectEq(Vitals.stage(0, 0.6), 0, "fed")
+	expectEq(Vitals.stage(0, 0.5), 1, "hungry at 50 %")
+	expectEq(Vitals.stage(1, 0.51), 1, "stays hungry under 52 %")
+	expectEq(Vitals.stage(1, 0.53), 0, "fed again above 52 %")
+	expectEq(Vitals.stage(0, 0.2), 2, "second stage at 25 %")
+	expectEq(Vitals.stage(0, 0.01), 3, "starving at 2 %")
+	expectEq(Vitals.stage(3, 0.03), 3, "still starving under 4 %")
+	expectEq(Vitals.stage(3, 0.05), 2, "back to the second stage above 4 %")
+end)
+
+test("a day drains 30 food and 40 water; hunger and thirst block stamina together", function()
+	local stats = Vitals.new()
+	run(stats, DAY, { health = 100, maxHealth = 100, sprinting = false, daySeconds = DAY })
+	expectNear(stats.food, SC.MaxFood - SC.FoodPerDay, 0.01, "food")
+	expectNear(stats.water, SC.MaxWater - SC.WaterPerDay, 0.01, "water")
+	expectEq(stats.stamina, SC.MaxStamina, "stamina stays full")
+	stats.food, stats.water = 20, 40
+	Vitals.consume(stats, 0, 0, 0, 0)
+	expectEq(stats.hunger, 2, "hunger stage")
+	expectEq(stats.thirst, 1, "thirst stage")
+	expectNear(Vitals.staminaCap(stats), 40, 1e-9, "40 % and 20 % blocked")
+	expectNear(stats.stamina, 40, 1e-9, "stamina cut to the cap")
+	stats.food, stats.water = 1, 1
+	Vitals.consume(stats, 0, 0, 0, 0)
+	expectEq(Vitals.staminaCap(stats), SC.MinStaminaCap, "both at the last stage keep the floor")
+end)
+
+test("sprinting drains stamina; regen is 10 a second and costs food and water", function()
+	local stats = Vitals.new()
+	local sprint: Vitals.Input = { health = 100, maxHealth = 100, sprinting = true, daySeconds = 1e9 }
+	run(stats, 10, sprint)
+	expectNear(stats.stamina, SC.MaxStamina - SC.SprintDrain * 10, 1e-6, "after 10 s of sprinting")
+	local food, water = stats.food, stats.water
+	run(stats, 2, { health = 100, maxHealth = 100, sprinting = false, daySeconds = 1e9 })
+	expectNear(stats.stamina, SC.MaxStamina - SC.SprintDrain * 10 + SC.StaminaRegen * 2, 1e-6, "2 s of regen")
+	expectNear(food - stats.food, 20 * SC.FoodPerStamina, 1e-6, "food spent")
+	expectNear(water - stats.water, 20 * SC.WaterPerStamina, 1e-6, "water spent")
+	stats.water = 0
+	stats.stamina = 30
+	run(stats, 2, { health = 50, maxHealth = 100, sprinting = false, daySeconds = DAY })
+	expectEq(stats.stamina, 30, "no stamina regen without water")
+end)
+
+test("starving hurts and stops healing; food and medicine heal over time", function()
+	local stats = Vitals.new()
+	stats.food = 1
+	Vitals.consume(stats, 0, 0, 0, 0)
+	local input: Vitals.Input = { health = 50, maxHealth = 100, sprinting = false, daySeconds = DAY }
+	local healed, damage = run(stats, 23, input)
+	expectEq(healed, 0, "no natural healing while starving")
+	expectNear(damage, 10 * SC.StarveDamage, 1e-9, "0.25 every 2.2 s")
+	stats.water = 1
+	Vitals.consume(stats, 0, 0, 0, 0)
+	_, damage = run(stats, 23, input)
+	expectNear(damage, 20 * SC.StarveDamage, 1e-9, "starving and dehydrated add up")
+
+	stats = Vitals.new()
+	stats.food = 60
+	local chili = Config.Items.CanChili.Use :: Config.UseDef
+	Vitals.consume(stats, chili.Food or 0, 0, chili.Heal or 0, chili.HealRate or 0)
+	healed = run(stats, 4, { health = 50, maxHealth = 100, sprinting = false, daySeconds = 1e9 })
+	expectNear(stats.food, 64, 1e-6, "food goes in at 1 a second")
+	expectNear(healed, 2, 1e-6, "chili heals 0.5 a second")
+	run(stats, 30, { health = 50, maxHealth = 100, sprinting = false, daySeconds = 1e9 })
+	expectNear(stats.food, 75, 1e-4, "all 15 food in")
+	expectEq(stats.healPending, 0, "healing done")
 end)
 
 print(`\n{passed} passed, {failed} failed`)
