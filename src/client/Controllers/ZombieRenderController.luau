@@ -31,6 +31,9 @@ local TWO_PI = math.pi * 2
 local MOVE_EPSILON = 0.05
 -- Corpses fade out over their last second.
 local CORPSE_FADE = 1
+-- Knockdown blend per second: falling down, getting back up.
+local KNOCK_DOWN_RATE = 6
+local KNOCK_UP_RATE = 2.5
 
 type View = {
 	id: number,
@@ -129,13 +132,26 @@ local function destroyView(view: View)
 	end
 end
 
-local function onSample(id: number, x: number, y: number, z: number, state: string)
+local function onSample(id: number, x: number, y: number, z: number, state: string, knock: number, crippled: boolean)
 	local now = os.clock()
 	local view = views[id]
 	if view == nil then
-		views[id] = createView(id, x, y, z, state, now)
+		view = createView(id, x, y, z, state, now)
+		views[id] = view
+		view.pose.knock = knock
+		view.pose.knockTarget = knock
+		view.pose.knockBlend = if knock > 0 then 1 else 0
+		view.pose.crippled = crippled
+		view.pose.crawlBlend = if crippled then 1 else 0
 		return
 	end
+	if knock > 0 then
+		view.pose.knock = knock
+	elseif view.pose.knockBlend <= 0 then
+		view.pose.knock = 0
+	end
+	view.pose.knockTarget = knock
+	view.pose.crippled = crippled
 	local dx = x - view.toX
 	local dz = z - view.toZ
 	local moved = math.sqrt(dx * dx + dz * dz)
@@ -158,10 +174,13 @@ local function onSample(id: number, x: number, y: number, z: number, state: stri
 	end
 end
 
-local function onKilled(id: number, now: number)
+local function onKilled(id: number, now: number, headless: boolean)
 	local view = views[id]
 	if view == nil then
 		return
+	end
+	if headless then
+		ZombieRig.setHeadless(view.rig)
 	end
 	views[id] = nil
 	view.diedAt = now
@@ -237,6 +256,13 @@ local function advance(view: View, now: number, dt: number)
 	pose.now = now
 	pose.stateTime = now - view.stateSince
 	pose.flinch = math.max(0, 1 - (now - view.flinchAt) / VC.FlinchSeconds)
+	-- Knockdowns drop fast and get up a little slower; the crawl eases in once.
+	local down = (pose.knockTarget or 0) > 0
+	pose.knockBlend = math.clamp(pose.knockBlend + dt * (if down then KNOCK_DOWN_RATE else -KNOCK_UP_RATE), 0, 1)
+	if not down and pose.knockBlend <= 0 then
+		pose.knock = 0
+	end
+	pose.crawlBlend = math.clamp(pose.crawlBlend + dt * (if pose.crippled then KNOCK_DOWN_RATE else -KNOCK_UP_RATE), 0, 1)
 end
 
 local function updateSound(view: View, now: number, distSq: number, soundSq: number)
@@ -354,12 +380,20 @@ function ZombieRenderController.start()
 		end
 		ZombieProtocol.decode(packet, NC.PositionScale, onSample)
 	end)
-	Net.event("ZombieRemoved").OnClientEvent:Connect(function(removed: unknown, killed: unknown)
+	Net.event("ZombieRemoved").OnClientEvent:Connect(function(removed: unknown, killed: unknown, headless: unknown)
 		local now = os.clock()
+		local noHead: { [number]: boolean } = {}
+		if typeof(headless) == "table" then
+			for _, id in headless :: { any } do
+				if typeof(id) == "number" then
+					noHead[id] = true
+				end
+			end
+		end
 		if typeof(killed) == "table" then
 			for _, id in killed :: { any } do
 				if typeof(id) == "number" then
-					onKilled(id, now)
+					onKilled(id, now, noHead[id] == true)
 				end
 			end
 		end

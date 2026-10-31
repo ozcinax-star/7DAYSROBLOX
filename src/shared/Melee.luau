@@ -31,11 +31,13 @@ export type Shape = {
 }
 
 -- A body the swing passes through: distance along the swing to the body's axis, whether the head
--- was hit, and the point where the swing passes the axis (for the line-of-sight check).
+-- was hit, the height of the hit above the root (for the hit zone), and the point where the swing
+-- passes the axis (for the line-of-sight check).
 export type Hit = {
 	id: number,
 	distance: number,
 	head: boolean,
+	height: number,
 	px: number,
 	py: number,
 	pz: number,
@@ -107,6 +109,7 @@ function Melee.hitBody(ray: Ray, body: Body, shape: Shape): Hit?
 		id = body.id,
 		distance = distance,
 		head = hitsHead(ray, body, shape),
+		height = height,
 		px = body.x,
 		py = y,
 		pz = body.z,

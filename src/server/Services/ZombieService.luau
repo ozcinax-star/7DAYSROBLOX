@@ -21,6 +21,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Combat = require(Shared.Combat)
 local Config = require(Shared.Config)
 local Melee = require(Shared.Melee)
 local NavGrid = require(Shared.NavGrid)
@@ -35,6 +36,7 @@ local MapService = require(script.Parent.MapService)
 local BuildingKit = require(script.Parent.Parent.World.BuildingKit)
 
 local ZC = Config.Zombie
+local CC = Config.Combat
 local FC = Config.FlowField
 local NC = Config.Network
 
@@ -94,6 +96,10 @@ type Zombie = {
 	-- While entering: once inside, the zombie stops walking at this deadline.
 	insideUntil: number,
 	stunUntil: number,
+	-- Knockdown pose from a heavy hit (Combat.Pose) until poseUntil; a crippled zombie crawls.
+	pose: number,
+	poseUntil: number,
+	crippled: boolean,
 	-- Until slowUntil the zombie walks at slowFactor of its speed (spike traps).
 	slowUntil: number,
 	slowFactor: number,
@@ -226,6 +232,9 @@ local nextWaveTime = 0
 
 local removedIds: { number } = {}
 local killedIds: { number } = {}
+-- Killed zombies whose head came off (sent with killedIds; the corpse is drawn headless).
+local headlessIds: { number } = {}
+local combatRandom = Random.new()
 local nextSnapshot = 0
 local nextFullSnapshot = 0
 local snapshotEntries: { ZombieProtocol.Entry } = {}
@@ -775,6 +784,10 @@ local function stepZombie(zombie: Zombie, players: { PlayerInfo }, now: number, 
 		end
 	end
 
+	if zombie.pose ~= Combat.Pose.None and now >= zombie.poseUntil then
+		zombie.pose = Combat.Pose.None
+		zombie.dirty = true
+	end
 	if now < zombie.stunUntil then
 		return
 	end
@@ -1043,6 +1056,9 @@ local function spawnOne(players: { PlayerInfo }, now: number, horde: boolean): b
 		building = building,
 		insideUntil = 0,
 		stunUntil = 0,
+		pose = 0,
+		poseUntil = 0,
+		crippled = false,
 		slowUntil = 0,
 		slowFactor = 1,
 		level = level,
@@ -1150,6 +1166,8 @@ local function sendSnapshots(now: number)
 				y = zombie.y,
 				z = zombie.z,
 				state = if zombie.breaking then "AttackStructure" else zombie.state,
+				pose = zombie.pose,
+				crippled = zombie.crippled,
 			})
 		end
 	end
@@ -1166,9 +1184,10 @@ local function sendSnapshots(now: number)
 	end
 
 	if #removedIds > 0 or #killedIds > 0 then
-		removedRemote:FireAllClients(removedIds, killedIds)
+		removedRemote:FireAllClients(removedIds, killedIds, headlessIds)
 		removedIds = {}
 		killedIds = {}
+		headlessIds = {}
 	end
 end
 
@@ -1492,29 +1511,51 @@ function ZombieService.clear()
 end
 
 -- Server-side damage entry point (weapons call this after validating the hit). A hit staggers the
--- zombie and turns it on the attacker; a kill leaves a corpse on every client and notifies the
--- onDied listeners (loot). Returns true when the hit killed the zombie.
-function ZombieService.damage(id: number, amount: number, attacker: Player?): boolean
+-- zombie and turns it on the attacker; a heavy one knocks it down, a leg hit may cripple it (Shared/
+-- Combat). A kill leaves a corpse on every client, headless after a decapitating head hit, and
+-- notifies the onDied listeners (loot). Returns whether the hit killed the zombie and the hit's
+-- headline for the attacker's health bar ("Headshot", "Crippled", ...; nil for a plain hit).
+function ZombieService.damage(id: number, amount: number, attacker: Player?, zone: Combat.Zone?): (boolean, string?)
 	local zombie = zombies[id]
 	if zombie == nil or amount <= 0 then
-		return false
+		return false, nil
 	end
+	local where: Combat.Zone = zone or "Body"
 	zombie.health -= amount
 	if zombie.health <= 0 then
 		zombies[id] = nil
 		aliveCount -= 1
 		table.insert(killedIds, id)
+		local headless = Combat.decapitates(true, where, amount, zombie.maxHealth, combatRandom:NextNumber(), CC)
+		if headless then
+			table.insert(headlessIds, id)
+		end
 		for _, callback in diedCallbacks do
 			task.spawn(callback, zombie.x, zombie.y, zombie.z, attacker)
 		end
-		return true
+		return true, if headless then "Decapitated" elseif where == "Head" then "Headshot" else nil
 	end
-	zombie.stunUntil = os.clock() + ZC.HitStunSeconds
+	local now = os.clock()
+	zombie.stunUntil = math.max(zombie.stunUntil, now + ZC.HitStunSeconds)
+	local reaction = Combat.react(amount, zombie.maxHealth, where, combatRandom:NextNumber(), combatRandom:NextNumber(), CC)
+	local tag: string? = if where == "Head" then "Headshot" else nil
+	if reaction.pose ~= Combat.Pose.None then
+		zombie.pose = math.max(zombie.pose, reaction.pose)
+		zombie.poseUntil = math.max(zombie.poseUntil, now + reaction.seconds)
+		zombie.stunUntil = math.max(zombie.stunUntil, zombie.poseUntil)
+		tag = tag or "Knockdown"
+	end
+	if reaction.cripple and not zombie.crippled then
+		zombie.crippled = true
+		zombie.speedFactor *= CC.CrippleSpeed
+		tag = "Crippled"
+	end
+	zombie.dirty = true
 	if attacker and zombie.state ~= "Chase" and zombie.state ~= "AttackPlayer" then
 		startChase(zombie, attacker)
 	end
 	zombie.dormant = false
-	return false
+	return false, tag
 end
 
 -- A zombie's health and the health it spawned with; 0, 0 when it is gone.
@@ -1585,7 +1626,11 @@ function ZombieService.bodiesNear(position: Vector3, radius: number): { Melee.Bo
 		local dx, dy, dz = zombie.x - position.X, zombie.y - position.Y, zombie.z - position.Z
 		if dx * dx + dy * dy + dz * dz <= radiusSq then
 			local fx, fz = facing(zombie)
-			table.insert(bodies, { id = id, x = zombie.x, y = zombie.y, z = zombie.z, fx = fx, fz = fz })
+			local drop = if zombie.crippled or zombie.pose == Combat.Pose.Prone
+				then CC.CrawlRootDrop
+				elseif zombie.pose == Combat.Pose.Kneel then CC.KneelRootDrop
+				else 0
+			table.insert(bodies, { id = id, x = zombie.x, y = zombie.y - drop, z = zombie.z, fx = fx, fz = fz })
 		end
 	end
 	return bodies

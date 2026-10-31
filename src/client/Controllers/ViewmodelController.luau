@@ -32,7 +32,7 @@ type Kind = "Fist" | "Tool" | "Spear" | "Gun" | "Bow" | "Block"
 type Style = "Chop" | "Stab" | "Punch" | Action
 -- One key of an action: the share of its duration where the pose is reached and the pose.
 type Key = { at: number, pose: CFrame }
-type Motion = { style: Style, startedAt: number, duration: number, left: boolean }
+type Motion = { style: Style, startedAt: number, duration: number, left: boolean, power: boolean? }
 
 local MC = Config.Melee
 -- The camera counts as first person while it is this close to the head (studs).
@@ -136,6 +136,9 @@ local itemOffsets: { CFrame } = {}
 local heldId: string? = nil
 local kind: Kind = "Fist"
 local motion: Motion? = nil
+-- Power attack wind-up: the grip pulled back and raised, over the first share of the swing.
+local POWER_WINDUP = CFrame.new(0.15, 0.35, 0.45) * CFrame.Angles(math.rad(35), math.rad(-10), 0)
+local POWER_WINDUP_SHARE = 0.35
 local leftNext = false
 local shown = false
 local leftShown = true
@@ -253,6 +256,15 @@ end
 -- The grip pose `motion` is at, starting from and returning to `rest`.
 local function posed(rest: CFrame, current: Motion, now: number): CFrame
 	local progress = (now - current.startedAt) / current.duration
+	if current.power then
+		-- Power attack: a wind-up that pulls the tool back and up, then the normal strike.
+		local windup = rest * POWER_WINDUP
+		if progress < POWER_WINDUP_SHARE then
+			return rest:Lerp(windup, ease(progress / POWER_WINDUP_SHARE))
+		end
+		progress = (progress - POWER_WINDUP_SHARE) / (1 - POWER_WINDUP_SHARE)
+		rest = windup:Lerp(rest, math.min(1, progress * 3))
+	end
 	local keys = KEYS[current.style]
 	if keys == nil then
 		-- Short actions without keys: a kick back for guns and bows, a push forward for placing.
@@ -427,9 +439,10 @@ local function paint()
 end
 
 -- Plays the melee swing of `toolId` (the fist when it is not a tool) for the swing's duration.
-function ViewmodelController.swing(toolId: string)
+function ViewmodelController.swing(toolId: string, power: boolean?)
 	local tool = Config.Tools[toolId] or Config.Tools.Fist
 	local interval = Melee.interval(tool.AttacksPerMinute, MC.SwingDelay)
+		* (if power then Config.Combat.PowerIntervalScale else 1)
 	local style: Style = if kind == "Fist" then "Punch" elseif kind == "Spear" then "Stab" else "Chop"
 	local left = false
 	if style == "Punch" then
@@ -439,8 +452,9 @@ function ViewmodelController.swing(toolId: string)
 	motion = {
 		style = style,
 		startedAt = os.clock(),
-		duration = math.min(MC.SwingMaxSeconds, interval * 0.9),
+		duration = math.min(MC.SwingMaxSeconds * (if power then Config.Combat.PowerIntervalScale else 1), interval * 0.9),
 		left = left,
+		power = power == true,
 	}
 end
 

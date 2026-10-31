@@ -20,6 +20,7 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Ballistics = require(Shared.Ballistics)
+local Combat = require(Shared.Combat)
 local Config = require(Shared.Config)
 local Firearm = require(Shared.Firearm)
 local Inventory = require(Shared.Inventory)
@@ -132,8 +133,8 @@ local function fly(arrow: Arrow, dt: number, params: RaycastParams)
 		local damage = arrow.damage * (if hit.head then MC.HeadshotMultiplier else 1)
 		if arrow.owner.Parent then
 			local _, maximum = ZombieService.getHealth(hit.id)
-			ZombieService.damage(hit.id, damage, arrow.owner)
-			ToolService.reportHit(arrow.owner, (ZombieService.getHealth(hit.id)), maximum)
+			local _, tag = ZombieService.damage(hit.id, damage, arrow.owner, Combat.zone(hit.height, hit.head, Config.Combat))
+			ToolService.reportHit(arrow.owner, (ZombieService.getHealth(hit.id)), maximum, tag)
 		end
 		stop(arrow, p + direction * math.min(hit.distance, length), hit.id)
 		return

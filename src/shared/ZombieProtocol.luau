@@ -2,7 +2,10 @@
 -- Binary snapshot format for zombie replication. Pure Luau so Lune can test it.
 --
 -- Packet: f64 serverTime | u16 count | count * entry
--- Entry:  u16 id | i16 x | i16 y | i16 z | u8 state   (positions quantized by positionScale)
+-- Entry:  u16 id | i16 x | i16 y | i16 z | u8 flags   (positions quantized by positionScale)
+-- Flags:  state code in bits 0-3, knockdown pose in bits 4-5, crippled in bit 6 (Shared/Combat).
+
+local Combat = require("./Combat")
 
 local ZombieProtocol = {}
 
@@ -33,6 +36,8 @@ export type Entry = {
 	y: number,
 	z: number,
 	state: string,
+	pose: number?,
+	crippled: boolean?,
 }
 
 local function quantize(value: number, scale: number): number
@@ -62,7 +67,7 @@ function ZombieProtocol.encode(
 		buffer.writei16(b, offset + 2, quantize(e.x, positionScale))
 		buffer.writei16(b, offset + 4, quantize(e.y, positionScale))
 		buffer.writei16(b, offset + 6, quantize(e.z, positionScale))
-		buffer.writeu8(b, offset + 8, stateToCode[e.state] or 1)
+		buffer.writeu8(b, offset + 8, Combat.packFlags(stateToCode[e.state] or 1, e.pose or 0, e.crippled == true))
 		offset += ENTRY_SIZE
 	end
 	return b
@@ -72,7 +77,7 @@ end
 function ZombieProtocol.decode(
 	b: buffer,
 	positionScale: number,
-	onEntry: (id: number, x: number, y: number, z: number, state: string) -> ()
+	onEntry: (id: number, x: number, y: number, z: number, state: string, pose: number, crippled: boolean) -> ()
 ): number?
 	local length = buffer.len(b)
 	if length < HEADER_SIZE then
@@ -89,8 +94,9 @@ function ZombieProtocol.decode(
 		local x = buffer.readi16(b, offset + 2) / positionScale
 		local y = buffer.readi16(b, offset + 4) / positionScale
 		local z = buffer.readi16(b, offset + 6) / positionScale
-		local state = ZombieProtocol.States[buffer.readu8(b, offset + 8)] or "Idle"
-		onEntry(id, x, y, z, state)
+		local code, pose, crippled = Combat.unpackFlags(buffer.readu8(b, offset + 8))
+		local state = ZombieProtocol.States[code] or "Idle"
+		onEntry(id, x, y, z, state, pose, crippled)
 		offset += ENTRY_SIZE
 	end
 	return serverTime

@@ -27,6 +27,7 @@ local Vitals = require("../src/shared/Vitals")
 local Challenges = require("../src/shared/Challenges")
 local ItemInfo = require("../src/shared/ItemInfo")
 local Localization = require("../src/shared/Localization")
+local Combat = require("../src/shared/Combat")
 
 local passed, failed = 0, 0
 
@@ -397,6 +398,27 @@ test("encode / decode round trip", function()
 	expectEq(decoded[2].id, 65535)
 	expectNear(decoded[2].x, -4000, 1 / 8)
 	expectEq(decoded[2].state, "Search")
+end)
+
+test("knockdown pose and cripple ride in the state byte", function()
+	local entries = {
+		{ id = 7, x = 0, y = 0, z = 0, state = "AttackStructure", pose = 2, crippled = true },
+		{ id = 8, x = 0, y = 0, z = 0, state = "Idle", pose = 1, crippled = false },
+		{ id = 9, x = 0, y = 0, z = 0, state = "Wander" },
+	}
+	local packet = ZombieProtocol.encode(1, entries, 1, 3, 8)
+	local got = {}
+	ZombieProtocol.decode(packet, 8, function(id, _x, _y, _z, state, pose, crippled)
+		got[id] = { state = state, pose = pose, crippled = crippled }
+	end)
+	expectEq(got[7].state, "AttackStructure")
+	expectEq(got[7].pose, 2)
+	expectEq(got[7].crippled, true)
+	expectEq(got[8].state, "Idle")
+	expectEq(got[8].pose, 1)
+	expectEq(got[8].crippled, false)
+	expectEq(got[9].pose, 0)
+	expectEq(got[9].crippled, false)
 end)
 
 test("max packet fits the unreliable remote limit", function()
@@ -1851,6 +1873,66 @@ test("loaded weapon removal and refund preserve cartridges", function()
 	assert(Inventory.addAll(inv, { { stack = removed[1] } }))
 	expectEq((inv.slots[2] :: Inventory.Stack).loadedRounds, 4)
 end)
+print("Combat")
+
+local CS = Config.Combat :: any
+
+test("hit zones: the head sphere wins, then legs below LegHeight", function()
+	expectEq(Combat.zone(1.2, true, CS), "Head")
+	expectEq(Combat.zone(-2.5, true, CS), "Head")
+	expectEq(Combat.zone(-2.5, false, CS), "Legs")
+	expectEq(Combat.zone(0, false, CS), "Body")
+end)
+
+test("a hit of 40% max health kneels, 50% knocks prone, less does nothing", function()
+	local small = Combat.react(39, 100, "Body", 0.5, 0, CS)
+	expectEq(small.pose, Combat.Pose.None)
+	expectEq(small.seconds, 0)
+	local kneel = Combat.react(40, 100, "Body", 0, 0.99, CS)
+	expectEq(kneel.pose, Combat.Pose.Kneel)
+	expectNear(kneel.seconds, CS.StunMinSeconds, 1e-9)
+	local prone = Combat.react(60, 100, "Body", 1, 0.99, CS)
+	expectEq(prone.pose, Combat.Pose.Prone)
+	expectNear(prone.seconds, CS.StunMaxSeconds, 1e-9)
+end)
+
+test("only leg hits cripple, with chance share * LegCrippleScale", function()
+	-- 25 of 100 to the legs: chance 0.5.
+	expectEq(Combat.react(25, 100, "Legs", 0, 0.49, CS).cripple, true)
+	expectEq(Combat.react(25, 100, "Legs", 0, 0.51, CS).cripple, false)
+	expectEq(Combat.react(25, 100, "Body", 0, 0, CS).cripple, false)
+end)
+
+test("decapitation needs a killing, heavy head hit and the 30% floor", function()
+	expectEq(Combat.decapitates(true, "Head", 20, 100, 0.29, CS), true)
+	expectEq(Combat.decapitates(true, "Head", 20, 100, 0.31, CS), false)
+	expectEq(Combat.decapitates(true, "Head", 19, 100, 0, CS), false)
+	expectEq(Combat.decapitates(false, "Head", 100, 100, 0, CS), false)
+	expectEq(Combat.decapitates(true, "Body", 100, 100, 0, CS), false)
+end)
+
+test("state flags pack and unpack", function()
+	for code = 1, 7 do
+		for pose = 0, 2 do
+			for _, crippled in { false, true } do
+				local c, p, k = Combat.unpackFlags(Combat.packFlags(code, pose, crippled))
+				expectEq(c, code)
+				expectEq(p, pose)
+				expectEq(k, crippled)
+			end
+		end
+	end
+	assert(Combat.packFlags(7, 2, true) < 256, "fits a byte")
+end)
+
+test("the stone axe has no power attack; tools that do deal 2 or 2.25 times", function()
+	expectEq(CS.PowerMultiplier.StoneAxe, nil)
+	for id, multiplier in CS.PowerMultiplier do
+		assert(Config.Tools[id] ~= nil, id)
+		assert(multiplier == 2 or multiplier == 2.25, id)
+	end
+end)
+
 print(`\n{passed} passed, {failed} failed`)
 if failed > 0 then
 	error("tests failed")

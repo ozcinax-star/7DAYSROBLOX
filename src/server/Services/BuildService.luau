@@ -675,7 +675,7 @@ local function checkTraps(now: number)
 			if inside and trapHitAt[body.id] == nil then
 				trapHitAt[body.id] = now + spikes.HitSeconds
 				ZombieService.slow(body.id, spikes.SlowFactor, spikes.HitSeconds + spikes.CheckSeconds)
-				ZombieService.damage(body.id, spikes.Damage)
+				ZombieService.damage(body.id, spikes.Damage, nil, "Legs")
 				damageBlock(block, spikes.Wear)
 				if blocks[block.key] ~= block then
 					break

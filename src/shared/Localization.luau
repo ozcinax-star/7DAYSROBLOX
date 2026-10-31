@@ -76,6 +76,11 @@ local Strings: { [string]: { [string]: string } } = {
 		ToolBroken = "{item} is broken",
 		ToolTooFar = "Too far away",
 		HitHealth = "{remaining} / {maximum}",
+		HitTagHeadshot = "Headshot",
+		HitTagCrippled = "Crippled",
+		HitTagKnockdown = "Knocked down",
+		HitTagDecapitated = "Decapitated",
+		ToolNoPowerAttack = "No power attack with this tool",
 
 		-- Challenges (7DTD 3.2 titles; hints are ours, for our controls)
 		ChallengeGroupBasics = "Basics of Survival",

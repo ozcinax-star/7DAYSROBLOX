@@ -20,12 +20,17 @@ local TEXT_HEIGHT = 18
 local BACK_COLOR = Color3.fromRGB(18, 18, 20)
 local FILL_COLOR = Color3.fromRGB(225, 195, 110)
 local TEXT_COLOR = Color3.new(1, 1, 1)
+local TAG_COLOR = Color3.fromRGB(240, 220, 150)
+local HEADSHOT_COLOR = Color3.fromRGB(255, 96, 72)
+-- Headlines the server may send (Localization HitTag*).
+local TAGS = { Headshot = true, Crippled = true, Knockdown = true, Decapitated = true }
 
 local TargetBarController = {}
 
 local bar: Frame
 local fill: Frame
 local label: TextLabel
+local headline: TextLabel
 local token = 0
 
 local function build(playerGui: PlayerGui)
@@ -63,14 +68,30 @@ local function build(playerGui: PlayerGui)
 	label.TextStrokeTransparency = 0.5
 	label.Parent = bar
 
+	-- The hit's headline above the bar: Headshot, Crippled, Knocked down, Decapitated.
+	headline = Instance.new("TextLabel")
+	headline.Name = "Headline"
+	headline.AnchorPoint = Vector2.new(0.5, 1)
+	headline.Position = UDim2.new(0.5, 0, 0, -2)
+	headline.Size = UDim2.new(2, 0, 0, TEXT_HEIGHT + 4)
+	headline.BackgroundTransparency = 1
+	headline.Font = Enum.Font.GothamBlack
+	headline.TextSize = 16
+	headline.TextColor3 = TAG_COLOR
+	headline.TextStrokeTransparency = 0.4
+	headline.Text = ""
+	headline.Parent = bar
+
 	gui.Parent = playerGui
 end
 
-local function show(remaining: number, maximum: number)
+local function show(remaining: number, maximum: number, tag: string?)
 	token += 1
 	local mine = token
 	fill.Size = UDim2.fromScale(math.clamp(remaining / maximum, 0, 1), 1)
 	label.Text = Localization.get("HitHealth", { remaining = math.ceil(remaining), maximum = math.ceil(maximum) })
+	headline.Text = if tag then Localization.get(`HitTag{tag}`) else ""
+	headline.TextColor3 = if tag == "Headshot" or tag == "Decapitated" then HEADSHOT_COLOR else TAG_COLOR
 	bar.Visible = true
 	task.delay(Config.Melee.HitInfoSeconds, function()
 		if mine == token then
@@ -83,9 +104,9 @@ function TargetBarController.init() end
 
 function TargetBarController.start()
 	build(Players.LocalPlayer:WaitForChild("PlayerGui") :: PlayerGui)
-	Net.unreliable("HitInfo").OnClientEvent:Connect(function(remaining: unknown, maximum: unknown)
+	Net.unreliable("HitInfo").OnClientEvent:Connect(function(remaining: unknown, maximum: unknown, tag: unknown)
 		if typeof(remaining) == "number" and typeof(maximum) == "number" and maximum > 0 then
-			show(remaining, maximum)
+			show(remaining, maximum, if typeof(tag) == "string" and TAGS[tag] then tag else nil)
 		end
 	end)
 end

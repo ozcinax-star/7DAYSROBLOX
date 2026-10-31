@@ -185,7 +185,7 @@ local function restore(joints: Joints)
 	end)
 end
 
-local function playSwing(character: Model?, toolId: string)
+local function playSwing(character: Model?, toolId: string, power: boolean?)
 	if character == nil then
 		return
 	end
@@ -208,6 +208,7 @@ local function playSwing(character: Model?, toolId: string)
 	local tool = Config.Tools[toolId] or Config.Tools[FIST]
 	local interval = Melee.interval(tool.AttacksPerMinute, MC.SwingDelay)
 	local duration = math.min(MC.SwingMaxSeconds, interval * SWING_SHARE)
+		* (if power then Config.Combat.PowerIntervalScale else 1)
 	swings[character] = { startedAt = os.clock(), duration = duration, style = style, left = left, joints = joints }
 end
 
@@ -423,13 +424,17 @@ local function sendUse(now: number, seconds: number)
 	end
 end
 
-local function trySwing(source: Source, repeated: boolean?)
+local function trySwing(source: Source, repeated: boolean?, power: boolean?)
 	local now = os.clock()
 	if now < nextSwingAt or not canSwing(source) then
 		return
 	end
 	local held = InventoryController.getHeld()
 	local item = held and Config.Items[held.id]
+	if power and held and (Config.Ranged.Weapons[held.id] or not Config.Tools[held.id]) then
+		-- Only melee tools (and the fist) have a power attack; RMB aims guns.
+		return
+	end
 	if held and (Config.Build.Blocks[held.id] or (item and (item.Fill or item.Seed or item.Fuel))) then
 		-- A block, dirt, a seed or gas in the hand is placed or poured, not swung (BuildController shows
 		-- where a block goes).
@@ -482,16 +487,23 @@ local function trySwing(source: Source, repeated: boolean?)
 		sendUse(now, SC.UseSeconds)
 		return
 	end
+	if power and Config.Combat.PowerMultiplier[toolId] == nil then
+		showMessage(Localization.get("ToolNoPowerAttack"))
+		nextSwingAt = now + MC.MessageSeconds
+		return
+	end
+	local scale = if power then Config.Combat.PowerStaminaScale else 1
 	local stamina = player:GetAttribute(Net.Attributes.Stamina)
-	if typeof(stamina) == "number" and stamina < Config.Tools[toolId].StaminaLoss then
+	if typeof(stamina) == "number" and stamina < Config.Tools[toolId].StaminaLoss * scale then
 		showMessage(Localization.get("OutOfStamina"))
 		nextSwingAt = now + OUT_OF_STAMINA_RETRY
 		return
 	end
 	nextSwingAt = now + Melee.interval(Config.Tools[toolId].AttacksPerMinute, MC.SwingDelay)
-	playSwing(player.Character, toolId)
-	ViewmodelController.swing(toolId)
-	useRemote:FireServer(aim)
+		* (if power then Config.Combat.PowerIntervalScale else 1)
+	playSwing(player.Character, toolId, power)
+	ViewmodelController.swing(toolId, power)
+	useRemote:FireServer(aim, power == true)
 	if outOfReach(aim, Config.Tools[toolId]) then
 		showMessage(Localization.get("ToolTooFar"))
 	end
@@ -617,7 +629,12 @@ local function bindInput(parent: Instance, hitButton: TextButton)
 		binding.Parent = aim
 	end
 	aim.Pressed:Connect(function()
-		setAiming(true)
+		-- Guns aim; melee tools and the fist swing a power attack (7DTD right mouse button).
+		if aimableHeld() then
+			setAiming(true)
+		elseif not InventoryController.isBackpackOpen() then
+			trySwing("Pointer", false, true)
+		end
 	end)
 	aim.Released:Connect(function()
 		setAiming(false)
@@ -663,11 +680,12 @@ function ToolController.start()
 			head: boolean,
 			point: unknown,
 			normal: unknown,
-			color: unknown
+			color: unknown,
+			power: unknown
 		)
 			local character = if typeof(attacker) == "Instance" then attacker.Character else nil
 			if character and attacker ~= player then
-				playSwing(character, toolId)
+				playSwing(character, toolId, power == true)
 			end
 			local from = if character then character:GetPivot().Position else nil
 			if zombieId ~= 0 then

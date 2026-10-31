@@ -63,6 +63,13 @@ local KNEE_REST = 0.08
 local ARM_SPREAD = 0.1
 -- Lying corpses are lifted by about half a body thickness so they rest on the ground.
 local CORPSE_LIFT = 0.35
+-- Crawling (crippled) and prone bodies lie forward this far (radians) and slide back this far
+-- (studs at scale 1) so the head stays over the server's head sphere (Config.Combat root drops).
+local CRAWL_PITCH = 1.3
+local PRONE_PITCH = 1.5
+local CRAWL_BACK = 3.9
+-- Kneeling drops the hips to thigh height.
+local KNEEL_DROP = 0.95
 
 export type Rig = {
 	model: Model,
@@ -74,6 +81,8 @@ export type Rig = {
 	detailVisible: boolean,
 	look: ZombieLook.Look,
 	scale: number,
+	-- The head came off (decapitating kill): head and face stay hidden.
+	headless: boolean,
 }
 
 -- Per-frame pose input. The render controller keeps one per zombie and updates it in place.
@@ -98,6 +107,14 @@ export type Pose = {
 	death: number?,
 	-- 1 = falls forward, -1 = falls backward.
 	deathDirection: number,
+	-- Knockdown from the server (Combat.Pose: 0 none, 1 kneel, 2 prone) and its 0..1 blend.
+	knock: number,
+	knockBlend: number,
+	-- The server's current knockdown (0 while getting back up), set by the render controller.
+	knockTarget: number?,
+	-- Crippled zombies crawl; crawlBlend eases into the crawl.
+	crippled: boolean,
+	crawlBlend: number,
 }
 
 local ZombieRig = {}
@@ -163,6 +180,7 @@ function ZombieRig.build(id: number): Rig
 		detailVisible = true,
 		look = look,
 		scale = s,
+		headless = false,
 	}
 end
 
@@ -182,6 +200,10 @@ function ZombieRig.newPose(id: number): Pose
 		flinch = 0,
 		death = nil,
 		deathDirection = if Noise.hash(id, 17, 9173) < 0.7 then 1 else -1,
+		knock = 0,
+		knockBlend = 0,
+		crippled = false,
+		crawlBlend = 0,
 	}
 end
 
@@ -192,18 +214,28 @@ function ZombieRig.setDetailVisible(rig: Rig, visible: boolean)
 	end
 	rig.detailVisible = visible
 	local transparency = if visible then 0 else 1
-	for _, part in rig.detail do
-		part.Transparency = transparency
+	for index, part in rig.detail do
+		-- The face (jaw, sockets, eyes) goes with a lost head; the wound stays.
+		part.Transparency = if rig.headless and index <= 5 then 1 else transparency
+	end
+end
+
+-- A decapitating kill: hides the head and face for the rest of the corpse's life.
+function ZombieRig.setHeadless(rig: Rig)
+	rig.headless = true
+	rig.core[3].Transparency = 1
+	for index = 1, 5 do
+		rig.detail[index].Transparency = 1
 	end
 end
 
 function ZombieRig.setTransparency(rig: Rig, transparency: number)
-	for _, part in rig.core do
-		part.Transparency = transparency
+	for index, part in rig.core do
+		part.Transparency = if rig.headless and index == 3 then 1 else transparency
 	end
 	if rig.detailVisible then
-		for _, part in rig.detail do
-			part.Transparency = transparency
+		for index, part in rig.detail do
+			part.Transparency = if rig.headless and index <= 5 then 1 else transparency
 		end
 	end
 end
@@ -268,10 +300,29 @@ function ZombieRig.pose(rig: Rig, p: Pose, parts: { BasePart }, cframes: { CFram
 
 	local base = CF(p.x, p.ground, p.z) * ANG(0, p.yaw, 0)
 	local death = p.death
+	-- Lying forward: a crawl (crippled) or a prone knockdown, eased in; both slide the body back over
+	-- the root. Kneeling drops the hips instead.
+	local prone = if p.knock == 2 then p.knockBlend else 0
+	local kneel = if p.knock == 1 then p.knockBlend else 0
+	local lying = math.max(p.crawlBlend, prone)
 	if death then
 		local fall = 1 - (1 - death) * (1 - death)
-		base = base * CF(0, CORPSE_LIFT * fall, 0) * ANG(-HALF_PI * fall * p.deathDirection, 0, 0)
+		if lying > 0 then
+			-- Already down: settle flat where it lies.
+			base = base * CF(0, CORPSE_LIFT * fall, CRAWL_BACK * s * lying) * ANG(-(CRAWL_PITCH + (HALF_PI - CRAWL_PITCH) * fall) * lying, 0, 0)
+		else
+			base = base * CF(0, CORPSE_LIFT * fall, 0) * ANG(-HALF_PI * fall * p.deathDirection, 0, 0)
+		end
 		gait = 0
+	elseif lying > 0 then
+		local pitch = CRAWL_PITCH + (PRONE_PITCH - CRAWL_PITCH) * prone
+		base = base * CF(0, CORPSE_LIFT * lying, CRAWL_BACK * s * lying) * ANG(-pitch * lying, 0, 0)
+		-- Crawlers keep a slow arm-pull rhythm; a prone zombie lies still.
+		gait *= p.crawlBlend * (1 - prone)
+	end
+	if kneel > 0 then
+		base = base * CF(0, -KNEEL_DROP * s * kneel, 0)
+		gait *= 1 - kneel
 	end
 
 	local bob = VC.BobHeight * math.cos(2 * phase) * gait
@@ -305,6 +356,12 @@ function ZombieRig.pose(rig: Rig, p: Pose, parts: { BasePart }, cframes: { CFram
 		local legSwing = if side < 0 then -sinP else sinP
 		if death then
 			pitch, elbow, spread = 2.4, 0.4, 0.5
+		elseif lying > 0.5 then
+			-- Reaching ahead along the ground and pulling, one arm then the other.
+			local pull = math.sin(phase + side * HALF_PI)
+			pitch = torsoLean + 2.6 + 0.45 * pull * p.crawlBlend
+			elbow = 0.35 - 0.3 * pull * p.crawlBlend
+			spread = 0.25
 		elseif dead then
 			pitch = torsoLean + 0.05 + VC.ArmHangSwingRadians * 0.6 * legSwing * gait
 			elbow, spread = 0.1, ARM_SPREAD
@@ -345,6 +402,11 @@ function ZombieRig.pose(rig: Rig, p: Pose, parts: { BasePart }, cframes: { CFram
 		local turnOut = if isBad then side * 0.08 * limp else 0
 		if death then
 			thighPitch, knee = 0.15 * side, 0.5
+		elseif lying > 0.5 then
+			thighPitch, knee = -0.1 + 0.08 * side * math.sin(phase), 0.2
+		elseif kneel > 0 then
+			thighPitch = thighPitch * (1 - kneel) + 0.25 * kneel
+			knee = knee * (1 - kneel) + 1.75 * kneel
 		end
 		local hip = pelvisPivot * CF(side * HIP_X * s, 0, 0) * ANG(thighPitch, 0, turnOut)
 		local kneeJoint = hip * CF(0, -THIGH.Y * s, 0) * ANG(-knee, 0, 0)

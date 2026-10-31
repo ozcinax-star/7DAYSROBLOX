@@ -1526,11 +1526,11 @@ Config.WeaponHandling = {
 			Support = { -0.13, -0.09, 0.03 }, Sight = { 0, 0.54, -0.32 }, Muzzle = { 0, 0.43, -1.05 },
 			Recoil = { 2.1, 0.35, 0.11 }, ReloadStyle = "Cylinder" },
 		-- Rifle 3.6 studs (1.15 m): long thin barrel over a tube; was 4.3 studs (1.4 m).
-		PipeRifle = { Hip = { 0.58, -0.95, -2.35, 0, -2, -2 }, Aim = { 0, -0.58, -2.4, 0, 0, 0 },
+		PipeRifle = { Hip = { 0.58, -0.95, -2.35, 0, -2, -2 }, Aim = { 0, -0.58, -2.7, 0, 0, 0 },
 			Support = { -0.02, 0.17, -1.35 }, Sight = { 0, 0.58, -0.56 }, Muzzle = { 0, 0.43, -2.52 },
 			FrontBase = 0.49, Recoil = { 3.2, 0.35, 0.17 }, ReloadStyle = "Breech" },
 		-- Shotgun 3.1 studs (1.0 m): short wide pipe barrel; grip on the wrist behind the trigger.
-		PipeShotgun = { Hip = { 0.6, -0.85, -2.5, 0, -2, -2 }, Aim = { 0, -0.51, -2.45, 0, 0, 0 },
+		PipeShotgun = { Hip = { 0.6, -0.85, -2.5, 0, -2, -2 }, Aim = { 0, -0.51, -2.8, 0, 0, 0 },
 			Support = { -0.02, 0.04, -0.65 }, Sight = { 0, 0.51, -0.17 }, Muzzle = { 0, 0.29, -1.17 },
 			FrontBase = 0.39, Recoil = { 4.5, 0.45, 0.23 }, ReloadStyle = "Breech" },
 		-- Machine gun 3.2 studs; its mesh carries a notch at z -1.3 and a post at z -2.6.
@@ -2006,6 +2006,53 @@ Config.Melee = {
 	-- of the head (studs) and further than the tool's reach plus TooFarMargin.
 	TooFarDistance = 40,
 	TooFarMargin = 1,
+}
+
+-- Hit zones, zombie reactions and melee power attacks (7DTD entityclasses.xml zombie template,
+-- items.xml and buffs.xml v3.2; docs/REFERENCE_7DTD.md 5.5-5.6). Shared/Combat does the math.
+Config.Combat = {
+	-- Hits below this height above the zombie's root (torso centre; its feet are at Melee.HitBottom)
+	-- are leg hits: the lower ~40% of the body.
+	LegHeight = -1,
+	-- A hit dealing this share of max health knocks the zombie to its knees / flat on the ground for
+	-- StunMin..Max seconds; it neither moves nor attacks meanwhile.
+	KneelShare = 0.4,
+	ProneShare = 0.5,
+	StunMinSeconds = 0.5,
+	StunMaxSeconds = 1.8,
+	-- Leg hits cripple with chance (damage share) * LegCrippleScale. A crippled zombie crawls for the
+	-- rest of its life at CrippleSpeed of its speed (ours: 7DTD crawlers move about this slowly).
+	LegCrippleScale = 2,
+	CrippleSpeed = 0.4,
+	-- A kneeling / crawling or prone zombie's hit volume sinks this far (studs) so its head sphere
+	-- stays on the drawn head (ZombieRig lays the body out over the root).
+	KneelRootDrop = 0.95,
+	CrawlRootDrop = 2.6,
+	-- A killing head hit of HeadDismemberShare or more takes the head off with chance
+	-- max(DismemberChance / 2, HeadDismemberFloor).
+	DismemberChance = 0.05,
+	HeadDismemberShare = 0.2,
+	HeadDismemberFloor = 0.3,
+	-- Power attack (right mouse button with a melee tool): damage to zombies and blocks. Tools left
+	-- out (the stone axe, the repair tool) have none.
+	PowerMultiplier = {
+		Fist = 2,
+		WoodenClub = 2,
+		StoneSpear = 2,
+		StonePickaxe = 2,
+		IronPickaxe = 2,
+		StoneShovel = 2.25,
+		IronShovel = 2.25,
+		IronFireaxe = 2.25,
+	} :: { [string]: number },
+	-- 7DTD's secondary stamina is 1.4-2x the light attack; the stunt stops stamina regeneration.
+	PowerStaminaScale = 1.6,
+	PowerStaminaStuntSeconds = 1.5,
+	-- Ours: the slower power animation (7DTD's length is not in the files). Swing interval and
+	-- animation both take this factor.
+	PowerIntervalScale = 1.6,
+	-- 7DTD spear power attack reach: 3.6 m instead of 2.6 m.
+	PowerRange = { StoneSpear = 3.6 } :: { [string]: number },
 }
 
 -- Player survival stats (7DTD playerMale, buffStatusHungry01-03 and buffStatusThirsty01-03 in 1.0-3.2;

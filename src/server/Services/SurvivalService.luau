@@ -47,6 +47,8 @@ type PlayerState = {
 	-- Seconds of sprinting toward the next Sprint noise.
 	sprintNoiseClock: number,
 	nextUseAt: number,
+	-- Stamina does not regenerate before this os.clock() (7DTD power-attack stamina stunt).
+	stuntUntil: number,
 	connections: { RBXScriptConnection },
 }
 
@@ -139,12 +141,16 @@ local function step(dt: number)
 				ThreatService.emit("Sprint", root.Position, player)
 			end
 		end
+		local staminaBefore = state.stats.stamina
 		local healed, damage = Vitals.step(state.stats, dt, {
 			health = humanoid.Health,
 			maxHealth = humanoid.MaxHealth,
 			sprinting = sprinting,
 			daySeconds = Config.DayNight.CycleSeconds,
 		})
+		if os.clock() < state.stuntUntil and state.stats.stamina > staminaBefore then
+			state.stats.stamina = staminaBefore
+		end
 		if healed > 0 then
 			humanoid.Health = math.min(humanoid.MaxHealth, humanoid.Health + healed)
 		end
@@ -242,6 +248,7 @@ local function onPlayerAdded(player: Player)
 		rising = false,
 		sprintNoiseClock = 0,
 		nextUseAt = 0,
+		stuntUntil = 0,
 		connections = {},
 	}
 	states[player] = state
@@ -321,12 +328,15 @@ local function onFistUse(player: Player, origin: Vector3, direction: Vector3): b
 end
 
 -- The stamina gate of every swing (7DTD: no swing below its cost).
-local function payStamina(player: Player, cost: number): boolean
+local function payStamina(player: Player, cost: number, stuntSeconds: number?): boolean
 	local state = states[player]
 	if state == nil or not Vitals.canSpend(state.stats, cost) then
 		return false
 	end
 	Vitals.spend(state.stats, cost)
+	if stuntSeconds then
+		state.stuntUntil = math.max(state.stuntUntil, os.clock() + stuntSeconds)
+	end
 	publish(player, state)
 	return true
 end

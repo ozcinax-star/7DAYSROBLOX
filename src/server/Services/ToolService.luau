@@ -19,6 +19,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Combat = require(Shared.Combat)
 local Config = require(Shared.Config)
 local Melee = require(Shared.Melee)
 local Net = require(Shared.Net)
@@ -29,6 +30,7 @@ local InventoryService = require(script.Parent.InventoryService)
 local ZombieService = require(script.Parent.ZombieService)
 
 local MC = Config.Melee
+local CC = Config.Combat
 local FIST = "Fist"
 local SHAPE: Melee.Shape = {
 	bottom = MC.HitBottom,
@@ -46,8 +48,9 @@ export type WorldHitCallback =
 export type UseCallback = (player: Player, origin: Vector3, direction: Vector3, itemId: string) -> ()
 -- (player, head position, unit aim) -> whether it used the action, so no punch follows.
 export type FistCallback = (player: Player, origin: Vector3, direction: Vector3) -> boolean
--- (player, stamina cost) -> whether the swing may go ahead; takes the stamina when it does.
-export type StaminaGate = (player: Player, cost: number) -> boolean
+-- (player, stamina cost, seconds without regeneration) -> whether the swing may go ahead; takes the
+-- stamina when it does.
+export type StaminaGate = (player: Player, cost: number, stuntSeconds: number?) -> boolean
 
 local ToolService = {}
 
@@ -94,13 +97,17 @@ local function toolFor(player: Player): (string?, Config.ToolDef?)
 	return FIST, Config.Tools[FIST]
 end
 
-local function onUseTool(player: Player, aim: unknown)
+local function onUseTool(player: Player, aim: unknown, powerFlag: unknown)
 	if not limiter:allow(player) then
 		return
 	end
 	if typeof(aim) ~= "Vector3" or not Melee.isUnit(aim.X, aim.Y, aim.Z, MC.AimTolerance) then
 		return
 	end
+	if powerFlag ~= nil and typeof(powerFlag) ~= "boolean" then
+		return
+	end
+	local power = powerFlag == true
 	local direction = aim.Unit
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
@@ -112,7 +119,9 @@ local function onUseTool(player: Player, aim: unknown)
 	local held = InventoryService.getHeld(player)
 	local use = held and useCallbacks[held.id]
 	if held and use then
-		use(player, head.Position, direction, held.id)
+		if not power then
+			use(player, head.Position, direction, held.id)
+		end
 		return
 	end
 	local now = os.clock()
@@ -123,14 +132,28 @@ local function onUseTool(player: Player, aim: unknown)
 	if toolId == nil or tool == nil then
 		return
 	end
-	if toolId == FIST and fistCallback and fistCallback(player, head.Position, direction) then
+	-- A power attack needs a tool that has one (not the stone axe, the repair tool).
+	local multiplier = if power then CC.PowerMultiplier[toolId] else 1
+	if multiplier == nil then
 		return
 	end
-	if staminaGate and not staminaGate(player, tool.StaminaLoss) then
+	if not power and toolId == FIST and fistCallback and fistCallback(player, head.Position, direction) then
 		return
 	end
-	local interval = Melee.interval(tool.AttacksPerMinute, MC.SwingDelay)
+	local stamina = tool.StaminaLoss * (if power then CC.PowerStaminaScale else 1)
+	if staminaGate and not staminaGate(player, stamina, if power then CC.PowerStaminaStuntSeconds else nil) then
+		return
+	end
+	local interval = Melee.interval(tool.AttacksPerMinute, MC.SwingDelay) * (if power then CC.PowerIntervalScale else 1)
 	nextSwingAt[player] = now + interval * (1 - MC.CooldownTolerance)
+	if power then
+		-- World hits see the stronger tool (7DTD: the power bonus applies to blocks too).
+		local strong = table.clone(tool)
+		strong.BlockDamage *= multiplier
+		strong.EntityDamage *= multiplier
+		strong.Range = CC.PowerRange[toolId] or tool.Range
+		tool = strong
+	end
 
 	local origin = head.Position
 	local range = tool.Range * MC.StudsPerMeter
@@ -160,14 +183,14 @@ local function onUseTool(player: Player, aim: unknown)
 	if hit then
 		local damage = tool.EntityDamage * (if hit.head then MC.HeadshotMultiplier else 1)
 		local _, maximum = ZombieService.getHealth(hit.id)
-		ZombieService.damage(hit.id, damage, player)
-		ToolService.reportHit(player, (ZombieService.getHealth(hit.id)), maximum)
+		local _, tag = ZombieService.damage(hit.id, damage, player, Combat.zone(hit.height, hit.head, CC))
+		ToolService.reportHit(player, (ZombieService.getHealth(hit.id)), maximum, tag)
 		zombieId = hit.id
 		headHit = hit.head
 	else
 		local result = workspace:Raycast(origin, direction * range, rayParams(false))
 		if result == nil then
-			swingRemote:FireAllClients(player, toolId, 0, false)
+			swingRemote:FireAllClients(player, toolId, 0, false, nil, nil, nil, power)
 			return
 		end
 		-- Read before the listeners run: a hit may remove what it struck.
@@ -179,7 +202,7 @@ local function onUseTool(player: Player, aim: unknown)
 	if toolId ~= FIST then
 		InventoryService.wearHeld(player, 1)
 	end
-	swingRemote:FireAllClients(player, toolId, zombieId, headHit, point, normal, color)
+	swingRemote:FireAllClients(player, toolId, zombieId, headHit, point, normal, color, power)
 end
 
 function ToolService.init()
@@ -212,10 +235,11 @@ function ToolService.setStaminaGate(gate: StaminaGate)
 	staminaGate = gate
 end
 
--- Shows `player` the health left on what their swing just hit (a health bar under the crosshair).
-function ToolService.reportHit(player: Player, remaining: number, maximum: number)
+-- Shows `player` the health left on what their swing just hit (a health bar under the crosshair),
+-- with the hit's headline when it had one ("Headshot", "Crippled", "Knockdown", "Decapitated").
+function ToolService.reportHit(player: Player, remaining: number, maximum: number, tag: string?)
 	if maximum > 0 then
-		hitRemote:FireClient(player, math.max(0, remaining), maximum)
+		hitRemote:FireClient(player, math.max(0, remaining), maximum, tag)
 	end
 end
 
