@@ -109,6 +109,8 @@ local Strings: { [string]: { [string]: string } } = {
 		ItemStoneAxe = "Stone Axe",
 		ItemStoneShovel = "Stone Shovel",
 		ItemStonePickaxe = "Stone Pickaxe",
+		ItemWoodenClub = "Wooden Club",
+		ItemStoneSpear = "Stone Spear",
 
 		-- Shop signs
 		SignMarket = "MARKET",

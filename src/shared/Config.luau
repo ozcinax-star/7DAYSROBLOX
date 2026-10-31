@@ -77,6 +77,8 @@ export type ToolDef = {
 	-- Stamina one swing costs; a swing needs at least this much (7DTD).
 	StaminaLoss: number,
 	Materials: { [HarvestMaterial]: number },
+	-- Share of the wood, stone, clay and sand a gathering hit pays (7DTD HarvestCount; 1 when nil).
+	HarvestShare: number?,
 }
 
 -- Items a world object gives: Min-Max rolled again on every payout.
@@ -557,6 +559,15 @@ Config.Items = {
 	-- meleeToolShovelT0StoneShovel
 	StoneShovel = { Stack = 1, Durability = 250, Repair = STONE_REPAIR, Color = { 0.5, 0.46, 0.4 } },
 	StonePickaxe = { Stack = 1, Durability = 250, Repair = STONE_REPAIR, Color = { 0.42, 0.42, 0.44 } },
+	-- meleeWpnClubT0WoodenClub: repaired with Wood (100 durability each; 7DTD gives no time).
+	WoodenClub = {
+		Stack = 1,
+		Durability = 100,
+		Repair = { Id = "Wood", Amount = 100, Seconds = 0.5 },
+		Color = { 0.55, 0.4, 0.25 },
+	},
+	-- meleeWpnSpearT0StoneSpear
+	StoneSpear = { Stack = 1, Durability = 100, Repair = STONE_REPAIR, Color = { 0.6, 0.5, 0.36 } },
 } :: { [string]: ItemDef }
 
 -- Backpack crafting (7DTD 1.0-3.2 recipes.xml). Recipes are keyed by id; Order lists them for the UI.
@@ -572,6 +583,14 @@ Config.Recipes = {
 		Output = "StonePickaxe",
 		Count = 1,
 		Ingredients = costs({ SmallStone = 4, PlantFiber = 3, Wood = 3 }),
+	},
+	-- 7DTD: 5 Wood (1 s); 5 Small Stone, 3 Plant Fibers, 3 Wood (2.2 s). The times follow from the
+	-- ingredients.
+	WoodenClub = { Output = "WoodenClub", Count = 1, Ingredients = costs({ Wood = 5 }) },
+	StoneSpear = {
+		Output = "StoneSpear",
+		Count = 1,
+		Ingredients = costs({ SmallStone = 5, PlantFiber = 3, Wood = 3 }),
 	},
 	-- terrDirt: 16 Clay, 3 s.
 	Dirt = { Output = "Dirt", Count = 1, Ingredients = costs({ Clay = 16 }), Seconds = 3 },
@@ -590,7 +609,18 @@ Config.Recipes = {
 } :: { [string]: Recipe }
 
 Config.Crafting = {
-	Order = { "StoneAxe", "StoneShovel", "StonePickaxe", "Lumber", "WoodFrame", "WoodLadder", "WoodDoor", "Dirt" },
+	Order = {
+		"StoneAxe",
+		"StoneShovel",
+		"StonePickaxe",
+		"WoodenClub",
+		"StoneSpear",
+		"Lumber",
+		"WoodFrame",
+		"WoodLadder",
+		"WoodDoor",
+		"Dirt",
+	},
 	-- 7DTD: a 4-slot queue; only the first slot works at a time.
 	QueueSlots = 4,
 	-- Most crafts one queue slot may hold (7DTD's cap is unconfirmed).
@@ -640,6 +670,26 @@ Config.Tools = {
 		StaminaLoss = 14,
 		Materials = { Wood = 0.2, Earth = 0.2, Stone = 1 },
 	},
+	-- meleeWpnClubT0WoodenClub. Weapons gather a quarter (HarvestCount -0.75).
+	WoodenClub = {
+		EntityDamage = 12,
+		BlockDamage = 11,
+		AttacksPerMinute = 55,
+		Range = 2.4,
+		StaminaLoss = 17.4,
+		Materials = { Wood = 1, Earth = 0.5, Stone = 0.5 },
+		HarvestShare = 0.25,
+	},
+	-- meleeWpnSpearT0StoneSpear: the light attack (no power attack or throw yet).
+	StoneSpear = {
+		EntityDamage = 12,
+		BlockDamage = 5,
+		AttacksPerMinute = 55,
+		Range = 2.6,
+		StaminaLoss = 18.5,
+		Materials = { Wood = 0.2, Earth = 1, Stone = 0.1 },
+		HarvestShare = 0.25,
+	},
 } :: { [string]: ToolDef }
 
 local function drop(id: string, min: number, max: number?): Drop
@@ -649,6 +699,9 @@ end
 -- Gathering. Health and drops follow 7DTD 1.0-3.2 blocks.xml (block names in the comments); see
 -- docs/REFERENCE_7DTD.md, Part B sections 0-3.
 Config.Harvest = {
+	-- 7DTD oreWoodHarvest: the Harvest drops a tool's HarvestShare applies to. Plant fibre is paid in
+	-- full, and so are Destroy drops (untagged in 7DTD).
+	SharedItems = { Wood = true, SmallStone = true, Clay = true, CrushedSand = true } :: { [string]: boolean },
 	Nodes = {
 		-- Tree sizes by 7DTD tree-wood material: MtreeWoodSmall, Medium, Large, Full.
 		TreeSmall = { Material = "Wood", Health = 300, Harvest = { drop("Wood", 30) }, Destroy = {} },
@@ -754,8 +807,8 @@ Config.Loot = {
 	ZombieBagChance = 0.2,
 	-- What a zombie bag holds. 7DTD's regular bag always rolls one pick from a common group (scrap,
 	-- cobblestones, food, drinks, medical, duct tape...) and has a 50 % group that includes tiered
-	-- tools. We only have raw resources and stone tools yet: one common pick, and a stone tool at a
-	-- worn share of its durability.
+	-- tools and weapons. We only have raw resources and stone tools yet: one common pick, and a stone
+	-- tool or weapon at a worn share of its durability.
 	-- 7DTD zPackReg picks food, drinks and medical about 15 % of the time each. Its drinks are juices and
 	-- teas we do not have, so water stands in; the medical share is halved (only the healing bandage
 	-- exists here).
@@ -770,7 +823,7 @@ Config.Loot = {
 		{ Id = "FirstAidBandage", Min = 1, Max = 1, Weight = 1 },
 	} :: { LootPick },
 	ZombieToolChance = 0.15,
-	ZombieTools = { "StoneAxe", "StoneShovel", "StonePickaxe" },
+	ZombieTools = { "StoneAxe", "StoneShovel", "StonePickaxe", "WoodenClub", "StoneSpear" },
 	ToolDurabilityMin = 0.3,
 	ToolDurabilityMax = 1,
 	-- Bags vanish after this many seconds (7DTD 1.x TimeStayAfterDeath; 2.6+ uses 3600).
@@ -1027,6 +1080,8 @@ Config.Debug = {
 		{ Id = "StoneAxe", Count = 1 },
 		{ Id = "StoneShovel", Count = 1 },
 		{ Id = "StonePickaxe", Count = 1 },
+		{ Id = "WoodenClub", Count = 1 },
+		{ Id = "StoneSpear", Count = 1 },
 		{ Id = "Wood", Count = 50 },
 		{ Id = "SmallStone", Count = 20 },
 		{ Id = "PlantFiber", Count = 20 },

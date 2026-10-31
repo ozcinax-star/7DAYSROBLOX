@@ -683,6 +683,26 @@ test("block damage is truncated, at least 1, and matches 7DTD's hit counts", fun
 	expectEq(axeBoulderHits, 29, "stone axe breaks a boulder in 29 hits")
 	local _, pickBoulderHits = chop(Nodes.Boulder, toolDamage("StonePickaxe", "Stone"))
 	expectEq(pickBoulderHits, 16, "stone pickaxe in 16")
+	local _, clubTreeHits = chop(Nodes.TreeSmall, toolDamage("WoodenClub", "Wood"))
+	expectEq(clubTreeHits, 28, "a wooden club fells a small tree in 28 hits")
+end)
+
+test("clubs and spears gather a quarter of wood, stone and clay but all the fibre", function()
+	local club, spear = Config.Tools.WoodenClub, Config.Tools.StoneSpear
+	expectEq(Harvest.toolCount(150, club, "Wood"), 37, "club on a full tree")
+	expectEq(Harvest.toolCount(22, spear, "SmallStone"), 5, "spear on a boulder")
+	expectEq(Harvest.toolCount(22, spear, "Clay"), 5, "spear digging dirt")
+	expectEq(Harvest.toolCount(2, club, "PlantFiber"), 2, "club on grass")
+	expectEq(Harvest.toolCount(3, club, "Wood"), 0, "club on a bush")
+	expectEq(Harvest.toolCount(150, Config.Tools.StoneAxe, "Wood"), 150, "tools get everything")
+	-- 7DTD weapon stats and recipes.
+	expectEq(club.EntityDamage, 12, "club damage")
+	expectEq(spear.EntityDamage, 12, "spear damage")
+	expectEq(Config.Items.WoodenClub.Durability, 100, "club durability")
+	expectEq(Config.Items.StoneSpear.Repair and Config.Items.StoneSpear.Repair.Id, "SmallStone", "spear repair")
+	expectEq(Config.Recipes.WoodenClub.Ingredients[1].Id, "Wood", "club is wood")
+	expectEq(Config.Recipes.WoodenClub.Ingredients[1].Count, 5, "5 wood")
+	expectEq(#Config.Recipes.StoneSpear.Ingredients, 3, "spear takes stone, fibre and wood")
 end)
 
 test("any tool gets the whole yield; a third of it comes on the killing hit", function()

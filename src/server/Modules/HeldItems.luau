@@ -22,7 +22,14 @@ local GRIP_SHARE = 0.2
 
 -- Shape of a held tool, in handle space: the handle runs along Z with its top end at -Z. The head's
 -- offset is measured from that top end.
-type Shape = { handle: number, head: Vector3, headOffset: Vector3, headColor: Color3, lashing: boolean }
+type Shape = {
+	handle: number,
+	head: Vector3,
+	headOffset: Vector3,
+	headColor: Color3,
+	headMaterial: Enum.Material?,
+	lashing: boolean,
+}
 
 local SHAPES: { [string]: Shape } = {
 	-- Blade below the top end, on the side facing the ground.
@@ -46,6 +53,23 @@ local SHAPES: { [string]: Shape } = {
 		handle = 2.6,
 		head = V(0.65, 0.1, 0.85),
 		headOffset = V(0, 0, -0.4),
+		headColor = STONE_COLOR,
+		lashing = true,
+	},
+	-- A thick wooden end on a short handle.
+	WoodenClub = {
+		handle = 1.8,
+		head = V(0.42, 0.42, 1.1),
+		headOffset = V(0, 0, 0.45),
+		headColor = HANDLE_COLOR,
+		headMaterial = Enum.Material.Wood,
+		lashing = false,
+	},
+	-- A long shaft with a stone point past the top end.
+	StoneSpear = {
+		handle = 4.2,
+		head = V(0.2, 0.12, 0.6),
+		headOffset = V(0, 0, -0.3),
 		headColor = STONE_COLOR,
 		lashing = true,
 	},
@@ -86,7 +110,7 @@ function HeldItems.build(id: string, hand: BasePart, grip: CFrame): Model
 		local fromCenter = shape.handle * (0.5 - GRIP_SHARE)
 		weld(hand, handle, fist * CFrame.Angles(HOLD_TILT, 0, 0) * CFrame.new(0, 0, -fromCenter))
 		local top = CFrame.new(0, 0, -shape.handle / 2)
-		local head = part(model, "Head", shape.head, shape.headColor, Enum.Material.Slate)
+		local head = part(model, "Head", shape.head, shape.headColor, shape.headMaterial or Enum.Material.Slate)
 		weld(handle, head, top * CFrame.new(shape.headOffset))
 		if shape.lashing then
 			local lashing = part(model, "Lashing", V(0.3, 0.3, 0.3), LASHING_COLOR, Enum.Material.Fabric)

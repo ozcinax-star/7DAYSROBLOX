@@ -4,7 +4,16 @@
 -- proportion to its cumulative damage; the last third comes as a lump on the killing hit. A better
 -- tool only gets there faster.
 
+local Config = require("./Config")
+
 local Harvest = {}
+
+-- What a Harvest drop rolled at `count` is worth to `tool`: weapons get only their HarvestShare of
+-- wood, stone, clay and sand (7DTD: int(roll x HarvestCount)).
+function Harvest.toolCount(count: number, tool: Config.ToolDef, itemId: string): number
+	local share = if Config.Harvest.SharedItems[itemId] then tool.HarvestShare or 1 else 1
+	return math.floor(count * share)
+end
 
 -- Damage of one hit on a world object: the tool's block damage times its material multiplier,
 -- truncated to a whole number, at least 1.
