@@ -6,6 +6,7 @@
 --
 -- - Swings pay their tool's stamina through ToolService's stamina gate.
 -- - Sprinting is an intent remote; the server sets WalkSpeed and ends the sprint at 0 stamina.
+--   Footsteps of a sprint are a Sprint noise every Config.Survival.SprintNoiseSeconds.
 -- - Food, drinks and medicine are used from the hand; a fist "use" on lake water drinks it.
 -- - Death drops half of each carried raw resource in a bag (PLAN); stats are full on respawn.
 
@@ -22,6 +23,7 @@ local Vitals = require(Shared.Vitals)
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local InventoryService = require(script.Parent.InventoryService)
 local LootService = require(script.Parent.LootService)
+local ThreatService = require(script.Parent.ThreatService)
 local ToolService = require(script.Parent.ToolService)
 
 local SC = Config.Survival
@@ -40,6 +42,8 @@ type PlayerState = {
 	winded: boolean,
 	-- Rising after a counted jump (one jump per rise).
 	rising: boolean,
+	-- Seconds of sprinting toward the next Sprint noise.
+	sprintNoiseClock: number,
 	nextUseAt: number,
 	connections: { RBXScriptConnection },
 }
@@ -114,10 +118,18 @@ local function step(dt: number)
 		end
 		local velocity = root.AssemblyLinearVelocity
 		local ground = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
+		local sprinting = state.sprinting and ground > SC.WalkSpeed + SC.SprintSpeedMargin
+		if sprinting then
+			state.sprintNoiseClock += dt
+			if state.sprintNoiseClock >= SC.SprintNoiseSeconds then
+				state.sprintNoiseClock -= SC.SprintNoiseSeconds
+				ThreatService.emit("Sprint", root.Position, player)
+			end
+		end
 		local healed, damage = Vitals.step(state.stats, dt, {
 			health = humanoid.Health,
 			maxHealth = humanoid.MaxHealth,
-			sprinting = state.sprinting and ground > SC.WalkSpeed + SC.SprintSpeedMargin,
+			sprinting = sprinting,
 			daySeconds = Config.DayNight.CycleSeconds,
 		})
 		if healed > 0 then
@@ -212,6 +224,7 @@ local function onPlayerAdded(player: Player)
 		sprinting = false,
 		winded = false,
 		rising = false,
+		sprintNoiseClock = 0,
 		nextUseAt = 0,
 		connections = {},
 	}

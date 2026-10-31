@@ -779,6 +779,8 @@ Config.Survival = {
 	SprintMinStamina = 5,
 	-- The character counts as sprinting while its ground speed is this much above WalkSpeed.
 	SprintSpeedMargin = 1,
+	-- A sprinting player makes a Sprint noise (Config.Threat.Events) this often.
+	SprintNoiseSeconds = 2,
 	-- A jump is counted when the character rises faster than this share of its jump speed.
 	JumpDetectShare = 0.6,
 	-- Eating, drinking and using medicine take this long (one use at a time).
