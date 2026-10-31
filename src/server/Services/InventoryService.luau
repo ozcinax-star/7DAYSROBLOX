@@ -11,11 +11,11 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local HeldItems = require(Shared.HeldItems)
 local Inventory = require(Shared.Inventory)
 local Net = require(Shared.Net)
 local Types = require(Shared.Types)
 
-local HeldItems = require(script.Parent.Parent.Modules.HeldItems)
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 
 local IC = Config.Inventory

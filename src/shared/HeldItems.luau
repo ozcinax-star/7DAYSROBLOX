@@ -1,11 +1,11 @@
 --!strict
 -- Builds the stylized model of an item held in the right hand. Tools get a handle and a head, bows a
--- limb and string, guns a grip and barrel; anything else is a small block in the item's colour. Parts are massless, non-colliding and welded
--- to the hand, so they replicate with the character and never push it around.
+-- limb and string, guns a grip and barrel; anything else is a small block in the item's colour. Parts
+-- are massless, non-colliding and welded to the hand, so they replicate with the character and never
+-- push it around. The server hangs it on the character (InventoryService); the client builds the same
+-- model for its first-person view (ViewmodelController).
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local Config = require(ReplicatedStorage.Shared.Config)
+local Config = require("./Config")
 
 local HeldItems = {}
 

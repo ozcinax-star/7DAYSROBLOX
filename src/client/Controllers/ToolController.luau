@@ -9,7 +9,8 @@
 -- zooms in and the server tightens the spread (AimIntent).
 --
 -- The swing is a procedural rotation of the right shoulder joint (R15 RightShoulder or R6
--- "Right Shoulder") layered on the walk animation through Motor6D.C0, restored when it ends.
+-- "Right Shoulder") layered on the walk animation through Motor6D.C0, restored when it ends. In first
+-- person the player sees ViewmodelController's arms instead, told of each swing and use from here.
 
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
@@ -27,6 +28,7 @@ local Net = require(Shared.Net)
 
 local ImpactController = require(script.Parent.ImpactController)
 local InventoryController = require(script.Parent.InventoryController)
+local ViewmodelController = require(script.Parent.ViewmodelController)
 local ZombieRenderController = require(script.Parent.ZombieRenderController)
 
 local MC = Config.Melee
@@ -326,10 +328,12 @@ local function trySwing(source: Source)
 	if held and (Config.Build.Blocks[held.id] or (item and (item.Fill or item.Seed or item.Fuel))) then
 		-- A block, dirt, a seed or gas in the hand is placed or poured, not swung (BuildController shows
 		-- where a block goes).
+		ViewmodelController.act("Place")
 		sendUse(now, Config.Build.PlaceCooldown)
 		return
 	end
 	if held and Config.Items[held.id] and Config.Items[held.id].Use then
+		ViewmodelController.act("Use")
 		sendUse(now, SC.UseSeconds)
 		return
 	end
@@ -346,6 +350,7 @@ local function trySwing(source: Source)
 			-- The same magazine count the server keeps; a spent magazine waits for the reload.
 			local wait, kept = Ballistics.afterShot(ranged, (roundsFired[held.id] or 0) + 1)
 			roundsFired[held.id] = kept
+			ViewmodelController.act("Shoot")
 			sendUse(now, wait)
 			local magazine = ranged.Magazine
 			if magazine and kept == 0 then
@@ -375,6 +380,7 @@ local function trySwing(source: Source)
 		return
 	end
 	if toolId == FIST and ToolController.waterInReach(aim) then
+		ViewmodelController.act("Use")
 		sendUse(now, SC.UseSeconds)
 		return
 	end
@@ -386,6 +392,7 @@ local function trySwing(source: Source)
 	end
 	nextSwingAt = now + Melee.interval(Config.Tools[toolId].AttacksPerMinute, MC.SwingDelay)
 	playSwing(player.Character, toolId)
+	ViewmodelController.swing(toolId)
 	useRemote:FireServer(aim)
 	if outOfReach(aim, Config.Tools[toolId]) then
 		showMessage(Localization.get("ToolTooFar"))
