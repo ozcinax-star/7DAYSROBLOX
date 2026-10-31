@@ -215,6 +215,7 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 | `3a803a8` | Zombinin yol ofseti (`SpreadRadius` 2,5) yol noktasının hücresinde tutulur (kenara 0,25 stud). Yarım hücreden büyük ofset hedefi zombinin kendi hücresine düşürüyordu; zombi oraya varıp sonsuza dek duruyordu. 80 kovalayan zombinin 10'u takılıyordu, düzeltmeden sonra hiçbiri |
 | `f84534b` | Ahşap kapı (7DTD: 1000 can, 2 hücre; 5 kereste, 2 sn): kuranın durduğu yüze asılır, etkileşim tuşuyla kendi hücresine doğru açılır; açıkken zombi geçer, kapalıyken duvardır; kapı aralığında oyuncu ya da zombi varken kapanmaz; `BuildGrid.sideToward`, `doorCFrame` (1 test) |
 | `114cc42` | Tahta sopa ve taş mızrak (7DTD: 12 hasar, 55 vuruş/dk, 100 dayanıklılık; sopa 5 odun, mızrak 5 taş + 3 lif + 3 odun); toplamada odun, taş, kil ve kumun dörtte biri, lifin tamamı (`Harvest.toolCount`, `Config.Harvest.SharedItems`); zombi torbasından da çıkar (1 test) |
+| `e72be4b` | İlkel yay ve taş ok (7DTD: ok 35 − yay 5 = 30 hasar, 45 m/sn × 0,7, 100 m, yay 100 dayanıklılık / atış başına 1; yay 8 odun + 3 lif, ok 1 taş + 1 odun + 1 lif, 1,4 sn); `RangedService` oku sunucuda yerçekimiyle uçurur, her adımı zombi vuruş hacmine ve dünyaya karşı sınar; `ArrowController` aynı yayı çizer; saf `Shared/Ballistics` (1 test) |
 
 ## Mevcut durum
 
@@ -232,6 +233,7 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 | İnşa (`BuildService` + `Shared/BuildGrid`) | Çalışıyor. 4 stud'luk küp ızgara; sütunları yol bulma ızgarasıyla aynı. Elde Wood Frame, Wood Ladder veya Wood Door varken "use" (sol tık, R2, Hit) bloğu koyar: sunucu baştan nişan yönünde 24 stud ışın atar, vurduğu bloğun yanına ya da yüzeyin hemen üstündeki hücreye koyar (zeminde blok toprağa en fazla bir hücre gömülür, havada durmaz). Ret: dolu hücre, harita parçası (duvar, ağaç, tabela), karakter veya zombi içinde, su, oynanmaz alan, kasaba binası tabanı, 2000 blok, zemin ya da komşu blok desteği yok. Taş balta bloğa vurunca hasar vermez: hasarlıysa vuruş başına 100 can tamir eder (7DTD'nin tam tamir için 3 odununun payı, yukarı yuvarlanmış), çerçeveyi 3 vuruşta 4 keresteyle ahşap bloğa çevirir. Diğer aletler ahşap çarpanıyla hasar verir. Yere bağlantısı kopan bloklar düşer (7DTD yapısal destek, yatay açıklık sınırı yok). Zombiyi engelleyen sütun (zeminden 2 ile 6 stud arası) yol bulmada blok canına göre 2–8 maliyetli hücre olur; kovalayan ya da sese giden zombi önündeki en zayıf bloğa 7 hasar vurur (1,5 / gece 1,1 sn). Merdiven `TrussPart`: oyuncu tırmanır, zombiyi engellemez. Kapı (1000 can) iki hücre tutar (üst hücre boş olmalı), 0,35 stud kalınlığında bir panel: kuranın durduğu yüze asılır, `ProximityPrompt` (Open / Close) ile hücresinin içine 90° döner. Sunucu canlı karakteri, 8 + 4 stud mesafeyi ve saniyede 4 aç/kapa sınırını denetler; aralıkta karakter ya da zombi varken kapatmaz. Açık kapı yol bulmada boş hücre sayılır ve zombi vuruşu onu atlar; kapalı kapı 1000 canlı duvardır, bu yüzden zombi genellikle yanındaki daha zayıf bloğu kırar. Zombi kapı açmaz (7DTD). Kilit yok. Bloklar zombi görüşünü keser, loot torbası üstlerine düşer, her blok İz'e 0,04 ekler. Kayıt yok. API: `getCount`, `clear` (debug). |
 | Kamera (omuz/FPS) | **Yok.** Localization anahtarları (`CameraShoulder`, `CameraFirstPerson`) ve `Config.Camera` hazır. |
 | Vuruş (`ToolService` + `Shared/Melee`) | Çalışıyor. İstemci yalnızca nişan yönünü yollar. Sunucu: birim vektör, hız sınırı (4/sn), aletin 7DTD aralığı (60/APM + 0,1 sn, %12 tolerans), hedefi kendi baş konumundan seçer: menzildeki en yakın zombi (silindir + baktığı yöne eğik kafa küresi), arada duvar varsa vurmaz. Hasar 7DTD: yumruk 5, taş balta 6, taş kürek 9, taş kazma 7, tahta sopa 12, taş mızrak 12; kafaya ×2. Mızrağın yalnızca hafif saldırısı var (güçlü saldırı ve fırlatma yok). Alet yalnızca isabette 1 aşınır; 0'da kullanılamaz. Dünyaya isabet `onWorldHit` dinleyicilerine gider (toplama). Oyunculara vuruş yok (PvP lobi seçeneği gelince). |
+| Yay (`RangedService` + `Shared/Ballistics`) | Çalışıyor. Elde yay varken "use" ok atar (germe yok; her atış tam gerili). Sunucu: kendi atış aralığı (1 sn, %12 tolerans), yayın dayanıklılığı, oyuncu başına havada en çok 6 ok; envanterden 1 ok alır (hep ya da hiç), yayı 1 aşındırır. Ok sunucunun baş konumundan çıkar, 88 stud/sn hızla ve 11,2 stud/sn² yerçekimiyle Heartbeat'te uçar; her adım `Melee.hitBody` ile zombilere (kafa ×2) ve ışınla dünyaya (duvar, blok, arazi, su) sınanır, hangisi yakınsa orada durur. 280 stud'da düşer. Yalnızca zombilere hasar verir; vurulan zombi atanı kovalar (yakın dövüşteki gibi). Ok geri alınmaz, bloğa hasar vermez, ses çıkarmaz. İstemci: `ArrowFired` (id, çıkış, hız, yerçekimi, sunucu saati) ile yayı her karede kendisi hesaplar; `ArrowStopped` ile oku durduğu yere saplar, 6 sn sonra siler; zombiye saplanan ok hemen silinir, zombi sendeler. Elde yay varken ok yoksa "No arrows". |
 | Toplama (`HarvestService` + `Shared/Harvest`) | Çalışıyor. 7DTD formülü: verimin üçte ikisi nesnenin toplam hasarıyla orantılı olarak vuruşlarda, üçte biri kıran vuruşta; iyi alet yalnızca hızlandırır. Silahlar (tahta sopa, taş mızrak; 7DTD HarvestCount −0,75) odun, taş, kil ve kumun dörtte birini verir (aşağı yuvarlanır: çalıdan odun çıkmaz), lifin tamamını. Hasar = aletin blok hasarı × malzeme çarpanı, tam sayıya kesilir, en az 1. Aynı nesneye vuran herkes aynı hasarı paylaşır. Ağaç: 300/30, 600/70, 900/110, 1200/150 (can/odun, boy ölçeğe göre). Çalı 1–3 odun, ot 2 lif, yerdeki taş 1 taş (E ile de alınır), kaya 400 can / 22 taş. Devrilen ağaç çarpışmayı hemen bırakır, altındaki yol hücreleri açılır, 3,5 sn sonra silinir. Hiçbir şey yeniden çıkmaz (7DTD). Sığmayan eşya kaybolur ve kırmızı satırla bildirilir (loot torbası gelince yere düşecek). |
 | Crafting (`CraftingService` + `Shared/Crafting`) | Çalışıyor. 7DTD sırt çantası crafting'i: 4 işlik kuyruk, yalnızca ilk iş sunucu saatiyle ilerler (çanta kapalıyken de). Süre = Σ adet × malzeme süresi (odun, taş, lif 0,2 sn; diğerleri 1 sn), tarif kendi süresini verirse o. Malzemeler kuyruğa alınırken kaynaklarıyla düşer; iptal kalanı iade eder. Sığmayan ürün kuyrukta "No room" ile bekler. İadesi sığmayan iptal reddedilir ve kırmızı satırla bildirilir (loot torbası gelince yere düşebilir). Tamir: hasarlı taş alet + gereken taş (taş başına 300 dayanıklılık, 0,5 sn) kuyruğa girer; alet boşsa eski slotuna döner. Kuyruk oyuncu çıkınca kaybolur (kayıt yok). Tarifler: taş balta, taş kürek, taş kazma, tahta sopa, taş mızrak, kereste, çerçeve, merdiven, kapı, toprak. |
 | Loot (`LootService` + `Shared/Loot`) | Çalışıyor. Ölen zombi %20 ihtimalle torba bırakır (7DTD %2–4). Torba: bir ortak seçim (3–10 hurda demir, 2–6 kumaş, 5–15 küçük taş, chili veya köpek maması konservesi, şişe su, bulanık su, ilk yardım bandajı) ve %15 ihtimalle %30–100 dayanıklılıkta taş alet ya da silah. 18 slot, 20 dk ömür (7DTD 1.x), dünyada en fazla 60 torba (en eski silinir). E'yi 1 sn basılı tutunca sığan alınır, kalanı torbada kalır; boşalan torba silinir. Sunucu torbanın varlığını, canlı karakteri, mesafeyi, basılı tutma süresini ve hızı yeniden denetler. `LootService.drop(konum, yığınlar, birleştir)` başka servislerden de kullanılır: sığmayan toplama eşyası ve crafting iadesi oyuncunun ayağına düşer, 6 stud içindeki torbaya eklenir. Torba içeriği yalnızca sunucuda. |
@@ -243,8 +245,9 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 
 Ölçümler 30–31 Ekim 2026'da PC'de, Studio içinde alındı. Telefonda ölçüm yok.
 
-- **Testler:** 62/62 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
-  Inventory 6, Melee 5, Harvest 6, Crafting 6, Loot 3, DayClock 2, Threat 4, BuildGrid 4, Vitals 4).
+- **Testler:** 63/63 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
+  Inventory 6, Melee 5, Harvest 6, Ballistics 1, Crafting 6, Loot 3, DayClock 2, Threat 4, BuildGrid 4,
+  Vitals 4).
   Testler yalnızca Studio düzeneğiyle çalıştırıldı; Lune ile hiç çalıştırılmadı.
 - **Zombi performansı:** 80 zombiyle tick ortalaması 0,04–0,17 ms, en kötü tick genelde 1,3–1,8 ms
   (bir kez 3,9 ms). Zombi başına 17 parça.
@@ -404,6 +407,10 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 - **Silahlar (Play, 1 Kasım):** tahta sopa küçük ağacı (300 can, 11 hasar) devirdi, 7 odun verdi
   (30'un dörtte biri); taş mızrak tek zombiyi gövdeye 10 vuruşta öldürdü (125 ± %15 can, 12 hasar);
   sopa + mızrak üretimi 8 odun, 5 taş, 3 lif harcadı.
+- **Yay (Play, 1 Kasım):** tek zombiye 38, 34, 30, 25 ve 21 stud'dan 5 ok, 5 isabet, zombi öldü
+  (30 × 5 ≥ 107–144 can); uçuşta istemcide bir ok çizildi, durunca silindi. Ahşap çerçeveye atılan ok
+  çerçevenin yüzünde durdu (x = −52,0). 14 ok yere atılıp bitince atış olmadı; yay 20 atışta
+  100 → 80.
 - **Konsol:** Sunucu ve istemcide 0 uyarı, 0 hata.
 
 ## Teknik notlar
@@ -470,7 +477,7 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
    local src = Http:GetAsync("http://127.0.0.1:8765/Harness.luau", true)
    Http.HttpEnabled = was
    local H = loadstring(src)()
-   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "62 passed, 0 failed"
+   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "63 passed, 0 failed"
    ```
    Düzenek place'e hiçbir şey bırakmaz.
 3. Her kod değişikliğinden sonra adım 1'deki bundle komutunu tekrar çalıştır, sonra `H.sync()`.

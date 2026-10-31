@@ -29,7 +29,8 @@ Yol haritası notu ve Kararlar tablosu).
 | Kazı | Bitti: 7DTD can ve verimi, kil / kırık kum / taş, adım kuralı, Dirt ile doldurma |
 | Ahşap kapı | Bitti: 1000 can, aç/kapa, açıkken zombi geçer, kapalıyken duvar |
 | Yakın dövüş silahları | Bitti: tahta sopa, taş mızrak; toplamada dörtte bir verim |
-| Yay, tarım, jeneratör | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
+| Yay ve ok | Bitti: ilkel yay, taş ok, sunucuda yerçekimli uçuş |
+| Tarım, jeneratör, grafik ve UI cilası | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
 | Kapı 1: 80 zombiyle orta seviye telefonda 30 FPS | **Ölçülmedi**; kullanıcı erteledi |
 | Kapı 2: 3 kişilik test grubu "bir gece daha" diyor | Henüz yapılamaz |
 
@@ -176,7 +177,19 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Sinsi saldırı:** 7DTD'de fark etmemiş zombiye çömelerek vuruş ×2 (bizde çömelme yok).
 - **Görsel:** sopa ve mızrak da aletlerin sallama pozunu kullanıyor; mızrak dürtmesi yok.
 
-### 12. Sonra
+### 12. Yay (bitti, 1 Kasım)
+
+`e72be4b`. Kalanlar:
+- **Germe:** 7DTD'de yay 0,5 sn gerilir, erken bırakılan ok zayıftır; bizde her atış tam gerili.
+- **Yayılma ve nişan:** 7DTD'de kalçadan 2,8°, nişan alınca ×0,1; bizde yayılma yok, nişan imleçte.
+- **Hasar düşüşü:** 7DTD'de 20 m'den sonra hasar azalır (eğrisi bilinmiyor); bizde 100 m'ye kadar
+  tam hasar.
+- **Ok toplama:** 7DTD'de saplanan ok kırılmadıysa geri alınır; bizde ok kaybolur.
+- **Demir ok, ateşli ok, tatar yayı;** oklar bloğa hasar vermez (7DTD 1).
+- **Tüy:** 7DTD'de kuş yuvasından; tüy kaynağı gelince ok tarifindeki lif tüye döner.
+- **Sinsi atış:** fark etmemiş zombiye çömelerek ×3 (7DTD); bizde çömelme yok.
+
+### 13. Sonra
 
 - **Araç zinciri:** Kullanıcı `rokit install` ve `rojo plugin install` komutlarını kendisi çalıştırır.
   Sonra `stylua --check src tests`, `selene src`, `lune run tests/run`, `rojo build -o build.rbxl`
