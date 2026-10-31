@@ -72,7 +72,8 @@ tam test adımları yazılır.
 küçük taş ve bitki lifi 6000'lik yığın. Kalanlar:
 - Fare tekeriyle slot değiştirme: tekerlek kamera zoom'unda; kamera adımında karar.
 - 7DTD'nin taşıma yükü (fazla eşyada yavaşlama): sonra.
-- Eşya simgeleri: şimdilik renkli kare.
+- Eşya simgeleri: renkli karenin üstünde emoji (`Shared/ItemIcons`, `7748aed`); gerçek simge çizimi
+  sonraki görsel adım.
 
 ### 2. Vuruş (bitti, 31 Ekim)
 
@@ -242,7 +243,7 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Sayılar:** 7DTD ahşap sandığın tarifi, canı ve yuva sayısı doğrulanamadı (bizim: 4 kereste,
   150 can, 36 yuva).
 - **Kayıt:** sandık içeriği sunucu kapanınca kaybolur.
-- **Simgeler:** eşyalar hâlâ renkli kare; simge yok (görsel adım).
+- **Simgeler:** emoji simgeler geldi (`7748aed`); gerçek çizim simgeler sonraki görsel adım.
 
 ### 17. Evin içine inşaat (bitti, 31 Ekim)
 

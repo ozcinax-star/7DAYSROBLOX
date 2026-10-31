@@ -254,6 +254,12 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 | --- | --- |
 | `8b6e19d` | Kamp ateşi (7DTD 3.2: 5 küçük taş, 1 sn, 100 can): konulan bir crafting istasyonu; ateş, ışık, iki kütük ve "Cook" istemi (crafting panelini açar). Tarifler `Station` (kuyruğa alırken 10 stud içinde o türden blok) ve `Tool` (taşınan, harcanmayan eşya) isteyebilir. Fırında patates (patates, 10 sn), közde mısır (mısır + ızgara, 5 sn), kaynamış su (bulanık su + tencere, 10 sn; çıktı Bottled Water = 7DTD'nin kaynamış su kavanozu). Pişmiş yemek 10 yemek, zamanla 5 can, −5 su (7DTD). Tencere ve ızgara mutfak dolaplarından (yaklaşık 25 dolapta birer). Panel istasyon ve alet şartını yeşil / kırmızı yazar, karşılanmayan tarifi soluk gösterir. `Crafting.canUse` (1 test), `BuildService.near` |
 
+### 21. Bölüm: eşya simgeleri (31 Ekim)
+
+| Commit | Ne yapıldı |
+| --- | --- |
+| `7748aed` | Her eşyanın renkli karesinin üstüne bir emoji (`Shared/ItemIcons`): çanta, alet kemeri, sandık, crafting satırları, toplama akışı. Roblox Unicode 12'ye kadar emoji çiziyor; kütük, kaya, merdiven, yaban mersini kutu çıktığı için yerine ağaç, yeni ay, tırmanan kişi, üzüm. Her eşyanın simgesi olduğunu test denetler. Play'de ekran görüntüsüyle doğrulandı |
+
 ## Mevcut durum
 
 | Alan | Durum |
