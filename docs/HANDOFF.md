@@ -547,7 +547,7 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
   görüntüsünde dört başlık düğmesi aynı boyutta. Atış sesi kancası geçici bir motor sesiyle denendi:
   2 atışta namluda 2 ses (yüklendi, 2,59 sn), 5 sn içinde temizlendi; sonra kimlik yine boş. Konsol temiz.
 - **Cam (Play, 31 Ekim):** haritada 274 cam modeli. Zemin kattaki bir cam (alt kenarı y 4, 4 × 5 stud)
-  boş elle ilk vuruşta kırıldı. Konsol temiz.
+  boş elle ilk vuruşta kırıldı; karakter yürüyüp zıplayarak kırık pencereden geçti. Konsol temiz.
 - **Konsol:** Sunucu ve istemcide 0 uyarı, 0 hata.
 
 ## Teknik notlar
