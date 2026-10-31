@@ -8,9 +8,12 @@
 -- the hand is aimed with the right mouse button, gamepad L2 or the Aim toggle on touch: the camera
 -- zooms in and the server tightens the spread (AimIntent).
 --
--- The swing is a procedural rotation of the right shoulder joint (R15 RightShoulder or R6
--- "Right Shoulder") layered on the walk animation through Motor6D.C0, restored when it ends. In first
--- person the player sees ViewmodelController's arms instead, told of each swing and use from here.
+-- The third-person swing is procedural: key poses of the R15 shoulder, elbow and waist joints,
+-- layered on the walk animation by turning each joint's Transform after the Animator has written it
+-- (PreSimulation). That works for Motor6D joints and for the AnimationConstraint joints of upgraded
+-- avatars, whose C0 is read-only. Tools chop overhead, the spear thrusts and fists jab, the arms
+-- taking turns; R6 rigs do not swing. In first person the player sees ViewmodelController's arms
+-- instead, told of each swing and use from here.
 
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
@@ -46,12 +49,27 @@ local SHAPE: Melee.Shape = {
 -- After an "out of stamina" refusal, the next try waits this long (stamina comes back meanwhile).
 local OUT_OF_STAMINA_RETRY = 0.3
 
--- Shoulder angles about the joint's X axis (positive raises the arm forward): wind up overhead,
--- chop down past the horizontal, then return. Shares are fractions of the swing duration.
-local RAISE_ANGLE = math.rad(150)
-local STRIKE_ANGLE = math.rad(35)
-local WINDUP_SHARE = 0.4
-local STRIKE_SHARE = 0.65
+-- Third-person swing poses: joint angles in degrees reached at shares of the swing. Shoulder and
+-- elbow turn about the joint's X axis (positive raises the arm forward or bends the forearm toward
+-- its front), the waist about Y (positive turns the chest left). A swing starts at the walk pose,
+-- eases out into the first key, speeds into the second (the strike) and settles back.
+local SWING_POSES: { [SwingStyle]: { SwingKey } } = {
+	-- Axe, pickaxe, shovel, club: the tool up behind the head, then down past the horizontal.
+	Chop = {
+		{ at = 0.4, shoulder = 160, elbow = 70, waist = -18 },
+		{ at = 0.62, shoulder = 35, elbow = 5, waist = 14 },
+	},
+	-- Spear: drawn back, then thrust straight out.
+	Stab = {
+		{ at = 0.3, shoulder = 60, elbow = 95, waist = -12 },
+		{ at = 0.5, shoulder = 88, elbow = 0, waist = 14 },
+	},
+	-- Fist: up to a guard, then a straight jab with the chest turned into it.
+	Punch = {
+		{ at = 0.2, shoulder = 70, elbow = 110, waist = 0 },
+		{ at = 0.45, shoulder = 90, elbow = 0, waist = 18 },
+	},
+}
 -- A swing lasts this share of the tool's interval, capped by Config.Melee.SwingMaxSeconds.
 local SWING_SHARE = 0.9
 
@@ -73,7 +91,11 @@ local MOUSE_INPUTS = {
 }
 
 type Source = "Pointer" | "Touch"
-type Swing = { startedAt: number, duration: number }
+type SwingStyle = "Chop" | "Stab" | "Punch"
+type SwingKey = { at: number, shoulder: number, elbow: number, waist: number }
+-- Motor6D or AnimationConstraint: both carry the Transform the Animator writes.
+type Joints = { shoulder: Instance, elbow: Instance?, waist: Instance? }
+type Swing = { startedAt: number, duration: number, style: SwingStyle, left: boolean, joints: Joints }
 
 local ToolController = {}
 
@@ -84,9 +106,12 @@ local aimButton: TextButton
 local aiming = false
 -- The camera's field of view before the first zoom.
 local defaultFieldOfView: number? = nil
-local swings: { [Motor6D]: Swing } = {}
--- Each shoulder's C0 before any swing touched it (weak: characters come and go).
-local baseC0: { [Motor6D]: CFrame } = setmetatable({}, { __mode = "k" }) :: any
+local swings: { [Model]: Swing } = {}
+-- What a swing last wrote into each joint's Transform and the animation pose it turned, so a frame
+-- the Animator skips (a joint no track moves) is not turned twice; and which arm a character's next
+-- punch uses (weak: characters come and go).
+local layered: { [Instance]: { base: CFrame, written: CFrame } } = setmetatable({}, { __mode = "k" }) :: any
+local punchLeft: { [Model]: boolean } = setmetatable({}, { __mode = "k" }) :: any
 local holding: Source? = nil
 local nextSwingAt = 0
 -- Rounds fired from each gun's magazine, as the server counts them.
@@ -94,56 +119,135 @@ local roundsFired: { [string]: number } = {}
 local messageLabel: TextLabel
 local messageToken = 0
 
-local function shoulderOf(character: Model): Motor6D?
-	local upperArm = character:FindFirstChild("RightUpperArm")
-	local motor = upperArm and upperArm:FindFirstChild("RightShoulder")
-	if motor == nil then
-		local torso = character:FindFirstChild("Torso")
-		motor = torso and torso:FindFirstChild("Right Shoulder")
+local function joint(parent: Instance?, name: string): Instance?
+	local found = parent and parent:FindFirstChild(name)
+	return if found and (found:IsA("Motor6D") or found:IsA("AnimationConstraint")) then found else nil
+end
+
+local function getTransform(target: Instance): CFrame
+	if target:IsA("Motor6D") then
+		return target.Transform
+	elseif target:IsA("AnimationConstraint") then
+		return target.Transform
 	end
-	return if motor and motor:IsA("Motor6D") then motor else nil
+	return CFrame.identity
+end
+
+local function setTransform(target: Instance, value: CFrame)
+	if target:IsA("Motor6D") then
+		target.Transform = value
+	elseif target:IsA("AnimationConstraint") then
+		target.Transform = value
+	end
+end
+
+-- The R15 joints a swing turns: the shoulder and elbow of the swinging arm, and the waist.
+local function jointsOf(character: Model, left: boolean): Joints?
+	local side = if left then "Left" else "Right"
+	local shoulder = joint(character:FindFirstChild(`{side}UpperArm`), `{side}Shoulder`)
+	if shoulder == nil then
+		return nil
+	end
+	return {
+		shoulder = shoulder,
+		elbow = joint(character:FindFirstChild(`{side}LowerArm`), `{side}Elbow`),
+		waist = joint(character:FindFirstChild("UpperTorso"), "Waist"),
+	}
+end
+
+local function eachJoint(joints: Joints, callback: (target: Instance) -> ())
+	callback(joints.shoulder)
+	if joints.elbow then
+		callback(joints.elbow)
+	end
+	if joints.waist then
+		callback(joints.waist)
+	end
+end
+
+-- Turns `target` by `rotation` on top of this frame's animation pose.
+local function layer(target: Instance, rotation: CFrame)
+	local current = getTransform(target)
+	local last = layered[target]
+	local base = if last and current == last.written then last.base else current
+	local written = base * rotation
+	setTransform(target, written)
+	layered[target] = { base = base, written = written }
+end
+
+-- Puts back the animation pose under what a swing wrote.
+local function restore(joints: Joints)
+	eachJoint(joints, function(target)
+		local last = layered[target]
+		if last and getTransform(target) == last.written then
+			setTransform(target, last.base)
+		end
+		layered[target] = nil
+	end)
 end
 
 local function playSwing(character: Model?, toolId: string)
-	local motor = character and shoulderOf(character)
-	if motor == nil then
+	if character == nil then
 		return
 	end
-	if baseC0[motor] == nil then
-		baseC0[motor] = motor.C0
+	local style: SwingStyle = if toolId == FIST then "Punch" elseif toolId == "StoneSpear" then "Stab" else "Chop"
+	local left = false
+	if style == "Punch" then
+		left = punchLeft[character] == true
+		punchLeft[character] = not left
+	end
+	local joints = jointsOf(character, left)
+	if joints == nil then
+		return
+	end
+	local playing = swings[character]
+	if playing then
+		restore(playing.joints)
 	end
 	local tool = Config.Tools[toolId] or Config.Tools[FIST]
 	local interval = Melee.interval(tool.AttacksPerMinute, MC.SwingDelay)
 	local duration = math.min(MC.SwingMaxSeconds, interval * SWING_SHARE)
-	swings[motor] = { startedAt = os.clock(), duration = duration }
+	swings[character] = { startedAt = os.clock(), duration = duration, style = style, left = left, joints = joints }
 end
 
-local function swingAngle(progress: number): number
-	if progress < WINDUP_SHARE then
-		local a = progress / WINDUP_SHARE
-		return RAISE_ANGLE * (1 - (1 - a) * (1 - a))
-	elseif progress < STRIKE_SHARE then
-		local a = (progress - WINDUP_SHARE) / (STRIKE_SHARE - WINDUP_SHARE)
-		return RAISE_ANGLE + (STRIKE_ANGLE - RAISE_ANGLE) * a * a
+-- The joint angles (degrees) of `style` at `progress` (0-1).
+local function swingPose(style: SwingStyle, progress: number): (number, number, number)
+	local keys = SWING_POSES[style]
+	local fromAt, shoulder, elbow, waist = 0, 0, 0, 0
+	for index, key in keys do
+		if progress < key.at then
+			local a = (progress - fromAt) / (key.at - fromAt)
+			-- Ease out of the rest pose, speed into the strike.
+			a = if index == 1 then 1 - (1 - a) * (1 - a) else a * a
+			return shoulder + (key.shoulder - shoulder) * a,
+				elbow + (key.elbow - elbow) * a,
+				waist + (key.waist - waist) * a
+		end
+		fromAt, shoulder, elbow, waist = key.at, key.shoulder, key.elbow, key.waist
 	end
-	local a = (progress - STRIKE_SHARE) / (1 - STRIKE_SHARE)
-	return STRIKE_ANGLE * (1 - a)
+	local a = (progress - fromAt) / (1 - fromAt)
+	local back = 1 - a * a * (3 - 2 * a)
+	return shoulder * back, elbow * back, waist * back
 end
 
-local function onRender()
+-- Runs after the Animator wrote this frame's pose (PreSimulation).
+local function stepSwings()
 	local now = os.clock()
-	for motor, swing in swings do
-		local base = baseC0[motor]
-		if base == nil or motor.Parent == nil then
-			swings[motor] = nil
+	for character, swing in swings do
+		local progress = (now - swing.startedAt) / swing.duration
+		local joints = swing.joints
+		if progress >= 1 or joints.shoulder.Parent == nil then
+			restore(joints)
+			swings[character] = nil
 			continue
 		end
-		local progress = (now - swing.startedAt) / swing.duration
-		if progress >= 1 then
-			motor.C0 = base
-			swings[motor] = nil
-		else
-			motor.C0 = base * CFrame.Angles(swingAngle(progress), 0, 0)
+		local shoulder, elbow, waist = swingPose(swing.style, progress)
+		layer(joints.shoulder, CFrame.Angles(math.rad(shoulder), 0, 0))
+		if joints.elbow then
+			layer(joints.elbow, CFrame.Angles(math.rad(elbow), 0, 0))
+		end
+		if joints.waist then
+			layer(joints.waist, CFrame.Angles(0, math.rad(if swing.left then -waist else waist), 0))
 		end
 	end
 end
@@ -546,7 +650,7 @@ end
 function ToolController.start()
 	local hitButton = buildGui()
 	bindInput(hitButton.Parent :: Instance, hitButton)
-	RunService.PreRender:Connect(onRender)
+	RunService.PreSimulation:Connect(stepSwings)
 	RunService.Heartbeat:Connect(function()
 		if holding then
 			trySwing(holding)

@@ -64,11 +64,23 @@ local function pose(x: number, y: number, z: number, pitch: number, yaw: number,
 	return CFrame.new(x, y, z) * CFrame.fromOrientation(math.rad(pitch), math.rad(yaw), math.rad(roll))
 end
 
--- Rest poses of the right hand's grip for each held kind. A tool's handle leaves the grip up and
--- forward at the grip's (0, 0.5, -0.87); a gun's barrel points along -Z; a bow's limb stands along Y.
+local UNTILT = CFrame.Angles(HeldItems.HoldTilt, 0, 0):Inverse()
+local V = Vector3.new
+
+-- A tool's grip pose from where the fist is, the way the handle points out of it and the side its
+-- head faces (camera space; the head sits on the handle's -Y side, Shared/HeldItems).
+local function hold(x: number, y: number, z: number, handle: Vector3, head: Vector3): CFrame
+	local along = handle.Unit
+	local up = -(head - head:Dot(along) * along).Unit
+	return CFrame.fromMatrix(V(x, y, z), up:Cross(-along), up, -along) * UNTILT
+end
+
+-- Rest poses of the right hand's grip for each held kind. A tool rests low on the right with its
+-- handle leaning forward and its head up to the right of the crosshair, blade to the left; a gun's
+-- barrel points along -Z; a bow's limb stands along Y.
 local REST: { [Kind]: CFrame } = {
 	Fist = pose(0.8, -1.0, -1.7, 0, 0, 0),
-	Tool = pose(1.05, -1.05, -2.0, 40, 10, 15),
+	Tool = hold(1.25, -1.45, -2.25, V(-0.25, 0.75, -0.6), V(-0.7, 0, -0.7)),
 	Spear = pose(0.9, -1.0, -1.2, -20, 8, 0),
 	Gun = pose(0.75, -0.85, -1.6, 0, 4, 0),
 	Bow = pose(0.6, -0.6, -2.1, 0, 0, -12),
@@ -77,11 +89,14 @@ local REST: { [Kind]: CFrame } = {
 local LEFT_REST = pose(-0.8, -1.0, -1.7, 0, 0, 0)
 
 -- Key poses of each action after the rest pose; every action ends back at rest. Melee keys are
--- shares of the swing; the strike lands where the server's hit would.
+-- shares of the swing; the strike lands where the server's hit would. A chop raises the tool upright
+-- at the right edge with the blade forward, brings its head down just under the crosshair and
+-- follows through low to the left.
 local KEYS: { [Style]: { Key } } = {
 	Chop = {
-		{ at = 0.35, pose = pose(1.35, -0.55, -1.5, 95, -5, 25) },
-		{ at = 0.55, pose = pose(0.35, -1.25, -2.3, -35, 25, -20) },
+		{ at = 0.35, pose = hold(1.3, -0.9, -1.8, V(0.3, 0.95, 0.1), V(0, 0, -1)) },
+		{ at = 0.55, pose = hold(0.6, -0.9, -1.6, V(-0.35, 0.32, -0.9), V(0, -1, 0)) },
+		{ at = 0.7, pose = hold(0.35, -1.35, -1.7, V(-0.45, -0.05, -0.9), V(0, -1, 0.1)) },
 	},
 	Stab = {
 		{ at = 0.3, pose = pose(1.0, -0.9, -0.7, -15, 10, 0) },

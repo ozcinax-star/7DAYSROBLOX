@@ -20,6 +20,8 @@ local PIPE_COLOR = Color3.fromRGB(95, 95, 100)
 local HOLD_TILT = math.rad(30)
 -- Where along the handle the fist holds it (share of the length from the bottom end).
 local GRIP_SHARE = 0.2
+-- The viewmodel poses tools by their handle, so it needs the tilt (ViewmodelController).
+HeldItems.HoldTilt = HOLD_TILT
 
 -- Shape of a held tool, in handle space: the handle runs along Z with its top end at -Z. The head's
 -- offset is measured from that top end.
