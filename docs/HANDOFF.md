@@ -855,7 +855,8 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
 - **Bash heredoc'u bazen bozuluyor.** Bazı içerikler "unexpected EOF" ya da "Permission denied
   /c/Users/…" veriyor ve yama hiç uygulanmıyor. Uzun Python yamalarını Write ile scratchpad'e dosya
   olarak yaz, `python dosya.py` ile çalıştır; her değişimin tam bir kez eşleştiğini `assert` ile denetle.
-- **`screen_capture` Play'de çalışıyor**, ama `camera_position` verilse de oyun kamerasını çeker.
+- **`screen_capture` Play'de çalışıyor.** `camera_position` verildiğinde görüntü istenen noktadan
+  değil oyun kamerasına yakın bir yerden geldi; bir kez denendi, kesin değil.
 - **Play'de kendiliğinden yürüme.** MCP testinde karakter hareket ediyorsa önce
   `UserInputService:GetKeysPressed()` oku: kullanıcı aynı anda oyunda olabilir ya da bir `keyDown`
   bırakılmamış olabilir.
