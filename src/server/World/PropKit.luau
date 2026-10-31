@@ -19,6 +19,14 @@ local UNDERGROWTH: PartFactory.Options = { canCollide = false, castShadow = fals
 -- Tall grass blade heights and how far they lean out from the clump's centre.
 local GRASS_BLADES = { 2.6, 2.1, 1.8 }
 local GRASS_LEAN = math.rad(18)
+-- Rusty veins on an iron ore boulder: size, centre (both times the scale) and tilt (radians), each
+-- sunk into one face of the boulder so only a strip shows.
+local IRON_VEINS = {
+	{ size = Vector3.new(4.5, 0.5, 1), at = Vector3.new(-0.5, 1.4, -2.7), tilt = Vector3.new(0, 0, 0.35) },
+	{ size = Vector3.new(1, 0.6, 3.5), at = Vector3.new(3.3, 0.8, -0.6), tilt = Vector3.new(0.4, 0, 0) },
+	{ size = Vector3.new(3, 0.5, 1), at = Vector3.new(-1.8, 2.2, 2.7), tilt = Vector3.new(0, 0, -0.3) },
+	{ size = Vector3.new(1.2, 0.5, 2.4), at = Vector3.new(2.4, 3.9, 1.2), tilt = Vector3.new(0.3, 0.6, 0.2) },
+}
 
 type Builder = (model: Model, base: CFrame, scale: number, key: string) -> ()
 
@@ -112,6 +120,21 @@ local Builders: { [string]: Builder } = {
 			base * CFrame.new(2 * scale, 2.5 * scale, 1 * scale) * CFrame.Angles(0.3, 0.6, 0.2),
 			S.Rock
 		)
+	end,
+	-- The boulder's shape in iron ore colours, with rusty veins set into its faces.
+	IronRock = function(model, base, scale)
+		block(model, base, "Rock", Vector3.new(7, 4, 6) * scale, 0, -0.5, 0, S.IronOre)
+		part(
+			model,
+			"Rock",
+			Vector3.new(4, 3, 4) * scale,
+			base * CFrame.new(2 * scale, 2.5 * scale, 1 * scale) * CFrame.Angles(0.3, 0.6, 0.2),
+			S.IronOre
+		)
+		for _, vein in IRON_VEINS do
+			local tilt = CFrame.Angles(vein.tilt.X, vein.tilt.Y, vein.tilt.Z)
+			part(model, "Vein", vein.size * scale, base * CFrame.new(vein.at * scale) * tilt, S.OreVein)
+		end
 	end,
 	-- Three wedge blades fanned out and leaning outward, waist high so a swing from the head reaches
 	-- them.

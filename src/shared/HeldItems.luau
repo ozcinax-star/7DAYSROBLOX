@@ -14,6 +14,8 @@ local HANDLE_COLOR = Color3.fromRGB(110, 78, 48)
 local STONE_COLOR = Color3.fromRGB(128, 126, 120)
 local LASHING_COLOR = Color3.fromRGB(150, 140, 96)
 local PIPE_COLOR = Color3.fromRGB(95, 95, 100)
+local IRON_COLOR = Color3.fromRGB(140, 143, 150)
+local FIREAXE_COLOR = Color3.fromRGB(166, 46, 38)
 
 -- The handle points forward out of the fist, tilted up by this angle (the arm hangs at the side
 -- until the tool-use step adds a swing pose).
@@ -58,6 +60,32 @@ local SHAPES: { [string]: Shape } = {
 		headOffset = V(0, 0, -0.4),
 		headColor = STONE_COLOR,
 		lashing = true,
+	},
+	-- Iron tools: the stone shapes with forged metal heads, riveted on instead of lashed. The fireaxe
+	-- head is painted red.
+	IronFireaxe = {
+		handle = 2.4,
+		head = V(0.16, 0.85, 0.5),
+		headOffset = V(0, -0.35, 0.2),
+		headColor = FIREAXE_COLOR,
+		headMaterial = Enum.Material.Metal,
+		lashing = false,
+	},
+	IronPickaxe = {
+		handle = 2.4,
+		head = V(0.14, 1.6, 0.18),
+		headOffset = V(0, 0, 0.1),
+		headColor = IRON_COLOR,
+		headMaterial = Enum.Material.Metal,
+		lashing = false,
+	},
+	IronShovel = {
+		handle = 2.8,
+		head = V(0.7, 0.06, 0.9),
+		headOffset = V(0, 0, -0.42),
+		headColor = IRON_COLOR,
+		headMaterial = Enum.Material.Metal,
+		lashing = false,
 	},
 	-- A thick wooden end on a short handle.
 	WoodenClub = {

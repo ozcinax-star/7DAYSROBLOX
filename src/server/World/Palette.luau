@@ -76,6 +76,9 @@ Palette.Styles = {
 	OakLeaves = style(rgb(84, 128, 56), M.Grass),
 	Bush = style(rgb(70, 112, 52), M.Grass),
 	Rock = style(rgb(118, 116, 112), M.Rock),
+	-- Iron ore boulders: a rust-brown rock with rusty veins.
+	IronOre = style(rgb(112, 96, 88), M.Rock),
+	OreVein = style(rgb(160, 84, 46), M.CorrodedMetal),
 	-- Gatherable plants and stones read lighter than the terrain around them.
 	TallGrass = style(rgb(128, 152, 66), M.Grass),
 	LooseRock = style(rgb(156, 150, 140), M.Rock),

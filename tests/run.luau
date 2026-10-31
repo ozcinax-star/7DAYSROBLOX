@@ -1327,6 +1327,30 @@ test("the forge burns charcoal and forges 7DTD's iron from scrap and clay", func
 	expectEq(Crafting.costs(Recipes.Generator, 1).ForgedIron, 15, "the generator takes 7DTD's forged iron")
 end)
 
+test("iron ore boulders pay scrap iron, and forged iron makes 7DTD's iron tools", function()
+	local ore = Nodes.IronBoulder
+	expectEq(ore.Material, "Stone", "iron ore is stone")
+	expectEq(ore.Harvest[1].Id, "ScrapIron", "it pays scrap iron")
+	local scrap, ironHits = chop(ore, toolDamage("IronPickaxe", "Stone"))
+	expectEq(scrap, 105, "105 of it")
+	expectEq(ironHits, 15, "an iron pickaxe breaks it in 15 hits")
+	local _, stoneHits = chop(ore, toolDamage("StonePickaxe", "Stone"))
+	expectEq(stoneHits, 24, "a stone pickaxe in 24")
+	expectEq(toolDamage("IronFireaxe", "Wood"), 47, "the fireaxe on wood")
+	expectEq(toolDamage("IronShovel", "Earth"), 62, "the shovel on earth")
+	for _, id in { "IronFireaxe", "IronPickaxe", "IronShovel" } do
+		local item = Config.Items[id]
+		expectEq(item.Durability, 500, `{id} lasts 500 uses`)
+		expectEq(item.Repair and item.Repair.Id, "ForgedIron", `{id} is repaired with forged iron`)
+		expectEq(Recipes[id].Station, nil, `{id} is backpack crafting`)
+		expectEq(Config.Crafting.Category[id], "Tools", `{id} is filed under tools`)
+		assert(table.find(Config.Crafting.Order, id), `{id} is in the crafting list`)
+	end
+	expectEq(Crafting.costs(Recipes.IronPickaxe, 1).ForgedIron, 20, "a pickaxe is 20 forged iron")
+	expectEq(Crafting.costs(Recipes.IronShovel, 1).ForgedIron, 16, "a shovel 16")
+	expectEq(Crafting.unitSeconds(Recipes.IronFireaxe), 204.4, "in 7DTD's 204.4 s")
+end)
+
 test("a worn-out lighter is passed over for the next one", function()
 	local inv = Inventory.new(2, 2)
 	Inventory.add(inv, "Lighter", 1, "Loot", 0)

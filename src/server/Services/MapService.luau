@@ -53,7 +53,8 @@ local COLUMN = 4
 local GRASSY = { Grass = true, LeafyGrass = true }
 local PAVED = { Asphalt = true, Pavement = true }
 -- Forest prop kinds that can be gathered, and their Config.Harvest.Nodes entry (trees by size).
-local PROP_NODES = { Bush = "Bush", Rock = "Boulder", TallGrass = "Grass", LooseRock = "LooseRock" }
+local PROP_NODES =
+	{ Bush = "Bush", Rock = "Boulder", IronRock = "IronBoulder", TallGrass = "Grass", LooseRock = "LooseRock" }
 
 local mapFolder: Folder? = nil
 local heightGrid: TerrainBuilder.HeightGrid? = nil
@@ -405,7 +406,7 @@ local function buildForest(parent: Instance, keepOut: { Circle })
 				local yaw = Noise.hash(ix, iz, seed + 6) * 360
 				local kind
 				if roll < forest.RockChance then
-					kind = "Rock"
+					kind = if Noise.hash(ix, iz, seed + 8) < forest.IronShare then "IronRock" else "Rock"
 				elseif roll < forest.RockChance + forest.LogChance then
 					kind = "FallenLog"
 				elseif roll < forest.RockChance + forest.LogChance + forest.BushChance then
@@ -470,19 +471,20 @@ local function buildUndergrowth(parent: Instance, keepOut: { Circle })
 	end
 end
 
--- Boulders and loose rocks spread over the quarry floor.
+-- Boulders, iron ore boulders and loose rocks spread over the quarry floor.
 local function buildQuarry(parent: Instance, keepOut: { Circle })
 	local growth = WorldLayout.Undergrowth
 	local quarry = WorldLayout.Quarry
 	local seed = WorldLayout.Seed + 30
 	local floorRadius = quarry.radius - quarry.rimWidth
-	for i = 1, growth.QuarryBoulders + growth.QuarryRocks do
+	local boulders = growth.QuarryBoulders + growth.QuarryIronBoulders
+	for i = 1, boulders + growth.QuarryRocks do
 		local angle = Noise.hash(i, 0, seed) * 2 * math.pi
 		-- The square root spreads them evenly over the disc instead of crowding the centre.
 		local distance = math.sqrt(Noise.hash(i, 1, seed)) * floorRadius
 		local x, z = quarry.x + math.cos(angle) * distance, quarry.z + math.sin(angle) * distance
 		if not insideAny(keepOut, x, z) then
-			local kind = if i <= growth.QuarryBoulders then "Rock" else "LooseRock"
+			local kind = if i <= growth.QuarryBoulders then "Rock" elseif i <= boulders then "IronRock" else "LooseRock"
 			local scale = 0.8 + Noise.hash(i, 2, seed) * 0.5
 			buildNature(kind, `Q{i}`, x, z, Noise.hash(i, 3, seed) * 360, scale, parent)
 		end

@@ -774,6 +774,9 @@ Config.Camera = {
 
 -- 7DTD: stone tools are repaired with small stones, 300 durability and 0.5 s per stone.
 local STONE_REPAIR: RepairDef = { Id = "SmallStone", Amount = 300, Seconds = 0.5 }
+-- 7DTD repairs iron tools with a repair kit (one kit, 3 s, always a full repair). There is no repair
+-- kit yet: one forged iron does the same (PLAN, Kararlar).
+local IRON_REPAIR: RepairDef = { Id = "ForgedIron", Amount = 500, Seconds = 3 }
 
 -- Recipe ingredients from an { [id] = count } table, in a stable order (by id) for display.
 local function costs(counts: { [string]: number }): { ItemCount }
@@ -852,6 +855,11 @@ Config.Items = {
 	-- meleeToolShovelT0StoneShovel
 	StoneShovel = { Stack = 1, Durability = 250, Repair = STONE_REPAIR, Color = { 0.5, 0.46, 0.4 } },
 	StonePickaxe = { Stack = 1, Durability = 250, Repair = STONE_REPAIR, Color = { 0.42, 0.42, 0.44 } },
+	-- meleeToolAxeT1IronFireaxe, meleeToolPickT1IronPickaxe, meleeToolShovelT1IronShovel: 500 uses at
+	-- quality 1.
+	IronFireaxe = { Stack = 1, Durability = 500, Repair = IRON_REPAIR, Color = { 0.65, 0.18, 0.15 } },
+	IronPickaxe = { Stack = 1, Durability = 500, Repair = IRON_REPAIR, Color = { 0.55, 0.56, 0.6 } },
+	IronShovel = { Stack = 1, Durability = 500, Repair = IRON_REPAIR, Color = { 0.5, 0.52, 0.56 } },
 	-- meleeWpnClubT0WoodenClub: repaired with Wood (100 durability each; 7DTD gives no time).
 	WoodenClub = {
 		Stack = 1,
@@ -913,6 +921,27 @@ Config.Recipes = {
 		Output = "StonePickaxe",
 		Count = 1,
 		Ingredients = costs({ SmallStone = 4, PlantFiber = 3, Wood = 3 }),
+	},
+	-- 7DTD iron tools: 20 Forged Iron (16 for the shovel), 10 Wood, 2 Leather and 2 Duct Tape
+	-- (204.4 s, the shovel 164.4 s), unlocked by Harvesting Tools 11. We have no perks, leather or duct
+	-- tape: anyone may craft them, with cloth and glue standing in (PLAN, Kararlar).
+	IronFireaxe = {
+		Output = "IronFireaxe",
+		Count = 1,
+		Ingredients = costs({ ForgedIron = 20, Wood = 10, Cloth = 2, Glue = 2 }),
+		Seconds = 204.4,
+	},
+	IronPickaxe = {
+		Output = "IronPickaxe",
+		Count = 1,
+		Ingredients = costs({ ForgedIron = 20, Wood = 10, Cloth = 2, Glue = 2 }),
+		Seconds = 204.4,
+	},
+	IronShovel = {
+		Output = "IronShovel",
+		Count = 1,
+		Ingredients = costs({ ForgedIron = 16, Wood = 10, Cloth = 2, Glue = 2 }),
+		Seconds = 164.4,
 	},
 	-- 7DTD: 5 Wood (1 s); 5 Small Stone, 3 Plant Fibers, 3 Wood (2.2 s). The times follow from the
 	-- ingredients.
@@ -1087,6 +1116,9 @@ Config.Crafting = {
 		"StoneAxe",
 		"StoneShovel",
 		"StonePickaxe",
+		"IronFireaxe",
+		"IronPickaxe",
+		"IronShovel",
 		"WoodenClub",
 		"StoneSpear",
 		"PrimitiveBow",
@@ -1131,6 +1163,9 @@ Config.Crafting = {
 		StoneAxe = "Tools",
 		StoneShovel = "Tools",
 		StonePickaxe = "Tools",
+		IronFireaxe = "Tools",
+		IronPickaxe = "Tools",
+		IronShovel = "Tools",
 		WoodenClub = "Weapons",
 		StoneSpear = "Weapons",
 		PrimitiveBow = "Weapons",
@@ -1250,6 +1285,31 @@ Config.Tools = {
 		Range = 2.4,
 		StaminaLoss = 14,
 		Materials = { Wood = 0.2, Earth = 0.2, Stone = 1 },
+	},
+	-- Iron tools (7DTD 3.2, quality 1). Our materials have no metal category: iron ore is stone.
+	IronFireaxe = {
+		EntityDamage = 15,
+		BlockDamage = 47,
+		AttacksPerMinute = 65,
+		Range = 2.6,
+		StaminaLoss = 18.4,
+		Materials = { Wood = 1, Earth = 0.2, Stone = 0.25 },
+	},
+	IronPickaxe = {
+		EntityDamage = 11.2,
+		BlockDamage = 42,
+		AttacksPerMinute = 65,
+		Range = 2.4,
+		StaminaLoss = 18.4,
+		Materials = { Wood = 0.2, Earth = 0.2, Stone = 1 },
+	},
+	IronShovel = {
+		EntityDamage = 15,
+		BlockDamage = 62,
+		AttacksPerMinute = 50,
+		Range = 2.6,
+		StaminaLoss = 20.3,
+		Materials = { Wood = 0.3, Earth = 1, Stone = 0.2 },
 	},
 	-- meleeWpnClubT0WoodenClub. Weapons gather a quarter (HarvestCount -0.75).
 	WoodenClub = {
@@ -1523,6 +1583,14 @@ Config.Harvest = {
 		LooseRock = { Material = "Stone", Health = 1, Harvest = {}, Destroy = { drop("SmallStone", 1) } },
 		-- resourceRock01-03
 		Boulder = { Material = "Stone", Health = 400, Harvest = { drop("SmallStone", 22) }, Destroy = {} },
+		-- 7DTD surface iron boulder: 600 hit points, 105 iron and 14 small stones over the hits. There is
+		-- no raw iron here; scrap iron stands in, which the forge takes straight (PLAN, Kararlar).
+		IronBoulder = {
+			Material = "Stone",
+			Health = 600,
+			Harvest = { drop("ScrapIron", 105), drop("SmallStone", 14) },
+			Destroy = {},
+		},
 		-- Town furniture (Furniture below): health is the 7DTD block material's MaxDamage
 		-- (materials.xml), drops come from a matching block. 7DTD pays metal and plumbing Harvest drops
 		-- only to salvage tools (wrench); there is none yet, so those pieces pay their Destroy drops.
@@ -2094,9 +2162,13 @@ Config.Debug = {
 		{ Id = "Wood", Count = 50 },
 		{ Id = "SmallStone", Count = 20 },
 		{ Id = "Lighter", Count = 1 },
+		{ Id = "IronPickaxe", Count = 1 },
 		{ Id = "Forge", Count = 1 },
 		{ Id = "Charcoal", Count = 20 },
 		{ Id = "ScrapIron", Count = 60 },
+		{ Id = "ForgedIron", Count = 20 },
+		{ Id = "Cloth", Count = 4 },
+		{ Id = "Glue", Count = 4 },
 		{ Id = "Clay", Count = 20 },
 		{ Id = "CobblestoneRocks", Count = 20 },
 		{ Id = "PlantFiber", Count = 20 },

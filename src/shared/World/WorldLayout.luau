@@ -284,6 +284,8 @@ WorldLayout.Forest = {
 	PadClearance = 8,
 	PineChance = 0.6,
 	RockChance = 0.05,
+	-- Share of forest boulders that carry iron ore (ours).
+	IronShare = 0.3,
 	BushChance = 0.12,
 	LogChance = 0.03,
 }
@@ -297,8 +299,9 @@ WorldLayout.Undergrowth = {
 	BushChance = 0.08,
 	-- Undergrowth keeps this far from road edges (studs).
 	RoadClearance = 3,
-	-- The quarry floor gets its own boulders and loose rocks.
+	-- The quarry floor gets its own boulders, iron ore boulders and loose rocks.
 	QuarryBoulders = 10,
+	QuarryIronBoulders = 6,
 	QuarryRocks = 18,
 }
 
