@@ -26,7 +26,8 @@ Yol haritası notu ve Kararlar tablosu).
 | İnşa (ahşap) | Bitti: çerçeve, ahşap blok, merdiven; yükseltme, tamir, çökme, zombiler duvar kırar |
 | Hayatta kalma | Bitti: dayanıklılık, yemek, su, kademeler, koşma, zıplama, konserve / su / bandaj, gölden içme, ölüm torbası, HUD |
 | Bina kapları | Bitti: 174 aranabilir mobilya, ortak, 7 günde yeniden dolar |
-| Kazı, kapı, silahlar, tarım | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
+| Kazı | Bitti: 7DTD can ve verimi, kil / kırık kum / taş, adım kuralı, Dirt ile doldurma |
+| Kapı, silahlar, tarım | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
 | Kapı 1: 80 zombiyle orta seviye telefonda 30 FPS | **Ölçülmedi**; kullanıcı erteledi |
 | Kapı 2: 3 kişilik test grubu "bir gece daha" diyor | Henüz yapılamaz |
 
@@ -149,11 +150,19 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Ölüm torbası herkese açık;** sahibine özel değil.
 - **Telefon:** HUD üst ortada, Run düğmesi Hit'in solunda; ikisi de ölçülmedi.
 
-### 10. Kazılabilir zemin
+### 10. Kazılabilir zemin (bitti, 1 Kasım)
 
-- Malzeme sınıfına göre voxel canı. Kazınca eşya verir (kil, taş).
-- Yasak alanlar: bina çevresi, asfalt ve kaldırım, su kenarı, ana kaya sınırı.
-- MapService yükseklik ızgarası ve yol bulma güncellenir.
+`499eb61`, `858d355`. Kalanlar:
+- **Kil ne işe yarar:** şimdilik yalnızca Dirt. 7DTD'de kırık taş (1 kil + 1 taş) → taş blok
+  kademesi ve demirci ocağı; taş kademesi gelince.
+- **Çukur tuzağı:** zombiler yükseklik ızgarasını izlediği için çukura düşüp takılmaz, iner ve çıkar.
+  7DTD'de çukur savunmadır (zombi tırmanmakta zorlanır). Yol bulma hücrelerine adım maliyeti
+  eklenebilir.
+- **Derinlik:** arazi tabanı −24; 0 yüksekliğindeki zemin 4 kat kazılır. Daha derin bodrum için taban
+  indirilmeli (açılışta daha çok voksel yazılır; ölçülmeli).
+- **Kayıt:** kazılan sütunlar sunucu kapanınca geri gelir (kalıcılık adımı).
+- **Görsel:** kazı vuruşunda toz efekti ve ses yok; Dirt için hedef önizlemesi yok.
+- **Kar:** 7DTD kartopu vermez bizde; kar boş kazılır.
 
 ### 11. Sonra
 

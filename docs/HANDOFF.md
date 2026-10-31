@@ -201,6 +201,13 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 | --- | --- |
 | `91a33a8` | 174 mobilya aranabilir kap (`Loot.rollContainer`, 1 test); ilk aramada dolar, 7 oyun günü sonra yeniden; duvar arkasından arama reddedilir; ölüm torbaları torba tavanından muaf |
 
+### 13. Bölüm: kazı (1 Kasım)
+
+| Commit | Ne yapıldı |
+| --- | --- |
+| `499eb61` | `DigService`: araziye vuruş 4 stud'luk sütunun tepesinden bir voksel kazar; 7DTD can ve verimi (`Config.Dig`); kil ve kırık kum eşyaları; sütun yan komşusundan en çok 2 voksel aşağı iner; yasak yerler; kazının gerçek yüzeyi yükseklik ızgarasına döner, `MapService` çukur çevresinde yüksekliği ışınla okur; 12 stud altında kaya katmanı (1 test) |
+| `858d355` | Dirt (16 kil, 3 sn): kazılmış sütunu bir voksel doldurur, yalnızca eski yüksekliğine kadar; içinde oyuncu ya da zombi varken reddedilir |
+
 ## Mevcut durum
 
 | Alan | Durum |
@@ -221,15 +228,15 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 | Crafting (`CraftingService` + `Shared/Crafting`) | Çalışıyor. 7DTD sırt çantası crafting'i: 4 işlik kuyruk, yalnızca ilk iş sunucu saatiyle ilerler (çanta kapalıyken de). Süre = Σ adet × malzeme süresi (odun, taş, lif 0,2 sn; diğerleri 1 sn), tarif kendi süresini verirse o. Malzemeler kuyruğa alınırken kaynaklarıyla düşer; iptal kalanı iade eder. Sığmayan ürün kuyrukta "No room" ile bekler. İadesi sığmayan iptal reddedilir ve kırmızı satırla bildirilir (loot torbası gelince yere düşebilir). Tamir: hasarlı taş alet + gereken taş (taş başına 300 dayanıklılık, 0,5 sn) kuyruğa girer; alet boşsa eski slotuna döner. Kuyruk oyuncu çıkınca kaybolur (kayıt yok). Tarifler: taş balta, taş kürek, taş kazma, kereste. |
 | Loot (`LootService` + `Shared/Loot`) | Çalışıyor. Ölen zombi %20 ihtimalle torba bırakır (7DTD %2–4). Torba: bir ortak seçim (3–10 hurda demir, 2–6 kumaş, 5–15 küçük taş, chili veya köpek maması konservesi, şişe su, bulanık su, ilk yardım bandajı) ve %15 ihtimalle %30–100 dayanıklılıkta taş alet. 18 slot, 20 dk ömür (7DTD 1.x), dünyada en fazla 60 torba (en eski silinir). E'yi 1 sn basılı tutunca sığan alınır, kalanı torbada kalır; boşalan torba silinir. Sunucu torbanın varlığını, canlı karakteri, mesafeyi, basılı tutma süresini ve hızı yeniden denetler. `LootService.drop(konum, yığınlar, birleştir)` başka servislerden de kullanılır: sığmayan toplama eşyası ve crafting iadesi oyuncunun ayağına düşer, 6 stud içindeki torbaya eklenir. Torba içeriği yalnızca sunucuda. |
 | Bina kapları (`LootService`) | Çalışıyor. `Config.Loot.ContainerFurniture` 11 mobilyayı 6 kap türüne bağlar (buzdolabı, dolap, raf, gardırop, ilaç dolabı, depo); haritada 174 kap. Her mobilyanın önünde (pivot önü, yarı yükseklik, en çok 3 stud) basılı tutulan "Search" istemi; görüş hattı kontrolü istemde kapalı, sunucu baştan noktaya ışınla duvarı kontrol eder. İlk aramada sunucu zar atar (her atış %25–35 boş; binanın `Loot` özelliği kap türünün `Bonus`'una uyarsa bir atış daha), 7 oyun günü sonra yeniden. Kap bütün oyuncular için ortak; boşalınca "(empty)" yazar. Mobilya modellerinin `WorldPivot`'u hücre tabanı, önü −Z. |
-| Kazı | **Sırada** (NEXT_STEPS). `ToolService.onWorldHit` kazı için, `ZombieService.onDied` loot için, `InventoryService.give/take/wearHeld` hepsi için hazır. |
+| Kazı (`DigService`) | Çalışıyor. Araziye vuruş, vurulan noktanın 4 stud'luk sütununa aletin blok hasarı × malzeme çarpanı kadar hasar verir; verim toplama formülüyle ödenir; tam hasarda sütunun tepesinden bir voksel (4 stud) iner. Malzeme ilk vuruştaki arazi malzemesidir (`Config.Dig.Materials`): çim 250 can / 22 kil + 2 lif, toprak ve çamur 200 / 22 kil, kum 100 / 11 kırık kum + 2 kil, çakıl 200 / 8 kırık kum + 9 taş, kar 160 / boş, kaya 500 / 55 küçük taş (vurunca Harvest gürültüsü). Asfalt, kaldırım ve su kazılmaz. Arazi: 2 voksel yüzey malzemesi, sonra toprak, 12 stud altı kaya; dibinde (−24) bir voksel ana kaya kalır, yani 0 yüksekliğindeki zemin 4 kat kazılır. Ret: oynanmaz alan, su ve çevresindeki 8 sütun, bina ayak izi + 4 stud, sütunda çarpışan harita parçası (ağaç, kaya, eşya) veya blok, vuruş sütunun tepesinden 6 stud'dan aşağıdaysa (tünel yok), sütun yan komşusundan 8 stud'dan (2 voksel) fazla aşağı inecekse. Sütundaki çarpışmasız harita modeli (ot) zeminle iner. Kazılan sütunun voksel yüksekliği servisin `levels` tablosunda; yükseklik ızgarasına bir kare sonra sütun ve 8 komşusunun ortasından okunan gerçek yüzey yazılır ve `MapService.markRough` ile işaretlenir; `MapService.heightAt` işaretli sütunlarda yüksekliği ışınla okur. Yol bulma hücreleri değişmez: zombi çukura iner ve çıkar. Dirt (`Fill = "Ground"`) elde "use" ile kazılmış sütunu bir voksel doldurur: hedef nişanın değdiği yüzün önündeki sütun, kazılmamışsa en yakın kazılmış yan sütun; yalnızca kazıdan önceki yüksekliğe kadar ve adım kuralına uyarak; sütunda oyuncu ya da zombi varsa reddedilir. API: yok (dinleyici). |
 | Perk, kayıt, monetizasyon | Bilerek yazılmadı. |
 
 ### Ölçümler
 
 Ölçümler 30–31 Ekim 2026'da PC'de, Studio içinde alındı. Telefonda ölçüm yok.
 
-- **Testler:** 59/59 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
-  Inventory 6, Melee 5, Harvest 4, Crafting 6, Loot 3, DayClock 2, Threat 4, BuildGrid 3, Vitals 4).
+- **Testler:** 60/60 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
+  Inventory 6, Melee 5, Harvest 5, Crafting 6, Loot 3, DayClock 2, Threat 4, BuildGrid 3, Vitals 4).
   Testler yalnızca Studio düzeneğiyle çalıştırıldı; Lune ile hiç çalıştırılmadı.
 - **Zombi performansı:** 80 zombiyle tick ortalaması 0,04–0,17 ms, en kötü tick genelde 1,3–1,8 ms
   (bir kez 3,9 ms). Zombi başına 17 parça.
@@ -362,6 +369,20 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
   - 14 faz atlayıp 8. güne geçince aranmış 5 kaptan 5 eşya daha geldi.
   - Test tuzağı: yakında birden çok istem varken `InputHoldBegin` yalnızca o an gösterilen istemde
     çalışır (tuş başına tek istem). Testte diğer istemleri istemcide `Enabled = false` yap.
+- **Kazı (Play, 1 Kasım):**
+  - Taş kürekle çim 7 vuruş / 22 kil + 2 lif, toprak 6 vuruş / 22 kil; kazmayla kaya 20 vuruş /
+    55 taş, gürültü 0 → 17,8. Toprak kazısı gürültüsüz.
+  - Roblox yumuşak arazisi dar çukurları yuvarlıyor: tek sütun −4 / −8 / −12 kazılınca yüzey ortada
+    −2,67 / −6,67 / −8,00 (kapanıyor); 1×2 hendek −12'de −8; 3×3 çukurda halka −8 ve merkez −16
+    iken merkez −15,8, halka −7. Bu yüzden adım kuralı (2 voksel) kondu. Karakteri kapanmış çukurun
+    içine ışınlamak onu araziden düşürür (−400'e); normal kazıda olmadı.
+  - Artı şeklinde çukurdan (merkez −12, yanlar −4) geçen zombinin ayağı yüzeyden en çok 0,5 stud
+    aşağıda (düz zeminde 0,15); ışınla yükseklik okumadan önce 1,4–1,85 stud gömülüyordu.
+  - Ret: asfalt yol, Market'in 2 stud yanı, göl kıyısı (kum) 4 vuruşta eşya vermedi ve inmedi; 3. kat
+    (adım kuralı) ve −16'dan sonrası (ana kaya) reddedildi.
+  - Dirt: 2 kazıdan 44 kil, 2 Dirt üretildi; çukurun içinde dururken doldurma reddedildi; 8 stud
+    yandan iki doldurmayla −8 → 0 (yüzey 0,00); eski yüksekliğin üstüne ve kazılmamış zemine
+    doldurma reddedildi. Üretim panelinde Dirt satırı kaydırınca görünüyor.
 - **Konsol:** Sunucu ve istemcide 0 uyarı, 0 hata.
 
 ## Teknik notlar
@@ -428,7 +449,7 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
    local src = Http:GetAsync("http://127.0.0.1:8765/Harness.luau", true)
    Http.HttpEnabled = was
    local H = loadstring(src)()
-   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "59 passed, 0 failed"
+   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "60 passed, 0 failed"
    ```
    Düzenek place'e hiçbir şey bırakmaz.
 3. Her kod değişikliğinden sonra adım 1'deki bundle komutunu tekrar çalıştır, sonra `H.sync()`.
@@ -531,6 +552,8 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
   önbellekten aynı `MapService`'i al, `init()`, sonra `ZombieService.init()/start()`. `start()`
   Heartbeat bağlar; ortamda `game:GetService("RunService")` için Heartbeat'i boş bir saplamayla
   değiştir (5. Bölüm yol bulma ölçümü böyle yapıldı).
+- **Arazi değişikliği bir kare sonra görünür.** `WriteVoxels` sonrası aynı karede ışın eski yüzeye
+  çarpar; `task.wait()` sonra yeni yüzey gelir (ölçüldü). Dar çukurlar yuvarlanır (Ölçümler, kazı).
 - **`return assert(x, "...")` iki değer döndürür.** Tablo kurucusunun son elemanında mesaj da
   tabloya girer. Parantez kullan: `return (assert(x, "..."))`.
 - **Ot ve çalı çarpışmasız ama sorgulanabilir.** Varsayılan `RaycastParams` (`RespectCanCollide =
