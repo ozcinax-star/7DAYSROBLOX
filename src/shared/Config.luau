@@ -1493,9 +1493,13 @@ Config.Ranged = {
 }
 
 -- Cosmetic handling offsets are measured from the fist, shared by viewmodels and avatar IK.
+-- Points are in grip space (studs; -Z muzzle, +Y up), measured from the mesh vertices. Sight is the
+-- top of the sight line at the rear notch; Aim.Y is minus Sight.Y so ADS looks along it. MeshSights:
+-- the mesh has its own notch and post, so no metal sights are added. FrontBase: the barrel top under
+-- the front post, which reaches down to it.
 export type HandlingDef = {
 	Hip: { number }, Aim: { number }, Support: { number }, Sight: { number }, Muzzle: { number },
-	Recoil: { number }, ReloadStyle: string,
+	Recoil: { number }, ReloadStyle: string, MeshSights: boolean?, FrontBase: number?,
 }
 Config.WeaponHandling = {
 	AimResponse = 14,
@@ -1514,18 +1518,22 @@ Config.WeaponHandling = {
 	ElbowWidth = 1.4,
 	PoseInterval = 0.22,
 	Items = {
-		PipePistol = { Hip = { 0.62, -0.85, -2.05, 0, -3, -3 }, Aim = { 0, -0.7, -2.2, 0, 0, 0 },
-			Support = { -0.17, -0.12, 0.04 }, Sight = { 0, 0.7, -0.42 }, Muzzle = { 0, 0.54, -1.39 },
+		-- Pistol 1.25 studs (about 0.4 m at 3.1 studs a metre; read larger than a real 0.3 m pipe pistol).
+		PipePistol = { Hip = { 0.62, -0.8, -2.05, 0, -3, -3 }, Aim = { 0, -0.54, -2.1, 0, 0, 0 },
+			Support = { -0.13, -0.09, 0.03 }, Sight = { 0, 0.54, -0.32 }, Muzzle = { 0, 0.43, -1.05 },
 			Recoil = { 2.1, 0.35, 0.11 }, ReloadStyle = "Cylinder" },
-		PipeRifle = { Hip = { 0.58, -1.1, -2.25, 0, -2, -2 }, Aim = { 0, -1.2, -2.4, 0, 0, 0 },
-			Support = { -0.02, -0.06, -0.9 }, Sight = { 0, 1.2, -0.7 }, Muzzle = { 0, 0.62, -2.52 },
-			Recoil = { 3.2, 0.35, 0.17 }, ReloadStyle = "Breech" },
-		PipeShotgun = { Hip = { 0.6, -0.83, -2.25, 0, -2, -2 }, Aim = { 0, -0.72, -2.4, 0, 0, 0 },
-			Support = { -0.02, -0.02, -0.7 }, Sight = { 0, 0.72, -0.7 }, Muzzle = { 0, 0.34, -1.97 },
-			Recoil = { 4.5, 0.45, 0.23 }, ReloadStyle = "Breech" },
-		PipeMachineGun = { Hip = { 0.58, -0.96, -2.15, 0, -3, -2 }, Aim = { 0, -0.98, -2.3, 0, 0, 0 },
-			Support = { -0.02, 0.04, -0.92 }, Sight = { 0, 0.98, -0.7 }, Muzzle = { 0, 0.69, -2.88 },
-			Recoil = { 1.15, 0.4, 0.09 }, ReloadStyle = "Magazine" },
+		-- Rifle 3.6 studs (1.15 m): long thin barrel over a tube; was 4.3 studs (1.4 m).
+		PipeRifle = { Hip = { 0.58, -0.95, -2.35, 0, -2, -2 }, Aim = { 0, -0.58, -2.4, 0, 0, 0 },
+			Support = { -0.02, 0.17, -1.35 }, Sight = { 0, 0.58, -0.56 }, Muzzle = { 0, 0.43, -2.52 },
+			FrontBase = 0.49, Recoil = { 3.2, 0.35, 0.17 }, ReloadStyle = "Breech" },
+		-- Shotgun 3.1 studs (1.0 m): short wide pipe barrel; grip on the wrist behind the trigger.
+		PipeShotgun = { Hip = { 0.6, -0.85, -2.5, 0, -2, -2 }, Aim = { 0, -0.51, -2.45, 0, 0, 0 },
+			Support = { -0.02, 0.04, -0.65 }, Sight = { 0, 0.51, -0.17 }, Muzzle = { 0, 0.29, -1.17 },
+			FrontBase = 0.39, Recoil = { 4.5, 0.45, 0.23 }, ReloadStyle = "Breech" },
+		-- Machine gun 3.2 studs; its mesh carries a notch at z -1.3 and a post at z -2.6.
+		PipeMachineGun = { Hip = { 0.58, -0.96, -2.15, 0, -3, -2 }, Aim = { 0, -0.9, -2.3, 0, 0, 0 },
+			Support = { -0.02, 0.04, -0.92 }, Sight = { 0, 0.9, -1.3 }, Muzzle = { 0, 0.62, -2.87 },
+			MeshSights = true, Recoil = { 1.15, 0.4, 0.09 }, ReloadStyle = "Magazine" },
 	} :: { [string]: HandlingDef },
 }
 

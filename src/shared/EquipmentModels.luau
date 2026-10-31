@@ -13,7 +13,7 @@ local STONE = Enum.Material.Slate
 local CLOTH = Enum.Material.Fabric
 local P = {
 	wood = RGB(103, 70, 42), woodLight = RGB(141, 103, 65), grain = RGB(64, 44, 30),
-	stone = RGB(85, 90, 85), flint = RGB(128, 137, 130), edge = RGB(177, 182, 165),
+	stone = RGB(70, 72, 68), flint = RGB(96, 99, 93), edge = RGB(132, 133, 122),
 	steel = RGB(78, 84, 83), bright = RGB(163, 169, 161), dark = RGB(34, 37, 36),
 	rust = RGB(116, 65, 37), rope = RGB(161, 142, 101), tape = RGB(79, 81, 62), red = RGB(144, 44, 34),
 }
@@ -192,7 +192,7 @@ BUILDERS.IronPickaxe = function(s, length)
 		{ -0.97, y - 0.24 }, { -0.53, y - 0.07 }, { 0, y - 0.04 } }, 0.14, 0, P.steel, METAL)
 	profile(s, "RightForgedPick", { { 0, y + 0.12 }, { 0.52, y + 0.06 },
 		{ 0.97, y - 0.18 }, { 0.53, y - 0.06 }, { 0, y - 0.04 } }, 0.14, 0, P.steel, METAL)
-	profile(s, "WornPickTip", { { -0.97, y - 0.4 }, { -0.71, y - 0.1 }, { -0.61, y - 0.12 } }, 0.145, 0, P.bright, METAL)
+	profile(s, "WornPickTip", { { -0.97, y - 0.24 }, { -0.74, y - 0.1 }, { -0.68, y - 0.16 } }, 0.145, 0, P.bright, METAL)
 	profile(s, "MattockEdge", { { 0.7, y - 0.05 }, { 0.99, y - 0.3 }, { 0.76, y - 0.22 } }, 0.21, 0, P.bright, METAL)
 	rod(s, "ForgedEye", V(0, y - 0.16, 0), V(0, y + 0.2, 0), 0.3, P.steel, METAL)
 	rivet(s, 0, y, 0.16)
@@ -201,15 +201,21 @@ end
 
 BUILDERS.WoodenClub = function(s, length)
 	if not s.texturedHandle then handle(s, length, true) end
-	rod(s, "ClubShoulder", V(0, length * 0.47, 0), V(0.04, length * 0.71, 0), 0.34, P.wood, WOOD)
-	rod(s, "HeavyClubHead", V(0.04, length * 0.66, 0), V(-0.02, length * 1.07, 0), 0.46, P.woodLight, WOOD)
-	rod(s, "EndGrain", V(-0.02, length * 1.065, 0), V(-0.02, length * 1.1, 0), 0.4, P.wood, WOOD)
-	for i = 1, 5 do
-		local angle = i * math.pi * 2 / 5
-		local x, z = math.cos(angle) * 0.225, math.sin(angle) * 0.225
-		rod(s, "SplitWood", V(x, length * 0.74, z), V(x * 0.9, length * 1.05, z * 0.9), 0.025, P.grain, WOOD)
+	local taper = { { 0.4, 0.2 }, { 0.48, 0.23 }, { 0.56, 0.26 }, { 0.64, 0.29 }, { 0.72, 0.32 },
+		{ 0.8, 0.34 }, { 0.88, 0.36 }, { 1.0, 0.37 } }
+	for i = 1, #taper - 1 do
+		local a, b = taper[i], taper[i + 1]
+		rod(s, "TaperedClub", V(0, length * a[1], 0), V(0, length * b[1], 0), (a[2] + b[2]) / 2,
+			if i % 2 == 0 then P.wood else P.woodLight, WOOD)
 	end
-	box(s, "BranchKnot", V(0.09, 0.16, 0.13), V(0.23, length * 0.83, 0), P.grain, WOOD, A(0, 0, -0.2))
+	add(s, "RoundedClubEnd", V(0.37, 0.18, 0.37), C(0, length * 1.0, 0), P.wood, WOOD, Enum.PartType.Ball)
+	for i = 1, 4 do
+		local angle = i * math.pi / 2 + 0.4
+		local x, z = math.cos(angle) * 0.17, math.sin(angle) * 0.17
+		rod(s, "WoodGrain", V(x * 0.8, length * 0.6, z * 0.8), V(x, length * 0.95, z), 0.02, P.grain, WOOD)
+	end
+	box(s, "BranchKnot", V(0.07, 0.12, 0.1), V(0.17, length * 0.78, 0), P.grain, WOOD, A(0, 0, -0.2))
+	box(s, "DentedEdge", V(0.06, 0.2, 0.08), V(-0.17, length * 0.9, 0.04), P.grain, WOOD, A(0, 0, 0.15))
 end
 
 BUILDERS.StoneSpear = function(s, length)
@@ -219,7 +225,8 @@ BUILDERS.StoneSpear = function(s, length)
 		{ -0.13, y - 0.08 }, { -0.22, y + 0.2 } }, 0.085, 0, P.edge, STONE)
 	profile(s, "FlintSpearRidge", { { 0, y + 0.63 }, { 0.14, y + 0.19 }, { 0.08, y - 0.04 },
 		{ -0.08, y - 0.04 }, { -0.14, y + 0.19 } }, 0.145, 0, P.stone, STONE)
-	lash(s, y - 0.04)
+	wrap(s, y - 0.22, 6, 0.21, P.rope)
+	rod(s, "BindingTail", V(0.09, y - 0.25, 0.06), V(0.13, y - 0.42, 0.08), 0.03, P.rope, CLOTH)
 	wrap(s, length * 0.48, 5, 0.23, P.rope)
 end
 

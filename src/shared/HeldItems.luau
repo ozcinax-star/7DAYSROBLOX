@@ -20,7 +20,7 @@ local LENGTHS: { [string]: number } = {
 	IronFireaxe = 2.4,
 	IronPickaxe = 2.4,
 	IronShovel = 2.8,
-	WoodenClub = 1.8,
+	WoodenClub = 2.3,
 	StoneSpear = 4.2,
 }
 
@@ -67,8 +67,8 @@ function HeldItems.build(id: string, hand: BasePart, grip: CFrame): Model
 		model.PrimaryPart = block
 	end
 	local handling = Config.WeaponHandling.Items[id]
-	if handling and model.PrimaryPart then
-		-- An open rear notch and a narrow front post sit on the measured sight line.
+	if handling and model.PrimaryPart and not handling.MeshSights then
+		-- An open rear notch on the receiver and a front post down to the barrel, on the measured line.
 		local root = model.PrimaryPart
 		local function sight(name: string, size: Vector3, at: Vector3)
 			local p = part(model, name, size, Color3.fromRGB(47, 48, 43))
@@ -79,7 +79,8 @@ function HeldItems.build(id: string, hand: BasePart, grip: CFrame): Model
 		for _, side in { -1, 1 } do
 			sight("RearSight", V(0.035, 0.16, 0.075), line + V(side * 0.065, -0.08, 0))
 		end
-		sight("FrontSight", V(0.024, 0.12, 0.045), V(0, line.Y - 0.06, handling.Muzzle[3] + 0.12))
+		local post = line.Y - (handling.FrontBase or line.Y - 0.12) + 0.02
+		sight("FrontSight", V(0.024, post, 0.045), V(0, line.Y - post / 2, handling.Muzzle[3] + 0.12))
 	end
 	if model.PrimaryPart then
 		local root = model.PrimaryPart
