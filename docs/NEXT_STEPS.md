@@ -5,6 +5,9 @@ Durum 1 Kasım 2026 itibarıyla. Önce [HANDOFF.md](HANDOFF.md) dosyasını oku.
 
 ## Neredeyiz
 
+**Silahlar, dövüş, zombiler, elektrik, evler (1 Kasım 2026, Claude):** ayrıntı
+[COMBAT_POWER_HOUSES.md](COMBAT_POWER_HOUSES.md). Yeni kullanıcı soruları aşağıda 9–11. 101 test.
+
 **Silah kullanımı (1 Kasım 2026, Codex):** Şarjör/doldurma artık her silah için sunucuda gerçek;
 nişan, tepme, mermi paneli ve birinci/üçüncü şahıs tutuşu yenilendi. 90 test geçti. Kontroller:
 R/B Reload, RMB/L2 Aim; yakıt T. [WEAPON_HANDLING.md](WEAPON_HANDLING.md) kullanıcı testini içerir.
@@ -97,6 +100,14 @@ Her sorunun ilk seçeneği benim önerim.
 
 Cevaplananlar: oyuncu zombiye aletle vuracak (bu planın 2. maddesi); zombiler üst kata çıkıyor
 (bitti); kapsam kuralı değişti, ana referans 7DTD ve karşılığında bir şey çıkmıyor (PLAN, Kapsam).
+
+9. **Lambalar artık kablo istiyor:** 7DTD gibi jeneratör yalnızca kablo aletiyle bağlananı besler
+   (eski 48 stud'luk yarıçap kalktı). Kolaylık için yarıçap geri gelsin mi?
+10. **Taret ve çit tarifleri:** dövme çelik, yağ, polimer ve hareket sensörü yok; dövme demir, tutkal,
+    elektronik parça ve boru silahın kendisi kullanıldı. Tezgâh gelince taşınsın mı?
+11. **Ev duvarları:** canlar bizim (alçıpan 300, ahşap 500, tuğla 1500, beton 2500, metal 3000). Zombiler
+    şimdilik ev duvarını kırmıyor, kapı boşluklarını kullanıyor. Bir sonraki adımda zombiler de
+    kırsın mı? Bina içi navigasyonun yeniden kurulmasını gerektirir.
 
 ## Sıradaki işler
 

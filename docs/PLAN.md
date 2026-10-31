@@ -285,6 +285,26 @@ Gez/arpacık, eldivenli destek eli, silaha göre tepme ve kodla doldurma hareket
 miktarını gösterir. Yakıt ekleme artık T (R doldurma için). Ayrı mekanik silindir/sürgü/şarjör
 animasyonu ve kullanıcı ses seçimi sonraki görsel adıma kalır. [WEAPON_HANDLING.md](WEAPON_HANDLING.md).
 
+## Dövüş, elektrik ve evler — 1 Kasım 2026
+
+Kullanıcının isteğiyle 7DTD'den alındı. Sayılar v3.2 XML dosyalarından; Config'de gerekçeli.
+- **Zombi tepkileri:** kafa ×2 sürer. Tek vuruş max canın %40'ı → diz çöker, %50'si → yere serilir
+  (0,5–1,8 sn). Bacak vuruşu oran × 2 şansla sakatlar; sakat zombi %40 hızla sürünür. Öldüren ağır
+  kafa vuruşu %30 tabanla kafayı koparır. Kan yine stilize.
+- **Güçlü vuruş:** sağ tık, yalnızca yakın dövüşte. ×2 / ×2,25 hasar, 1,6× stamina, 1,5 sn stamina
+  yenilenmez. Taş baltada güçlü vuruş yok.
+- **Elektrik ağı:**
+  - Kapsam tablosunda "Sonrası" sütunundaydı; kullanıcı istediği için MVP'ye girdi (kapsam kuralı).
+  - Jeneratör yalnızca kabloyla bağlı olanı besler; eski yarıçap kalktı.
+  - Taretler ±45° yayla 7DTD sayılarıyla ateş eder, silah sesi Gürültü'ye işler (tehdit kararıyla
+    uyumlu).
+  - Elektrikli çit zombiyi şoklar.
+- **Evler:** her kasaba evinin duvarı kırılabilir, tamir edilebilir ve kereste / çelik plakayla iki
+  kademe güçlendirilebilir (7DTD: her POI üs olabilir). Duvar ilk vuruşta dilimlenir; parça bütçesi
+  oyuncu dokunmadıkça artmaz. Zombilerin ev duvarı kırması sonraki adım.
+- **Zombi görünümü:** dokulu üretilmiş kafa ve gövde mesh'i, silindir uzuvlar; zombi başına parça
+  sayısı 17'de kaldı.
+
 ## Kaynaklar
 
 - [Roblox — Data store error codes and limits](https://create.roblox.com/docs/cloud-services/data-stores/error-codes-and-limits.md)

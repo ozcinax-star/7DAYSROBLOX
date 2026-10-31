@@ -1,5 +1,30 @@
 # Devam notu
 
+## Güncel ek: silahlar, dövüş, zombiler, elektrik, evler (1 Kasım 2026, Claude)
+
+Altı commit, hepsi Studio Play'de ölçüldü. Ayrıntı ve kullanıcı test adımları:
+[COMBAT_POWER_HOUSES.md](COMBAT_POWER_HOUSES.md).
+- **Silahlar:** gerçek ölçüye çekildi, havada asılı gez/arpacık düzeldi, mızrak ve sopa yeniden çizildi.
+  ADS hizası 4 silahta 0 piksel.
+- **Çerçeve:** saydam kutu değil, kereste iskeleti.
+- **Dövüş:**
+  - Kafa / gövde / bacak bölgeleri.
+  - Diz çökme (%40 can) ve yere serilme (%50 can).
+  - Bacak sakatlama (sürünen zombi) ve kafa koparma.
+  - Sağ tık güçlü vuruş.
+  - Çubukta "Headshot" başlığı.
+- **Zombiler:** dokulu kafa (2 tür), yarısında gömlek gövde, silindir uzuvlar; 80 zombi Studio'da
+  60 FPS.
+- **Elektrik:** kablo aleti ve röle; otomatik ve pompalı taret; elektrikli çit. Jeneratör artık
+  yalnızca kabloyla bağlı olanı besler.
+- **Evler:** duvar ilk vuruşta dilimlenir, kırılır, taş baltayla tamir edilir; iki kademe güçlendirilir
+  (kereste, çelik plaka).
+- **Testler:** 101 test geçiyor.
+- **Bekleyenler:**
+  - Zombilerin ev duvarını kırması.
+  - Tabanca ve makinelinin özgün el yapımı görünümü.
+  - Telefon FPS.
+
 ## Güncel ek: silah kullanımı (1 Kasım 2026, Codex)
 
 Silah başına gerçek şarjör, R/B/touch doldurma, kısmi doldurma ve iptal, güvenilir mermi HUD'u,
