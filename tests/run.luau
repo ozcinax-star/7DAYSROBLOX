@@ -1093,7 +1093,7 @@ end)
 
 print("Power")
 
-test("generators burn 7DTD gas per watt and light the nearest lamps within their watts", function()
+test("generators burn 7DTD gas per watt; gas pours in steps", function()
 	local PC = Config.Power
 	local day = Config.DayNight.CycleSeconds
 	expectNear(Power.burn(PC.LampWatts, day), 9, 1e-9, "a 5 W lamp burns 9 gas a day")
@@ -1103,32 +1103,68 @@ test("generators burn 7DTD gas per watt and light the nearest lamps within their
 	expectEq(Power.refuel(0, 30), 30, "only what is carried")
 	expectEq(Power.refuel(PC.FuelCapacity, 50), 0, "full")
 
-	local sources = { { x = 0, y = 0, z = 0, watts = 10 }, { x = 100, y = 0, z = 0, watts = 50 } }
-	local lamps = {
-		{ x = 10, y = 0, z = 0 },
-		{ x = 20, y = 0, z = 0 },
-		{ x = -10, y = 0, z = 0 },
-		{ x = 90, y = 0, z = 0 },
-		{ x = 50, y = 0, z = 300 },
-	}
-	local lit = Power.assign(sources, lamps, 48, 5, 10)
-	expectEq(lit[1], 1, "nearest generator")
-	expectEq(lit[2], 1, "second lamp fits its 10 W")
-	expectEq(lit[3], nil, "out of watts, the other generator is out of reach")
-	expectEq(lit[4], 2, "the far lamp takes the far generator")
-	expectEq(lit[5], nil, "out of every radius")
-	lit = Power.assign(sources, lamps, 48, 5, 1)
-	expectEq(lit[1], 1, "first lamp lit")
-	expectEq(lit[2], nil, "world cap")
-
 	for id, def in Config.Build.Blocks do
-		if def.Generator or def.Lamp then
+		if def.Generator or def.Lamp or def.Turret or def.Fence or def.Relay then
 			assert(def.Size and def.Placeable and Config.Items[id] and Config.Recipes[id], `{id} is a placed item`)
+		end
+		if def.Turret then
+			local turret = PC.Turrets[def.Turret]
+			assert(turret and Config.Items[turret.Ammo], `{id} shoots known ammo`)
 		end
 	end
 	assert(Config.Items.GasCan.Fuel, "gas is fuel")
+	assert(Config.Items.WireTool.Wiring, "the wire tool wires")
 	assert(Config.Build.Blocks.ElectricLamp.Passable, "zombies pass lamps")
 	assert(Config.Threat.GeneratorNoiseSeconds < Config.Threat.SoundMergeSeconds, "one sound point per generator")
+end)
+
+test("wires run from sources and relays to consumers, one input each, never in a loop", function()
+	local nodes: { [number]: Power.Node } = {
+		[1] = { key = 1, kind = "Source", watts = 50, running = true },
+		[2] = { key = 2, kind = "Relay", watts = 1 },
+		[3] = { key = 3, kind = "Relay", watts = 1 },
+		[4] = { key = 4, kind = "Consumer", watts = 15 },
+		[5] = { key = 5, kind = "Source", watts = 50, running = true },
+	}
+	local parents: { [number]: number } = {}
+	assert(Power.canLink(nodes, parents, 1, 2), "source to relay")
+	parents[2] = 1
+	assert(Power.canLink(nodes, parents, 2, 3), "relay to relay")
+	parents[3] = 2
+	expectEq(Power.canLink(nodes, parents, 3, 2), false, "a loop back")
+	expectEq(Power.canLink(nodes, parents, 4, 2), false, "a consumer feeds nothing")
+	expectEq(Power.canLink(nodes, parents, 2, 5), false, "nothing feeds a source")
+	expectEq(Power.canLink(nodes, parents, 4, 4), false, "itself")
+	assert(Power.canLink(nodes, parents, 3, 4), "relay to consumer")
+end)
+
+test("power flows from running sources until their watts run out", function()
+	local nodes: { [number]: Power.Node } = {
+		[1] = { key = 1, kind = "Source", watts = 20, running = true },
+		[2] = { key = 2, kind = "Relay", watts = 1 },
+		[3] = { key = 3, kind = "Consumer", watts = 15 },
+		[4] = { key = 4, kind = "Consumer", watts = 5 },
+		[5] = { key = 5, kind = "Consumer", watts = 5 },
+		[6] = { key = 6, kind = "Source", watts = 50, running = false },
+		[7] = { key = 7, kind = "Consumer", watts = 5 },
+	}
+	local parents = { [2] = 1, [3] = 2, [4] = 2, [5] = 1, [7] = 6 }
+	local powered, load = Power.flow(nodes, parents)
+	assert(powered[2] and powered[3], "relay and the first consumer")
+	expectEq(powered[4], nil, "1 + 15 used, 4 W left: the 5 W lamp behind the relay stays dark")
+	expectEq(powered[5], nil, "the 5 W lamp straight on the source does not fit the last 4 W either")
+	expectEq(load[1], 16, "load")
+	expectEq(powered[7], nil, "a stopped generator powers nothing")
+	expectEq(load[6], nil, "and carries no load")
+end)
+
+test("fence wire distance and turret arcs", function()
+	expectNear(Power.segmentDistanceSq(5, 1, 0, 0, 10, 0), 1, 1e-9, "beside the middle")
+	expectNear(Power.segmentDistanceSq(-3, 4, 0, 0, 10, 0), 25, 1e-9, "past the end: to the post")
+	expectEq(Power.inArc(0, -1, 0, -10, math.rad(45)), true, "straight ahead")
+	expectEq(Power.inArc(0, -1, 9.9, -10, math.rad(45)), true, "just inside the edge")
+	expectEq(Power.inArc(0, -1, 10, -9, math.rad(45)), false, "just outside")
+	expectEq(Power.inArc(0, -1, 0, 10, math.rad(45)), false, "behind")
 end)
 
 print("Graphics")

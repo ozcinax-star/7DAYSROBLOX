@@ -736,6 +736,14 @@ function BuildService.near(kind: string, position: Vector3, radius: number): boo
 	return false
 end
 
+-- Wears the block at `key` by `amount` (an electric fence post shocking zombies); it breaks at 0.
+function BuildService.damage(key: number, amount: number)
+	local block = blocks[key]
+	if block and amount > 0 then
+		damageBlock(block, amount)
+	end
+end
+
 -- Registers a listener for placed blocks: key, kind and part.
 function BuildService.onPlaced(callback: (key: number, kind: string, part: BasePart) -> ())
 	table.insert(placedCallbacks, callback)

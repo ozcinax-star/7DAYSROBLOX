@@ -416,6 +416,12 @@ local function hasAmmo(weapon: Config.RangedDef): boolean
 end
 
 -- Sends a "use" that is not a swing (placing, eating, drinking, shooting), at most every `seconds`.
+-- Ammo a turret takes: "use" with it in the hand loads the turret looked at (PowerService).
+local TURRET_AMMO: { [string]: boolean } = {}
+for _, turret in Config.Power.Turrets do
+	TURRET_AMMO[turret.Ammo] = true
+end
+
 local function sendUse(now: number, seconds: number)
 	local aim = ToolController.aimDirection()
 	if aim then
@@ -435,9 +441,10 @@ local function trySwing(source: Source, repeated: boolean?, power: boolean?)
 		-- Only melee tools (and the fist) have a power attack; RMB aims guns.
 		return
 	end
-	if held and (Config.Build.Blocks[held.id] or (item and (item.Fill or item.Seed or item.Fuel))) then
-		-- A block, dirt, a seed or gas in the hand is placed or poured, not swung (BuildController shows
-		-- where a block goes).
+	if held and (Config.Build.Blocks[held.id] or (item and (item.Fill or item.Seed or item.Fuel or item.Wiring))
+		or TURRET_AMMO[held.id]) then
+		-- A block, dirt, a seed, gas, the wire tool or turret ammo in the hand is placed, poured, wired
+		-- or loaded, not swung (BuildController shows where a block goes).
 		ViewmodelController.act("Place")
 		sendUse(now, Config.Build.PlaceCooldown)
 		return

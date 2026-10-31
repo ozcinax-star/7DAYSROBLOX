@@ -1567,6 +1567,15 @@ function ZombieService.getHealth(id: number): (number, number)
 	return math.max(0, zombie.health), zombie.maxHealth
 end
 
+-- Holds a zombie in place for `seconds`: it neither moves nor attacks (an electric fence shock).
+function ZombieService.stun(id: number, seconds: number)
+	local zombie = zombies[id]
+	if zombie then
+		zombie.stunUntil = math.max(zombie.stunUntil, os.clock() + seconds)
+		zombie.dormant = false
+	end
+end
+
 -- Slows a zombie to `factor` of its speed for `seconds` (spike traps; 7DTD movement_factor).
 function ZombieService.slow(id: number, factor: number, seconds: number)
 	local zombie = zombies[id]

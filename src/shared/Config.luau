@@ -30,6 +30,8 @@ export type ItemDef = {
 	Seed: string?,
 	-- Fuel that "use" pours into a generator (Config.Power).
 	Fuel: boolean?,
+	-- The wire tool: "use" on powered blocks wires them (Config.Power).
+	Wiring: boolean?,
 }
 
 -- A hunger or thirst stage: reached at or below Enter (share of the max), left above Leave, and
@@ -80,6 +82,11 @@ export type BlockDef = {
 	Trap: boolean?,
 	-- A 7DTD frame: an invisible solid box drawn as an open timber skeleton (edges and braces).
 	Frame: boolean?,
+	-- Powered blocks (PowerService): a turret (Config.Power.Turrets key), an electric fence post, a
+	-- wire relay.
+	Turret: string?,
+	Fence: boolean?,
+	Relay: boolean?,
 	-- A respawn point (7DTD SleepingBag): its builder respawns on it.
 	Bed: boolean?,
 	-- How tools damage it (Config.Tools Materials); Build.HarvestMaterial when nil.
@@ -680,6 +687,48 @@ Config.Build = {
 			Material = "WoodPlanks",
 			Color = { 0.55, 0.42, 0.28 },
 		},
+		-- 7DTD autoTurret / shotgunTurret: MaxDamage 1000, metal. Repairs are ours (7DTD lists forged
+		-- steel, which we do not have).
+		AutoTurret = {
+			Health = 1000,
+			Placeable = true,
+			Repair = { Id = "ForgedIron", Count = 10 },
+			Size = { 2.2, 2.4, 2.2 },
+			Turret = "AutoTurret",
+			Material = "DiamondPlate",
+			Color = { 0.32, 0.33, 0.3 },
+		},
+		ShotgunTurret = {
+			Health = 1000,
+			Placeable = true,
+			Repair = { Id = "ForgedIron", Count = 10 },
+			Size = { 2.2, 2.4, 2.2 },
+			Turret = "ShotgunTurret",
+			Material = "DiamondPlate",
+			Color = { 0.36, 0.3, 0.26 },
+		},
+		-- 7DTD electricfencepost: MaxDamage 200, repaired with 4 forged iron and an electrical part.
+		-- Wired post to post, the wire between them shocks zombies.
+		FencePost = {
+			Health = 200,
+			Placeable = true,
+			Repair = { Id = "ForgedIron", Count = 4 },
+			Size = { 0.6, 4, 0.6 },
+			Fence = true,
+			Material = "Metal",
+			Color = { 0.42, 0.42, 0.4 },
+		},
+		-- 7DTD electricwirerelay: passes power on. Its health is not on the wiki; ours is a fence post's.
+		PowerRelay = {
+			Health = 200,
+			Placeable = true,
+			Repair = { Id = "ScrapIron", Count = 4 },
+			Size = { 0.8, 1.6, 0.8 },
+			Passable = true,
+			Relay = true,
+			Material = "Metal",
+			Color = { 0.3, 0.32, 0.36 },
+		},
 		-- A lamp post (ours; 7DTD's bulbs hang on walls and ceilings and take wires). Zombies pass it.
 		ElectricLamp = {
 			Health = 100,
@@ -898,6 +947,11 @@ Config.Items = {
 	MechanicalParts = { Stack = 500, Color = { 0.5, 0.52, 0.55 } }, -- resourceMechanicalParts
 	ElectricalParts = { Stack = 500, Color = { 0.85, 0.6, 0.2 } }, -- resourceElectricParts
 	Generator = { Stack = 10, Color = { 0.33, 0.4, 0.3 } }, -- generatorbank
+	AutoTurret = { Stack = 10, Color = { 0.32, 0.33, 0.3 } }, -- autoTurret
+	ShotgunTurret = { Stack = 10, Color = { 0.36, 0.3, 0.26 } }, -- shotgunTurret
+	FencePost = { Stack = 50, Color = { 0.42, 0.42, 0.4 } }, -- electricfencepost
+	PowerRelay = { Stack = 50, Color = { 0.3, 0.32, 0.36 } }, -- electricwirerelay
+	WireTool = { Stack = 1, Color = { 0.75, 0.55, 0.15 }, Wiring = true }, -- meleeToolWireTool
 	StorageCrate = { Stack = 10, Color = { 0.55, 0.42, 0.28 } }, -- cntStorageGeneric
 	Campfire = { Stack = 10, Color = { 0.45, 0.42, 0.4 } }, -- campfire
 	-- Cooking tools (7DTD toolCookingPot / toolCookingGrill): kept by the cook, found in kitchen
@@ -1116,6 +1170,27 @@ Config.Recipes = {
 		Ingredients = costs({ ScrapIron = 4, ElectricalParts = 2 }),
 		Seconds = 10,
 	},
+	-- 7DTD wire tool: 9 forged steel, 3 mechanical parts (no steel yet: forged iron); relay: 2 forged
+	-- iron, 1 electrical part; fence post: 5 forged iron, 2 electrical parts.
+	WireTool = { Output = "WireTool", Count = 1, Ingredients = costs({ ForgedIron = 9, MechanicalParts = 3 }), Seconds = 20 },
+	PowerRelay = { Output = "PowerRelay", Count = 1, Ingredients = costs({ ForgedIron = 2, ElectricalParts = 1 }), Seconds = 10 },
+	FencePost = { Output = "FencePost", Count = 1, Ingredients = costs({ ForgedIron = 5, ElectricalParts = 2 }), Seconds = 15 },
+	-- 7DTD autoTurret: motion sensor, 30 forged steel, 3 pistol parts, 10 oil, 5 polymers; shotgun
+	-- turret: 40 steel, 3 double-barrel parts, 10 oil, 10 polymers (workbench). Ours: forged iron for
+	-- steel, the pipe gun itself for its parts, electrical parts for the sensor, glue for oil and
+	-- polymers.
+	AutoTurret = {
+		Output = "AutoTurret",
+		Count = 1,
+		Ingredients = costs({ ForgedIron = 30, PipePistol = 1, ElectricalParts = 6, MechanicalParts = 4, Glue = 5 }),
+		Seconds = 120,
+	},
+	ShotgunTurret = {
+		Output = "ShotgunTurret",
+		Count = 1,
+		Ingredients = costs({ ForgedIron = 40, PipeShotgun = 1, ElectricalParts = 6, MechanicalParts = 4, Glue = 10 }),
+		Seconds = 120,
+	},
 } :: { [string]: Recipe }
 
 Config.Crafting = {
@@ -1162,6 +1237,11 @@ Config.Crafting = {
 		"CookingGrill",
 		"Generator",
 		"ElectricLamp",
+		"WireTool",
+		"PowerRelay",
+		"FencePost",
+		"AutoTurret",
+		"ShotgunTurret",
 	},
 	-- 7DTD's crafting window files recipes under category tabs; "All" lists every recipe. Each recipe
 	-- in Order names its tab.
@@ -1202,6 +1282,11 @@ Config.Crafting = {
 		Campfire = "Building",
 		Generator = "Building",
 		ElectricLamp = "Building",
+		WireTool = "Tools",
+		PowerRelay = "Building",
+		FencePost = "Building",
+		AutoTurret = "Building",
+		ShotgunTurret = "Building",
 		CornSeed = "Food",
 		PotatoSeed = "Food",
 		BlueberrySeed = "Food",
@@ -1596,9 +1681,9 @@ Config.Graphics = {
 	AutoMediumQuality = 7,
 }
 
--- Power (7DTD 1.0 generator bank and lights, without wires: PLAN keeps the wire network for later).
--- A running generator lights the lamps within PowerRadius up to its watts, each lamp from one
--- generator. Fuel burns only for the watts in use: 7DTD's 1.8 gas per watt per real hour against its
+-- Power (7DTD generator bank, wire tool, relays, lights, turrets and electric fence; v3.2 blocks.xml).
+-- A running generator powers what is wired to it (PowerService, Shared/Power) up to its watts. Fuel
+-- burns only for the watts in use: 7DTD's 1.8 gas per watt per real hour against its
 -- 60-minute day becomes 1.8 per watt per in-game day here (as Config.Farming). One lamp burns
 -- 9 gas a day; a sweep of storage loot runs four lamps for about 3.5 days, so a base on a budget
 -- turns its generator off by day.
@@ -1611,7 +1696,33 @@ Config.Power = {
 	FuelPerWattDay = 1.8,
 	-- Gas one use pours in (7DTD: up to 250 per refuel press).
 	RefuelStep = 250,
-	PowerRadius = 48,
+	-- Wires (7DTD wire tool): longest wire (ours: 15 blocks of our 4-stud grid; 7DTD's cap is not in
+	-- the files), how far the tool reaches, and uses per second per player.
+	WireReach = 60,
+	WireToolReach = 12,
+	WireUsesPerSecond = 4,
+	-- Watts each powered block takes (7DTD RequiredPower).
+	RelayWatts = 1,
+	FenceWatts = 5,
+	TurretWatts = 15,
+	-- Electric fence (7DTD buffShocked): a zombie this close to a powered wire between two posts is
+	-- shocked for ShockSeconds, losing ShockDamage a second and standing stunned; each shock wears the
+	-- posts by FenceWear (ours, from DamageReceived 0.5). Checked this often.
+	FenceTouchDistance = 1.6,
+	ShockSeconds = 4,
+	ShockDamage = 5,
+	FenceWear = 2,
+	FenceCheckSeconds = 0.25,
+	-- Turrets (7DTD autoTurret / shotgunTurret): ammo item, reach (metres, Melee.StudsPerMeter),
+	-- damage per bullet or pellet, seconds between shots, pellets per shot (Ranged ammo), arc either
+	-- side of the facing, and how much ammo the turret holds (ours). Load: "use" with the ammo in hand
+	-- pours up to LoadStep rounds in.
+	Turrets = {
+		AutoTurret = { Ammo = "Ammo9mm", Range = 30, Damage = 32, Interval = 0.15, Pellets = 1, HalfArc = 45, Capacity = 300 },
+		ShotgunTurret = { Ammo = "AmmoShotgunShell", Range = 15, Damage = 9, Interval = 0.61, Pellets = 8, HalfArc = 45, Capacity = 60 },
+	} :: { [string]: { Ammo: string, Range: number, Damage: number, Interval: number, Pellets: number, HalfArc: number, Capacity: number } },
+	LoadStep = 60,
+	TurretCheckSeconds = 0.05,
 	-- Most lit lamps in the world (phone light budget, PLAN).
 	MaxLitLamps = 40,
 	-- Server check rate (seconds).
@@ -2275,6 +2386,11 @@ Config.Debug = {
 		{ Id = "Forge", Count = 1 },
 		{ Id = "WoodFrame", Count = 10 },
 		{ Id = "Lumber", Count = 40 },
+		{ Id = "WireTool", Count = 1 },
+		{ Id = "AutoTurret", Count = 1 },
+		{ Id = "ShotgunTurret", Count = 1 },
+		{ Id = "FencePost", Count = 4 },
+		{ Id = "PowerRelay", Count = 2 },
 		{ Id = "Charcoal", Count = 20 },
 		{ Id = "ScrapIron", Count = 60 },
 		{ Id = "ForgedIron", Count = 20 },
