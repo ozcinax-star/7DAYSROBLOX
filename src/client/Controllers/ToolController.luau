@@ -218,6 +218,25 @@ function ToolController.aimDirection(): Vector3?
 	params.IgnoreWater = true
 	local result = workspace:Raycast(ray.Origin, ray.Direction * MC.AimDistance, params)
 	local target = if result then result.Position else ray.Origin + ray.Direction * MC.AimDistance
+	-- Zombie bodies take no rays, so the camera ray is also tested with the server's hit shape. A body
+	-- under the cursor is aimed at through its axis: the camera sits off the shoulder, and aiming at
+	-- whatever lies behind the zombie would pass beside it from the head. Bodies between the camera
+	-- and the head (behind the player) do not count.
+	local headAlong = (head.Position - ray.Origin):Dot(ray.Direction)
+	local zombie = Melee.pick({
+		ox = ray.Origin.X,
+		oy = ray.Origin.Y,
+		oz = ray.Origin.Z,
+		dx = ray.Direction.X,
+		dy = ray.Direction.Y,
+		dz = ray.Direction.Z,
+		range = (target - ray.Origin).Magnitude,
+	}, ZombieRenderController.bodiesNear(head.Position, MC.AimDistance), SHAPE, function(hit)
+		return hit.distance < headAlong
+	end)
+	if zombie then
+		target = Vector3.new(zombie.px, zombie.py, zombie.pz)
+	end
 	local direction = target - head.Position
 	if direction.Magnitude < 0.5 or direction.Unit:Dot(ray.Direction) < 0 then
 		-- The cursor is on something between the camera and the head: swing where the camera looks.
