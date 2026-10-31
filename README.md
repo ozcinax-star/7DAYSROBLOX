@@ -48,7 +48,7 @@ rojo build -o build.rbxl      # full place build
 | --- | --- |
 | `MapService` | Builds the 2048×2048 map (Forest + Small Town) at startup; terrain height (`heightAt`) and walking height including building floors (`groundAt`) |
 | `DayNightService` | World clock (`Shared/DayClock`): an 11-minute day and night, the day counter and the horde night (default every 7th; lobby choice of 5–10 later), published to clients as a start-time attribute; phase-change listeners |
-| `ThreatService` | Noise + Trace meters, sound points, 5 threat tiers |
+| `ThreatService` | Noise + Trace meters, sound points and the 5 threat tiers (`Shared/Threat`); the ambient zombie population around the players (more at night and at higher tiers) and the horde night waves (20 per player) |
 | `ZombieService` | Humanoid-free zombies: flow-field movement on a ground and an upper-floor layer joined by stairs, house visits, indoor sleepers, server LOD, snapshot replication, `damage` / `onDied` |
 | `BuildService` | 4-stud grid, wooden wall, part HP, 2000 part cap |
 | `ToolService` | Melee swings with the held tool or the fist: validated aim, 7DTD swing rate, server-side target pick (`Shared/Melee`: zombie cylinder + head sphere, line of sight), damage, wear, swing broadcast; world hits go to `onWorldHit` listeners |

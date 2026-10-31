@@ -170,18 +170,26 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 | --- | --- |
 | `b97f319` | Saf `Shared/DayClock`, `DayNightService` (sunucu saatini ReplicatedStorage özelliğiyle yayar), `DayNightController` (ışık, saat etiketi, horde gecesinde kızıl ton), gece saldırı aralığı 1,1 sn, debug "Skip to next phase", 2 test |
 
+### 9. Bölüm: tehdit, ortam nüfusu, horde gecesi (31 Ekim)
+
+| Commit | Ne yapıldı |
+| --- | --- |
+| `9ce4af5` | Horde zombisi: dışarıda doğar, görmeden en yakın canlı oyuncuyu kovalar, mesafeyle bırakmaz, 11 stud/sn koşar; `endHorde`, `forEach`, `queued`; sınırı bekleyen kuyruk dalga sayacını korur |
+| `9944473` | Saf `Shared/Threat` (gürültü sönmesi, İz, kademe ve ilk gün sınırı, ortam hedefi, horde dalgaları), `ThreatService` (ölçerler, ortam nüfusu, horde dalgaları), ağaç ve kaya vuruşu ses yapar, 4 test |
+| `adcf548` | Debug panelinde tehdit ve otomatik spawn satırları; Spawn ve Clear yöneticiyi durdurur, "Auto spawn on/off" düğmesi |
+
 ## Mevcut durum
 
 | Alan | Durum |
 | --- | --- |
 | Harita (`MapService` + `World/*`) | Çalışıyor. 2048×2048; orman ve küçük kasaba, göl, taş ocağı, telsiz tepesi, çiftlik, kereste atölyesi, hurdalık. Arazi, 37 bina, yollar, sokak eşyaları, orman ve toplanabilir alt bitki örtüsü sunucu açılışında kodla kuruluyor. Toplanabilir her nesne `getHarvestables()` listesinde: düğüm adı (`Config.Harvest.Nodes`) ve her açılışta aynı kalan bir id (ileride dünya kaydı için). |
 | Binalar | 15 şablon. Mobilyalı odalar, iki katlılarda merdiven, açılmış kapılar, tabelalar. Her model `Template`, `Loot` (`Food`, `Medical`, `Metal`, `Fabric`…), `Floors` ve `Region` özelliklerini taşıyor; loot sistemi bunları kullanacak. |
-| Zombiler (`ZombieService`) | Çalışıyor. Humanoid yok. Akış alanıyla yol bulma, görerek kovalama, ses noktasına gitme, gezinme, eve girip çıkma, merdivenle üst kat, bina içinde uyuyan zombi, saldırı öncesi bekleme, sendeleme, dalgalı spawn, sunucu LOD'u (yakın 10 Hz, uzak 2 Hz), anlık görüntü yayını. API: `spawn`, `remove`, `clear`, `damage` (öldürünce true), `onDied`, `getPosition`, `hearSound`, `getStats`, `getNavGrid`, `reopenArea` (kalkan parçaların altındaki hücreleri arazi değerine döndürüp hâlâ duranları yeniden kapatır). |
+| Zombiler (`ZombieService`) | Çalışıyor. Humanoid yok. Akış alanıyla yol bulma, görerek kovalama, ses noktasına gitme, gezinme, eve girip çıkma, merdivenle üst kat, bina içinde uyuyan zombi, saldırı öncesi bekleme, sendeleme, dalgalı spawn, sunucu LOD'u (yakın 10 Hz, uzak 2 Hz), anlık görüntü yayını. Horde zombisi görmeden en yakın oyuncuyu kovalar ve koşar. API: `spawn(adet, horde?)`, `endHorde`, `forEach`, `queued`, `remove`, `clear`, `damage` (öldürünce true), `onDied`, `getPosition`, `hearSound`, `getStats`, `getNavGrid`, `reopenArea` (kalkan parçaların altındaki hücreleri arazi değerine döndürüp hâlâ duranları yeniden kapatır). |
 | Envanter (`InventoryService` + `Shared/Inventory`) | Çalışıyor. 10 slot alet kemeri + 45 slot sırt çantası. Yeni eşya önce sırt çantasına girer. Her yığın kaynağını taşır; farklı kaynaklar birleşmez. Seçili slottaki eşya sağ elde görünür (stilize model; sallama pozu yok). API: `get`, `changed`, `give`, `room`, `take` (hep ya da hiç), `peekSlot`, `takeSlot`, `putSlot`, `giveBack` (hep ya da hiç iade), `count`, `getHeld`, `wearHeld`, `onHeldChanged`. Oyuncu boş elle başlar (`StartingItems` boş). |
-| İstemci | `ZombieRenderController` + `Modules/ZombieRig`: 17 parçalı rig, prosedürel yürüyüş, interpolasyon, LOD, ceset; `flinch(id)` hazır. `InventoryController`: alttaki alet kemeri, I / gamepad Y ile sırt çantası, mobilde Bag düğmesi; tıkla-seç-bırak taşıma, sağ tık veya Split ile yarım yığın; 1–0 tuşları ve L1/R1 ile slot seçimi. `ToolController`: sol tık / gamepad R2 / mobilde Hit düğmesi; basılı tutunca aletin hızında vurur; nişan imlecin (serbest fare) ya da ekran ortasının altındaki noktaya; sağ omuzda prosedürel sallama; kırık alette uyarı. `PickupFeedController`: sağ kenarda "+N eşya" satırları (aynı eşya aynı satırda toplanır), sığmayanlar kırmızı. `TreeFallController`: devrilen ağacı yerelde oyuncudan uzağa yatırır ve soldurur. `CraftingController`: sırt çantası açıkken sağında crafting paneli (tarif satırları, sahip olunan / gereken, sayı, Craft; altta 4 işlik kuyruk ve geri sayım, tıklayınca iptal). Sırt çantasında Repair düğmesi seçili hasarlı aleti tamire yollar. `DebugOverlayController`: FPS, tick süresi, zombi sayısı; Spawn 1/80/120, Noise, GodMode, Kill, Give test items ve Clear düğmeleri. |
+| İstemci | `ZombieRenderController` + `Modules/ZombieRig`: 17 parçalı rig, prosedürel yürüyüş, interpolasyon, LOD, ceset; `flinch(id)` hazır. `InventoryController`: alttaki alet kemeri, I / gamepad Y ile sırt çantası, mobilde Bag düğmesi; tıkla-seç-bırak taşıma, sağ tık veya Split ile yarım yığın; 1–0 tuşları ve L1/R1 ile slot seçimi. `ToolController`: sol tık / gamepad R2 / mobilde Hit düğmesi; basılı tutunca aletin hızında vurur; nişan imlecin (serbest fare) ya da ekran ortasının altındaki noktaya; sağ omuzda prosedürel sallama; kırık alette uyarı. `PickupFeedController`: sağ kenarda "+N eşya" satırları (aynı eşya aynı satırda toplanır), sığmayanlar kırmızı. `TreeFallController`: devrilen ağacı yerelde oyuncudan uzağa yatırır ve soldurur. `CraftingController`: sırt çantası açıkken sağında crafting paneli (tarif satırları, sahip olunan / gereken, sayı, Craft; altta 4 işlik kuyruk ve geri sayım, tıklayınca iptal). Sırt çantasında Repair düğmesi seçili hasarlı aleti tamire yollar. `DebugOverlayController`: FPS, tick süresi, zombi sayısı, (debug yetkisiyle) tehdit ve otomatik spawn satırları; Spawn 1/80/120, Noise, GodMode, Kill, Give test items, Clear, Skip to next phase ve Auto spawn on/off düğmeleri. Spawn ve Clear otomatik spawn'ı kapatır. |
 | Debug | Remote: `DebugCommand`. Yalnızca Studio'da veya `Config.Debug.AllowedUserIds` listesindeki hesaplarla çalışır (`11911303584` test eden hesap). Doğrulanır ve hız sınırlıdır. |
 | Gündüz-gece (`DayNightService` + `Shared/DayClock`) | Çalışıyor. Döngü 11 dk, %60 gündüz (06:00–18:30), kalanı uzun gece. Dünya 1. gün 08:00'de başlar. Sunucu yalnızca 1. günün şafağının sunucu saatini ve horde aralığını ReplicatedStorage özelliği olarak yayar; istemci saati her karede kendisi hesaplar. Her 7. gece horde gecesi (`HordeNightDefault`; lobi seçimi gelince 5–10). API: `getState`, `isNight`, `isHordeNight`, `onPhaseChanged(faz, gün, horde)`, `skipPhase` (debug). Zombiler gece 1,1 sn'de, gündüz 1,5 sn'de vurur (7DTD). İstemci: `DayNightController` güneşi, parlaklığı ve ortam ışığını saate göre ayarlar; sağ üstte "Day N  HH:MM" (horde gününde kırmızı) ve horde gecesinde "Horde night" etiketi ile kızıl ton. |
-| `ThreatService` | **Boş iskelet.** Config değerleri ve `Types.SoundPoint` hazır. |
+| Tehdit ve nüfus (`ThreatService` + `Shared/Threat`) | Çalışıyor. Gürültü saniyede %5 söner; İz kaynakların toplamına hemen çıkar, düşünce günde 3 puan iner (kaynak henüz yok; `setTraceSource` inşa adımını bekliyor). Tehdit = İz + Gürültü × 0,35; 5 kademe (0/20/40/60/80); ilk 3 günde en fazla 3. Ağaca ve kayaya vuruş 1,5 gürültü ve 35 stud'luk ses, devrilen ağaç 6 / 70 stud; aynı oyuncunun 8 stud ve 4 sn içindeki vuruşları aynı ses noktasını tazeler. Ortam nüfusu: canlı oyuncu başına gündüz 6, gece 10 zombi, kademe çarpanı 1–1,6, en fazla 80; 2 sn'de bir en fazla 3 kuyruğa alınır, her oyuncudan 270 stud'dan uzak boştaki zombiler 4'er silinir (istemci 260'ta çizmeyi bırakır). Horde gecesi: oyuncu başına 20 zombi, gecenin ilk %60'ına yayılan 4 dalga; ortam spawn'ı durur; şafakta kalanlar sıradan zombiye döner. Oyuncu tehdidi görmez; yalnızca debug paneli. API: `emit(tür, konum, oyuncu?)`, `setTraceSource`, `getTier`, `setDirectorEnabled`, `getStats`. |
 | `BuildService` | **Boş iskelet.** `Config.Build` ve `Types.BuildPieceKind` hazır. |
 | Kamera (omuz/FPS) | **Yok.** Localization anahtarları (`CameraShoulder`, `CameraFirstPerson`) ve `Config.Camera` hazır. |
 | Vuruş (`ToolService` + `Shared/Melee`) | Çalışıyor. İstemci yalnızca nişan yönünü yollar. Sunucu: birim vektör, hız sınırı (4/sn), aletin 7DTD aralığı (60/APM + 0,1 sn, %12 tolerans), hedefi kendi baş konumundan seçer: menzildeki en yakın zombi (silindir + baktığı yöne eğik kafa küresi), arada duvar varsa vurmaz. Hasar 7DTD: yumruk 5, taş balta 6, taş kürek 9, taş kazma 7; kafaya ×2. Alet yalnızca isabette 1 aşınır; 0'da kullanılamaz. Dünyaya isabet `onWorldHit` dinleyicilerine gider (toplama). Oyunculara vuruş yok (PvP lobi seçeneği gelince). |
@@ -195,8 +203,8 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 
 Ölçümler 30–31 Ekim 2026'da PC'de, Studio içinde alındı. Telefonda ölçüm yok.
 
-- **Testler:** 47/47 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
-  Inventory 6, Melee 5, Harvest 4, Crafting 6, Loot 2, DayClock 2).
+- **Testler:** 51/51 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
+  Inventory 6, Melee 5, Harvest 4, Crafting 6, Loot 2, DayClock 2, Threat 4).
   Testler yalnızca Studio düzeneğiyle çalıştırıldı; Lune ile hiç çalıştırılmadı.
 - **Zombi performansı:** 80 zombiyle tick ortalaması 0,04–0,17 ms, en kötü tick genelde 1,3–1,8 ms
   (bir kez 3,9 ms). Zombi başına 17 parça.
@@ -280,6 +288,16 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
   - 7. günün gecesine atlayınca saat kırmızı, "Horde night" etiketi ve kızıl ton göründü; şafakta
     kalktı.
   - Zombi vuruş aralığı gece 1,1–1,2 sn, gündüz 1,52–1,55 sn.
+- **Tehdit ve horde (Play, 31 Ekim):**
+  - Ortam nüfusu tek oyuncuda gündüz 6/6, gece 10/10'a çıktı.
+  - 7. gecenin başında 5 horde zombisi geldi (kalan 15). 90 stud uzaklaşınca 8,7–12,2 stud/sn
+    koştular (11 ±%15); aynı anda kovalayan sıradan zombi 4,6. İkinci dalga 53 sn civarında geldi
+    (kalan 10). Şafakta kalan 0 oldu ve eski horde zombileri 4–5 stud/sn'ye indi.
+  - Horde gecesinde ortam hedefi 0; şafakta 20 zombi hedefin (6) üstünde kaldığı için yeni spawn yok.
+  - Ağaca 4 yumruk gürültüyü 0'dan 4,9'a çıkardı. Ağaçtaki vuruş sesinin zombiyi çektiği ayrıca
+    ölçülemedi: yakındaki zombiler oyuncuyu önce gördü. Ses yolu debug Noise ile aynı.
+  - Spawn 80 sonrası "Auto spawn on" ve 450 stud ışınlanma: sayı 2 sn'de 4 düşerek 80 → 56 → 36 → 0,
+    sonra oyuncunun yanında 6'ya çıkıp orada kaldı. Tick en kötü 1,65 ms.
 - **Konsol:** Sunucu ve istemcide 0 uyarı, 0 hata.
 
 ## Teknik notlar
@@ -346,7 +364,7 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
    local src = Http:GetAsync("http://127.0.0.1:8765/Harness.luau", true)
    Http.HttpEnabled = was
    local H = loadstring(src)()
-   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "47 passed, 0 failed"
+   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "51 passed, 0 failed"
    ```
    Düzenek place'e hiçbir şey bırakmaz.
 3. Her kod değişikliğinden sonra adım 1'deki bundle komutunu tekrar çalıştır, sonra `H.sync()`.

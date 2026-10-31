@@ -38,6 +38,9 @@ Bu dosya PLAN.md'deki kapsam kuralının istediği referanstır: ana referans 7 
 | Torba arama | 18 slotluk pencere, eşya tek tek | Basılı tutunca sığan her şey alınır | Pencere sandık arayüzüyle gelecek |
 | Gün uzunluğu | Varsayılan 60 dk, gündüz 18 saat; blood moon 22:00–04:00 | 11 dk, %60 gündüz (06:00–18:30); horde bütün gece | PLAN oturum ritmi |
 | Gece hızı | Varsayılan ayarda zombiler gece koşar (`ZombieMoveNight=3`) | Horde dışı zombiler gece de yürür | PLAN: The Walking Dead yürüyüşü |
+| Blood moon | Büyüklük gamestage'e göre, oyuncu başına aynı anda sınırlı sayı (`BloodMoonEnemyCount`), 22:00–04:00; zombiler sprint | Oyuncu başına toplam 20, 4 dalga; 11 stud/sn ("jog") | PLAN: horde boyutu ve 120 tavanı; yürüyen oyuncu açık arazide kaçabilsin |
+| Biyom spawn'ı | Chunk başına biyom ve gamestage'e göre | Oyuncu başına gündüz 6, gece 10, kademeyle ×1,6'ya kadar | PLAN: tehdit kademesi spawn hızını artırır; sunucu bütçesi 80 |
+| Isı haritası | Eylemler chunk ısısını artırır, 100'de screamer | Gürültü ölçeri ve ses noktası; screamer yok | PLAN tehdit sistemi |
 | Ot ve yerdeki taş | Biyoma göre her yerde blok | 26 stud'luk orman hücrelerinde şansla; kasabada ot var, taş ve kaya yok | Parça sayısı; PLAN: kasabada kaya yok |
 
 ---

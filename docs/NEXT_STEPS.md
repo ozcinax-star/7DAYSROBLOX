@@ -22,7 +22,8 @@ Yol haritası notu ve Kararlar tablosu).
 | Crafting | Bitti: 7DTD kuyruğu (4 iş), malzeme süreleri, iptal ve iade, taşla tamir, panel |
 | Zombi loot'u | Bitti: %20 torba, arama, sığmayan eşya ayağa düşer |
 | Gündüz-gece | Bitti: 11 dk döngü, gün sayacı, horde gecesi işareti, gece daha sık saldırı |
-| Tehdit, horde, inşa, kazı | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
+| Tehdit ve horde | Bitti: Gürültü / İz / 5 kademe, ortam nüfusu, oyuncu başına 20 zombilik horde dalgaları |
+| İnşa, hayatta kalma, kazı, silahlar, tarım | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
 | Kapı 1: 80 zombiyle orta seviye telefonda 30 FPS | **Ölçülmedi**; kullanıcı erteledi |
 | Kapı 2: 3 kişilik test grubu "bir gece daha" diyor | Henüz yapılamaz |
 
@@ -109,13 +110,25 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Gece görüşü:** gece karanlığı oyuncu ışığı (meşale, fener) gelene kadar hafif tutuldu.
 - **Kayıt:** gün ve saat sunucu kapanınca sıfırlanır (kalıcılık adımı).
 
-### 7. Kazılabilir zemin
+### 7. Tehdit ve horde (bitti, 31 Ekim)
+
+`9ce4af5`, `9944473`, `adcf548`. Kalanlar:
+- **İz kaynakları:** inşa parçası, ışık, ateş, jeneratör gelince `ThreatService.setTraceSource`.
+- **Özel zombiler:** PLAN'a göre kademe özel zombi oranını artırır; özel zombi yok.
+- **Ortam ipuçları:** uzaktan inlemeler, ufukta sürü, karga, telsiz (PLAN tasarım kuralı 1).
+- **Horde hedefi:** PLAN'da İz horde'un hedefini belirler; şimdilik en yakın oyuncu. Üs gelince en
+  yüksek İz'li üs.
+- **Koşma gürültüsü:** koşma (sprint) yok; hayatta kalma adımında stamina ile gelecek.
+- **Yığılma:** kovalama hâlinde hareketsiz kalan birkaç zombi görüldü (Chase, 0 stud/sn); duvar ya
+  da merdiven kuyruğu olabilir, incelenmedi.
+
+### 8. Kazılabilir zemin
 
 - Malzeme sınıfına göre voxel canı. Kazınca eşya verir (kil, taş).
 - Yasak alanlar: bina çevresi, asfalt ve kaldırım, su kenarı, ana kaya sınırı.
 - MapService yükseklik ızgarası ve yol bulma güncellenir.
 
-### 8. Sonra
+### 9. Sonra
 
 - **Araç zinciri:** Kullanıcı `rokit install` ve `rojo plugin install` komutlarını kendisi çalıştırır.
   Sonra `stylua --check src tests`, `selene src`, `lune run tests/run`, `rojo build -o build.rbxl`
@@ -127,9 +140,6 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 
   Tutmazsa sırayla: bina süs parçalarını birleştir, `StreamingTargetRadius` düşür, orman yoğunluğunu
   azalt, istemci `RenderDistance` kıs.
-- **ThreatService:** Gürültü (%5/sn söner), İz (günde 3), `Tehdit = İz + Gürültü × 0.35`, 5 kademe
-  (0/20/40/60/80), ilk 3 günde en fazla 3. kademe. `emit` → `ZombieService.hearSound`. Ekranda sayaç
-  yok, yalnızca debug panelinde.
 - **BuildService (tahta duvar):** `BuildRequest` (hücre, yön), tam doğrulama, 24 stud menzil, 2000
   parça tavanı, parça canı 250, zombinin en zayıf parçaya saldırması, ızgara güncellemesi. Kereste
   burada kullanılır.
