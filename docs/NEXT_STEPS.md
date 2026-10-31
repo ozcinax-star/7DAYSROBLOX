@@ -60,6 +60,12 @@ Her sorunun ilk seçeneği benim önerim.
    Öneri: kalıcılık adımına kadar böyle kalsın; o adımda kesilen nesneler id'leriyle kaydedilsin ve
    ot, çalı ve yerdeki taş birkaç oyun gününde geri gelsin. Ağaç ve kaya 7DTD gibi gelmesin; bunun
    yerine tohum dikimiyle ağaç yetiştirilsin.
+6. **Sesler:** Oyunda hiç ses yok. Kancalar hazır: `Config.Ranged.Weapons.PipePistol.SoundId` ve
+   `PrimitiveBow.SoundId` (atış), `Config.ZombieVisual.GroanSoundId` (inleme). Creator Store'daki
+   ücretsiz seslerin çoğu başka oyunlardan (COD, PvZ, CS:GO, Half-Life) koparılmış kullanıcı
+   yüklemeleri; telif bildirimiyle silinebilirler. Roblox'un kendi yüklediği lisanslı ses kütüphanesi
+   aramada çıkmadı. Öneri: sesleri sen dinleyip seç ya da kendi sesini yükle; kimliği
+   (`rbxassetid://...`) ilgili alana yapıştırmak yeter. Ben tahmini bir ses seçmedim.
 
 Cevaplananlar: oyuncu zombiye aletle vuracak (bu planın 2. maddesi); zombiler üst kata çıkıyor
 (bitti); kapsam kuralı değişti, ana referans 7DTD ve karşılığında bir şey çıkmıyor (PLAN, Kapsam).
@@ -281,7 +287,9 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 ### 19. Boru tabanca (bitti, 31 Ekim)
 
 `7e1c6ed`, `fdde123`. Kalanlar:
-- **Ses:** atış sesi dosyası yok; Creator Store'dan (script'siz) bir atış sesi alınmalı.
+- **Ses:** kanca hazır (`293bc96`): silahın `SoundId` alanı doluysa her istemci sesi namluda çalar
+  (Play'de geçici bir motor sesiyle doğrulandı: 2 atışta 2 ses, 4 sn sonra temizlendi). Ses seçimi
+  kullanıcıda (Kullanıcı kararı bekleyenler 6).
 - **Nişan alma:** 7DTD'de nişan sapmayı 0,4'e indirir, yürürken / koşarken artar; bizde hep kalçadan
   1,5°. Mobilde nişan düğmesi ister.
 - **Hasar düşüşü:** 7DTD'de 12 m'den sonra hasar azalır; yok.
