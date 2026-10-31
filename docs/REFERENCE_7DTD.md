@@ -502,6 +502,9 @@ Source: XML `recipes.xml`. Identical in 1.0 (exp), 1.4, 2.6 and 3.2 unless a row
 | **Stone Arrow** (×1) | 1 Small Stone, 1 Wood, 1 Feather | 1.4 (explicit in 3.2) | Backpack | Start |
 | **Bedroll** | 10 Plant Fibers | 2.0 | Backpack | Start |
 | **Campfire** | 5 Small Stone | 1.0 | Backpack | Start |
+| **Baked Potato** | 1 Potato; campfire, no tool; 10 food, 5 health, −5 water, +10 max stamina | 10 (ingredient time) | Campfire | Learnable (3.2 XML) |
+| **Corn on the Cob** | 1 Corn; campfire + Cooking Grill; 10 food, 5 health, −5 water | 5 | Campfire | Learnable (3.2 XML) |
+| **Boiled Water** | 1 Murky (river) Water; campfire + Cooking Pot; 20 water | 10 | Campfire | Start (3.2 XML) |
 | **Torch** | 1 Animal Fat, 5 Cloth Fragment, 1 Wood | 16.2 | Backpack | Start |
 | **Bandage** | 10 Cloth Fragment | 2.0 | Backpack | Start |
 | First Aid Bandage | 1 Bandage, 1 Aloe Cream | 2.0 | Backpack | Medical 5 |

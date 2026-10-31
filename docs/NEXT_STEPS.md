@@ -35,6 +35,7 @@ Yol haritası notu ve Kararlar tablosu).
 | Grafik ayarları | Bitti: Auto / Low / Medium / High, yalnızca istemci, gece görüşü sabit |
 | Depolama sandığı | Bitti: 36 yuva, ortak, kırılınca torba |
 | Evin içine inşaat | Bitti: zemin katta 2 hücre, kapı boşluğu barikatı |
+| Kamp ateşi ve pişirme | Bitti: fırında patates, közde mısır (ızgara), kaynamış su (tencere) |
 | UI cilası | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
 | Kapı 1: 80 zombiyle orta seviye telefonda 30 FPS | **Ölçülmedi**; kullanıcı erteledi |
 | Kapı 2: 3 kişilik test grubu "bir gece daha" diyor | Henüz yapılamaz |
@@ -257,7 +258,23 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
   Bugün tüm binalar 0 yüksekliğinde (döşeme üstü 1,0); yüksek arazide bina kurulursa zemin kat
   hücresi döşemeye çarpar ve blok konmaz. O durumda bina tabanı ızgaraya hizalanmalı.
 
-### 18. Sonra
+### 18. Kamp ateşi ve pişirme (bitti, 31 Ekim)
+
+`8b6e19d`. Kalanlar:
+- **Yakıt:** 7DTD kamp ateşi pişirirken odun yakar; bizde yakıt yok. Yakıt yuvası gelirse pişirme
+  odun ister.
+- **İstasyonun kendi kuyruğu:** 7DTD'de iş kamp ateşinin içinde sürer ve ateş kırılınca içindekiler
+  düşer; bizde iş oyuncunun kuyruğunda, istasyon yalnızca kuyruğa alırken aranır.
+- **Isı ve tehdit:** 7DTD'de yanan ateş ısı haritasına 5 ekler (çığlıkçı çeker). Bizde ateş İz'e
+  her blok gibi 0,04 ekler; ayrı gürültü yok.
+- **Maks dayanıklılık bonusu:** pişmiş yemeğin +10 maks dayanıklılık etkisi yok.
+- **Tarif kilitleri:** 7DTD'de fırında patates ve közde mısır dergiyle öğrenilir (`learnable`); bizde
+  hepsi açık.
+- **Et ve av:** hayvan yok, bu yüzden közlenmiş et / ızgara et yok.
+- **Çalışma masası:** PLAN MVP parçası. Aynı istasyon altyapısıyla gelir (7DTD tarifi 25 dövme
+  demir, 20 mekanik parça, 5 bant, 100 çivi, 100 odun; bizde demir, bant ve çivi yok).
+
+### 19. Sonra
 
 - **Araç zinciri:** Kullanıcı `rokit install` ve `rojo plugin install` komutlarını kendisi çalıştırır.
   Sonra `stylua --check src tests`, `selene src`, `lune run tests/run`, `rojo build -o build.rbxl`
