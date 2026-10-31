@@ -9,7 +9,7 @@
 -- zombies by. Wood spikes are a trap zombies walk into: it hurts and slows them and wears out. The
 -- stone axe upgrades a frame to a wood block (3 hits, 4 Lumber) and a wood block to cobblestone
 -- (10 Cobblestone Rocks), and repairs damaged blocks with their repair item; other tools and the fist
--- damage them (cobblestone as stone).
+-- damage them (cobblestone as stone) and gather the block's 7DTD Harvest and Destroy drops.
 -- Zombies path through the weakest wall and break it (ZombieService structure cells); blocks that
 -- lose their way to the ground fall.
 --
@@ -37,6 +37,7 @@ local Localization = require(Shared.Localization)
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local BuildingKit = require(script.Parent.Parent.World.BuildingKit)
 local InventoryService = require(script.Parent.InventoryService)
+local LootService = require(script.Parent.LootService)
 local MapService = require(script.Parent.MapService)
 local ThreatService = require(script.Parent.ThreatService)
 local ToolService = require(script.Parent.ToolService)
@@ -84,6 +85,7 @@ local removedCallbacks: { (key: number) -> () } = {}
 local traps: { [Block]: boolean } = {}
 local trapHitAt: { [number]: number } = {}
 local trapClock = 0
+local random = Random.new()
 local placedCallbacks: { (key: number, kind: string, part: BasePart) -> () } = {}
 
 local function setTrace()
@@ -544,9 +546,21 @@ local function onWorldHit(player: Player, result: RaycastResult, toolId: string,
 	end
 	if toolId == BC.UpgradeTool then
 		work(player, block)
-	else
-		local material = BC.Blocks[block.kind].HarvestMaterial or BC.HarvestMaterial
-		damageBlock(block, Harvest.blockDamage(tool.BlockDamage, tool.Materials[material]))
+		return
+	end
+	local def = BC.Blocks[block.kind]
+	local damage = Harvest.blockDamage(tool.BlockDamage, tool.Materials[def.HarvestMaterial or BC.HarvestMaterial])
+	local before = def.Health - block.health
+	local after = math.min(def.Health, before + damage)
+	for _, drop in def.Harvest or {} do
+		local count = Harvest.toolCount(random:NextInteger(drop.Min, drop.Max), tool, drop.Id)
+		LootService.giveOrDrop(player, drop.Id, Harvest.payout(count, def.Health, before, after), "Loot")
+	end
+	damageBlock(block, damage)
+	if after >= def.Health then
+		for _, drop in def.Destroy or {} do
+			LootService.giveOrDrop(player, drop.Id, random:NextInteger(drop.Min, drop.Max), "Loot")
+		end
 	end
 end
 

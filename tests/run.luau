@@ -929,6 +929,26 @@ test("a wood block upgrades to cobblestone with 10 rocks; rocks are clay and sto
 	end
 end)
 
+test("player blocks pay their 7DTD harvest over the hits that break them", function()
+	local frame = Config.Build.Blocks.WoodFrame
+	local drop = frame.Harvest and frame.Harvest[1]
+	assert(drop, "frames give wood")
+	local paid, damage = 0, 0
+	while damage < frame.Health do
+		local after = math.min(frame.Health, damage + 26)
+		paid += Harvest.payout(drop.Max, frame.Health, damage, after)
+		damage = after
+	end
+	expectEq(paid, 2, "two wood for a whole frame")
+	for id, def in Config.Build.Blocks do
+		for _, list in { def.Harvest or {}, def.Destroy or {} } do
+			for _, d in list do
+				assert(Config.Items[d.Id] and d.Min <= d.Max, `{id} drops {d.Id}`)
+			end
+		end
+	end
+end)
+
 print("Farming")
 
 test("crops ripen in two 7DTD stages and pay 2-3 produce and their seed back", function()
