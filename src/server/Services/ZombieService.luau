@@ -43,6 +43,8 @@ local UPPER = 2
 local FLOOR_HEIGHT = BuildingKit.FloorHeight
 -- Distance from the foot or top cell centre at which a zombie steps onto the flight (studs).
 local STAIR_SNAP = 1
+-- Closest a zombie's path offset may come to the edge of the waypoint's cell (studs).
+local SPREAD_EDGE = 0.25
 
 type WanderMode = "Free" | "Enter" | "Linger" | "Exit"
 
@@ -523,8 +525,11 @@ local function followField(
 		local g = levels[zombie.level]
 		local wx, wz = g:nextWaypoint(field, zombie.x, zombie.z)
 		if wx and wz then
-			local sx = wx + zombie.spreadX
-			local sz = wz + zombie.spreadZ
+			-- The offset point stays inside the waypoint's cell: past its edge it can lie in the cell the
+			-- zombie stands in, which reaches it and then stands there for good.
+			local limit = g.cellSize / 2 - SPREAD_EDGE
+			local sx = wx + math.clamp(zombie.spreadX, -limit, limit)
+			local sz = wz + math.clamp(zombie.spreadZ, -limit, limit)
 			-- The spread offset must not lead into a structure the path itself does not cross.
 			local spreadCell = if hasStructures then g:cellAt(sx, sz) else nil
 			local intoWall = spreadCell ~= nil and structureCosts[spreadCell] ~= nil and spreadCell ~= g:cellAt(wx, wz)
