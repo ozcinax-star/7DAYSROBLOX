@@ -110,14 +110,17 @@ local function withinStep(grid: TerrainBuilder.HeightGrid, index: number, level:
 	return true
 end
 
--- What stands on the column centred at (x, z) with its surface at `level`: nil when a placed block or a
--- collidable map part (tree, rock, prop) keeps it from being dug, otherwise the loose map models
--- (grass) standing on it.
+-- What stands on the column centred at (x, z) with its surface at `level`: nil when a placed block, a
+-- loot bag or a collidable map part (tree, rock, prop) keeps it from being dug, otherwise the loose map
+-- models (grass) standing on it.
 local function looseOn(x: number, z: number, level: number): { Model }?
 	local inset = DC.OverlapInset
 	local bottom = level - VOXEL / 2
 	local top = level + DC.ClearanceHeight
 	local size = Vector3.new(VOXEL - inset * 2, top - bottom, VOXEL - inset * 2)
+	if LootService.bagInSquare(x, z, VOXEL / 2) then
+		return nil
+	end
 	local loose: { Model } = {}
 	for _, part in Workspace:GetPartBoundsInBox(CFrame.new(x, (bottom + top) / 2, z), size, overlap) do
 		if part.CanCollide or part:IsDescendantOf(structures) then

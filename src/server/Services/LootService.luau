@@ -271,6 +271,17 @@ function LootService.giveOrDrop(player: Player, id: string, count: number, sourc
 	end
 end
 
+-- Whether a bag lies within the square of half-width `half` around (x, z) (digging leaves its ground).
+function LootService.bagInSquare(x: number, z: number, half: number): boolean
+	for _, bag in bags do
+		local p = bag.sack.Position
+		if math.abs(p.X - x) <= half and math.abs(p.Z - z) <= half then
+			return true
+		end
+	end
+	return false
+end
+
 -- Number of bags on the ground (debug overlay, tests).
 function LootService.count(): number
 	return #bags
