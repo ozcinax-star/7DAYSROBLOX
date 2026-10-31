@@ -307,6 +307,28 @@ local GUNS: { [string]: GunBuilder } = {
 	end,
 }
 
+-- Extra detail on a tool, in handle space (`top` is the handle's top end).
+local GRIP_WRAP_COLOR = Color3.fromRGB(84, 70, 56)
+local DETAILS: { [string]: (model: Model, handle: BasePart, top: CFrame) -> () } = {
+	-- Nails driven through the club's head, sticking out on all four sides.
+	WoodenClub = function(model, handle, top)
+		local head = top * CFrame.new(0, 0, 0.45)
+		for _, z in { -0.3, 0.12 } do
+			for _, x in { -0.25, 0.25 } do
+				piece(model, handle, "Nail", V(0.18, 0.04, 0.04), PIPE_COLOR, METAL, head * CFrame.new(x, 0, z))
+			end
+			for _, y in { -0.25, 0.25 } do
+				piece(model, handle, "Nail", V(0.04, 0.18, 0.04), PIPE_COLOR, METAL, head * CFrame.new(0, y, z - 0.2))
+			end
+		end
+	end,
+	-- A narrower second flake past the point, so the tip tapers.
+	StoneSpear = function(model, handle, top)
+		local tip = top * CFrame.new(0, 0, -0.74)
+		piece(model, handle, "Tip", V(0.12, 0.08, 0.32), STONE_COLOR, Enum.Material.Slate, tip)
+	end,
+}
+
 -- A gun (a ranged weapon with a magazine): a wooden grip in the fist and the rest built around it by
 -- its GUNS entry (a bare pipe on the grip for a gun without one).
 local function gun(model: Model, hand: BasePart, fist: CFrame, id: string): BasePart
@@ -340,6 +362,11 @@ function HeldItems.build(id: string, hand: BasePart, grip: CFrame): Model
 		local top = CFrame.new(0, 0, -shape.handle / 2)
 		local head = part(model, "Head", shape.head, shape.headColor, shape.headMaterial or Enum.Material.Slate)
 		weld(handle, head, top * CFrame.new(shape.headOffset))
+		piece(model, handle, "GripWrap", V(0.26, 0.26, 0.5), GRIP_WRAP_COLOR, FABRIC, CFrame.new(0, 0, fromCenter))
+		local detail = DETAILS[id]
+		if detail then
+			detail(model, handle, top)
+		end
 		if shape.lashing then
 			local lashing = part(model, "Lashing", V(0.3, 0.3, 0.3), LASHING_COLOR, Enum.Material.Fabric)
 			weld(handle, lashing, top)
