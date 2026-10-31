@@ -36,6 +36,8 @@ Bu dosya PLAN.md'deki kapsam kuralının istediği referanstır: ana referans 7 
 | Envanter dolu | Eşya oyuncunun ayağına düşer | Ayağa loot torbası düşer (6 stud içindeki torbaya eklenir) | Tek tek eşya yerine torba: parça sayısı |
 | Torba içeriği | Mermi, hurda, yiyecek, ilaç, kitap, alet… | Hurda demir / kumaş / küçük taş ve %15 aşınmış taş alet | Diğer eşyalar henüz yok |
 | Torba arama | 18 slotluk pencere, eşya tek tek | Basılı tutunca sığan her şey alınır | Pencere sandık arayüzüyle gelecek |
+| Gün uzunluğu | Varsayılan 60 dk, gündüz 18 saat; blood moon 22:00–04:00 | 11 dk, %60 gündüz (06:00–18:30); horde bütün gece | PLAN oturum ritmi |
+| Gece hızı | Varsayılan ayarda zombiler gece koşar (`ZombieMoveNight=3`) | Horde dışı zombiler gece de yürür | PLAN: The Walking Dead yürüyüşü |
 | Ot ve yerdeki taş | Biyoma göre her yerde blok | 26 stud'luk orman hücrelerinde şansla; kasabada ot var, taş ve kaya yok | Parça sayısı; PLAN: kasabada kaya yok |
 
 ---

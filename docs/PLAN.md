@@ -219,6 +219,7 @@ Lobi, PvP ve hikâye için verilmiş kararlar.
 | Vuruş | 7DTD sayıları: yumruk 5, taş balta 6, taş kürek 9 hasar; kafaya ×2; vuruşlar arası 60/APM + 0,1 sn; zombi 125 ±%15 can, 1,5 sn'de 8 vurur. 7DTD metresi 2,8 stud sayılır | Hedefi sunucu seçer (zombi başına silindir + öne eğik kafa küresi, duvar kontrolü). PvP lobi seçeneği gelince oyuncuya vuruş eklenir; şimdilik oyuncular vurulmaz |
 | Taş kazma istatistikleri | 7 varlık / 26 blok hasarı, 70 vuruş/dk, 2,4 m, 250 dayanıklılık | 7DTD'de karşılığı yok; taş balta ile demir kazma arasına kondu |
 | Crafting kuyruğu | 7DTD sırt çantası crafting'i: 4 iş, yalnızca ilki ilerler, malzeme kuyruğa alınırken düşer, iptal kalanı iade eder; taş aletler küçük taşla aynı kuyrukta tamir edilir. Taş kazma 4 taş / 3 lif / 3 odun, kereste 2 odun (bizim tariflerimiz). Sığmayan ürün kuyrukta bekler; iadesi sığmayan iptal, loot torbası gelene kadar reddedilir | Hiçbir eşya kaybolmaz. Kuyruk kayıt adımına kadar oyuncu çıkınca kaybolur. Tamir edilen alet boşsa eski slotuna döner |
+| Gündüz-gece | 11 dk döngü, %60 gündüz (06:00–18:30), uzun gece; dünya 1. gün 08:00'de başlar. Horde gecesi horde gününün bütün gecesidir (7DTD 22:00–04:00; bizim gece zaten kısa). Gece zombiler 1,1 sn'de vurur (7DTD), ama horde dışı zombiler gece de yavaş kalır (7DTD gece koşar) | Zombi hareketi satırı 7DTD'nin gece koşusunu geçersiz kılar; gece tehlikesi sayıdan ve saldırı sıklığından gelir |
 | Sırt çantası tuşu | I (gamepad Y, mobilde Bag); Tab değil | Roblox oyuncu listesi Tab'ı oyundan önce alıyor (Play'de denendi) |
 
 ## Kaynaklar

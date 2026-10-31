@@ -21,7 +21,8 @@ Yol haritası notu ve Kararlar tablosu).
 | Toplama | Bitti: ağaç, çalı, ot, yerdeki taş, kaya; 7DTD verim formülü, ağaç devirme |
 | Crafting | Bitti: 7DTD kuyruğu (4 iş), malzeme süreleri, iptal ve iade, taşla tamir, panel |
 | Zombi loot'u | Bitti: %20 torba, arama, sığmayan eşya ayağa düşer |
-| Kazı, gündüz-gece, inşa, tehdit, horde | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
+| Gündüz-gece | Bitti: 11 dk döngü, gün sayacı, horde gecesi işareti, gece daha sık saldırı |
+| Tehdit, horde, inşa, kazı | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
 | Kapı 1: 80 zombiyle orta seviye telefonda 30 FPS | **Ölçülmedi**; kullanıcı erteledi |
 | Kapı 2: 3 kişilik test grubu "bir gece daha" diyor | Henüz yapılamaz |
 
@@ -101,13 +102,20 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
   yakınını seçiyor.
 - **Bina loot'u:** binaların `Loot` özelliği (`Food`, `Medical`, …) aynı servisle kaplara bağlanacak.
 
-### 6. Kazılabilir zemin
+### 6. Gündüz-gece (bitti, 31 Ekim)
+
+`b97f319`. Kalanlar:
+- **Lobi seçimi:** horde aralığı şimdilik sabit 7; lobi kurulurken 5–10 seçimi lobi adımında.
+- **Gece görüşü:** gece karanlığı oyuncu ışığı (meşale, fener) gelene kadar hafif tutuldu.
+- **Kayıt:** gün ve saat sunucu kapanınca sıfırlanır (kalıcılık adımı).
+
+### 7. Kazılabilir zemin
 
 - Malzeme sınıfına göre voxel canı. Kazınca eşya verir (kil, taş).
 - Yasak alanlar: bina çevresi, asfalt ve kaldırım, su kenarı, ana kaya sınırı.
 - MapService yükseklik ızgarası ve yol bulma güncellenir.
 
-### 7. Sonra
+### 8. Sonra
 
 - **Araç zinciri:** Kullanıcı `rokit install` ve `rojo plugin install` komutlarını kendisi çalıştırır.
   Sonra `stylua --check src tests`, `selene src`, `lune run tests/run`, `rojo build -o build.rbxl`
@@ -119,8 +127,6 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 
   Tutmazsa sırayla: bina süs parçalarını birleştir, `StreamingTargetRadius` düşür, orman yoğunluğunu
   azalt, istemci `RenderDistance` kıs.
-- **DayNightService:** `Lighting.ClockTime` döngüsü (11 dk, %60 gündüz), gün sayacı, faz yayını,
-  saf saat modülü + testler, `SkipPhase` debug komutu.
 - **ThreatService:** Gürültü (%5/sn söner), İz (günde 3), `Tehdit = İz + Gürültü × 0.35`, 5 kademe
   (0/20/40/60/80), ilk 3 günde en fazla 3. kademe. `emit` → `ZombieService.hearSound`. Ekranda sayaç
   yok, yalnızca debug panelinde.

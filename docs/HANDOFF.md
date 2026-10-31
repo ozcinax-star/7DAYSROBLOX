@@ -164,6 +164,12 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 | `8c39766` | `LootService`: zombi ölünce ~%20 torba, 1 sn basılı tutarak arama, ömür 20 dk, en fazla 60 torba |
 | `531edd1` | Envantere sığmayan toplama eşyası ve crafting iadesi oyuncunun ayağına torba olarak düşüyor |
 
+### 8. Bölüm: gündüz-gece (31 Ekim)
+
+| Commit | Ne yapıldı |
+| --- | --- |
+| `b97f319` | Saf `Shared/DayClock`, `DayNightService` (sunucu saatini ReplicatedStorage özelliğiyle yayar), `DayNightController` (ışık, saat etiketi, horde gecesinde kızıl ton), gece saldırı aralığı 1,1 sn, debug "Skip to next phase", 2 test |
+
 ## Mevcut durum
 
 | Alan | Durum |
@@ -174,7 +180,7 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 | Envanter (`InventoryService` + `Shared/Inventory`) | Çalışıyor. 10 slot alet kemeri + 45 slot sırt çantası. Yeni eşya önce sırt çantasına girer. Her yığın kaynağını taşır; farklı kaynaklar birleşmez. Seçili slottaki eşya sağ elde görünür (stilize model; sallama pozu yok). API: `get`, `changed`, `give`, `room`, `take` (hep ya da hiç), `peekSlot`, `takeSlot`, `putSlot`, `giveBack` (hep ya da hiç iade), `count`, `getHeld`, `wearHeld`, `onHeldChanged`. Oyuncu boş elle başlar (`StartingItems` boş). |
 | İstemci | `ZombieRenderController` + `Modules/ZombieRig`: 17 parçalı rig, prosedürel yürüyüş, interpolasyon, LOD, ceset; `flinch(id)` hazır. `InventoryController`: alttaki alet kemeri, I / gamepad Y ile sırt çantası, mobilde Bag düğmesi; tıkla-seç-bırak taşıma, sağ tık veya Split ile yarım yığın; 1–0 tuşları ve L1/R1 ile slot seçimi. `ToolController`: sol tık / gamepad R2 / mobilde Hit düğmesi; basılı tutunca aletin hızında vurur; nişan imlecin (serbest fare) ya da ekran ortasının altındaki noktaya; sağ omuzda prosedürel sallama; kırık alette uyarı. `PickupFeedController`: sağ kenarda "+N eşya" satırları (aynı eşya aynı satırda toplanır), sığmayanlar kırmızı. `TreeFallController`: devrilen ağacı yerelde oyuncudan uzağa yatırır ve soldurur. `CraftingController`: sırt çantası açıkken sağında crafting paneli (tarif satırları, sahip olunan / gereken, sayı, Craft; altta 4 işlik kuyruk ve geri sayım, tıklayınca iptal). Sırt çantasında Repair düğmesi seçili hasarlı aleti tamire yollar. `DebugOverlayController`: FPS, tick süresi, zombi sayısı; Spawn 1/80/120, Noise, GodMode, Kill, Give test items ve Clear düğmeleri. |
 | Debug | Remote: `DebugCommand`. Yalnızca Studio'da veya `Config.Debug.AllowedUserIds` listesindeki hesaplarla çalışır (`11911303584` test eden hesap). Doğrulanır ve hız sınırlıdır. |
-| `DayNightService` | **Boş iskelet.** |
+| Gündüz-gece (`DayNightService` + `Shared/DayClock`) | Çalışıyor. Döngü 11 dk, %60 gündüz (06:00–18:30), kalanı uzun gece. Dünya 1. gün 08:00'de başlar. Sunucu yalnızca 1. günün şafağının sunucu saatini ve horde aralığını ReplicatedStorage özelliği olarak yayar; istemci saati her karede kendisi hesaplar. Her 7. gece horde gecesi (`HordeNightDefault`; lobi seçimi gelince 5–10). API: `getState`, `isNight`, `isHordeNight`, `onPhaseChanged(faz, gün, horde)`, `skipPhase` (debug). Zombiler gece 1,1 sn'de, gündüz 1,5 sn'de vurur (7DTD). İstemci: `DayNightController` güneşi, parlaklığı ve ortam ışığını saate göre ayarlar; sağ üstte "Day N  HH:MM" (horde gününde kırmızı) ve horde gecesinde "Horde night" etiketi ile kızıl ton. |
 | `ThreatService` | **Boş iskelet.** Config değerleri ve `Types.SoundPoint` hazır. |
 | `BuildService` | **Boş iskelet.** `Config.Build` ve `Types.BuildPieceKind` hazır. |
 | Kamera (omuz/FPS) | **Yok.** Localization anahtarları (`CameraShoulder`, `CameraFirstPerson`) ve `Config.Camera` hazır. |
@@ -189,8 +195,8 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 
 Ölçümler 30–31 Ekim 2026'da PC'de, Studio içinde alındı. Telefonda ölçüm yok.
 
-- **Testler:** 45/45 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
-  Inventory 6, Melee 5, Harvest 4, Crafting 6, Loot 2).
+- **Testler:** 47/47 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
+  Inventory 6, Melee 5, Harvest 4, Crafting 6, Loot 2, DayClock 2).
   Testler yalnızca Studio düzeneğiyle çalıştırıldı; Lune ile hiç çalıştırılmadı.
 - **Zombi performansı:** 80 zombiyle tick ortalaması 0,04–0,17 ms, en kötü tick genelde 1,3–1,8 ms
   (bir kez 3,9 ms). Zombi başına 17 parça.
@@ -269,6 +275,11 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
     verdi, torba silindi.
   - Ölçülmeyenler: 20 dakikalık ömür, 60 torba sınırı, torbanın görünüşü (3B ekran görüntüsü bu
     oturumda Edit'te de beyaz çıktı).
+- **Gündüz-gece (Play, 31 Ekim):**
+  - Saat 08:05'ten başlayıp akıyor; "Skip to next phase" geceye (18:30) ve sonraki şafağa atlıyor.
+  - 7. günün gecesine atlayınca saat kırmızı, "Horde night" etiketi ve kızıl ton göründü; şafakta
+    kalktı.
+  - Zombi vuruş aralığı gece 1,1–1,2 sn, gündüz 1,52–1,55 sn.
 - **Konsol:** Sunucu ve istemcide 0 uyarı, 0 hata.
 
 ## Teknik notlar
@@ -335,7 +346,7 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
    local src = Http:GetAsync("http://127.0.0.1:8765/Harness.luau", true)
    Http.HttpEnabled = was
    local H = loadstring(src)()
-   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "45 passed, 0 failed"
+   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "47 passed, 0 failed"
    ```
    Düzenek place'e hiçbir şey bırakmaz.
 3. Her kod değişikliğinden sonra adım 1'deki bundle komutunu tekrar çalıştır, sonra `H.sync()`.
