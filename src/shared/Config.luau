@@ -2122,6 +2122,41 @@ Config.Melee = {
 	TooFarMargin = 1,
 }
 
+-- Town house walls (HouseService; 7DTD: every POI block can be broken, repaired and upgraded). A
+-- wall is cut into cell-wide pieces the first time it is hit. Health by surface material (ours,
+-- after 7DTD's wood 500 / brick and cobblestone 1500 / concrete 2500 tiers; drywall is weak), and
+-- how tools damage it (Config.Tools Materials). Broken pieces drop materials to the breaker.
+Config.House = {
+	Materials = {
+		Plaster = { Health = 300, Harvest = "Stone", Repair = { Id = "CobblestoneRocks", Count = 2 }, Drops = {} },
+		Wood = { Health = 500, Harvest = "Wood", Repair = { Id = "Wood", Count = 3 }, Drops = { { Id = "Wood", Min = 2, Max = 4 } } },
+		Brick = { Health = 1500, Harvest = "Stone", Repair = { Id = "CobblestoneRocks", Count = 4 }, Drops = { { Id = "SmallStone", Min = 3, Max = 6 } } },
+		Concrete = { Health = 2500, Harvest = "Stone", Repair = { Id = "CobblestoneRocks", Count = 6 }, Drops = { { Id = "SmallStone", Min = 4, Max = 8 } } },
+		Metal = { Health = 3000, Harvest = "Stone", Repair = { Id = "ForgedIron", Count = 2 }, Drops = { { Id = "ScrapIron", Min = 3, Max = 6 } } },
+	} :: { [string]: { Health: number, Harvest: HarvestMaterial, Repair: ItemCount, Drops: { Drop } } },
+	-- Roblox surface material -> entry above.
+	MaterialOf = {
+		WoodPlanks = "Wood",
+		Wood = "Wood",
+		Brick = "Brick",
+		Concrete = "Concrete",
+		DiamondPlate = "Metal",
+		Metal = "Metal",
+		CorrodedMetal = "Metal",
+		Plaster = "Plaster",
+		SmoothPlastic = "Plaster",
+	} :: { [string]: string },
+	-- Reinforcing (the stone axe on a piece at full health, like upgrading a block): each tier adds the
+	-- base health again and takes its materials; UpgradeHits hits finish a tier. Repairs heal RepairPerHit
+	-- a hit for a share of the material's Repair cost.
+	Tiers = {
+		{ Id = "Lumber", Count = 4 },
+		{ Id = "ForgedIron", Count = 3 },
+	} :: { ItemCount },
+	UpgradeHits = 3,
+	RepairPerHit = 100,
+}
+
 -- Hit zones, zombie reactions and melee power attacks (7DTD entityclasses.xml zombie template,
 -- items.xml and buffs.xml v3.2; docs/REFERENCE_7DTD.md 5.5-5.6). Shared/Combat does the math.
 Config.Combat = {

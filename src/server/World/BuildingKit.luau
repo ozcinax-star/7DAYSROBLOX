@@ -171,6 +171,9 @@ type Ctx = {
 	usedFaces: { [string]: boolean },
 	-- World centre of the navigation cell in front of every exterior ground-floor doorway.
 	doorFronts: { Vector3 },
+	-- Wall runs built so far: each run's cores and linings share its number ("WallRun"), so
+	-- HouseService can cut a run into breakable pieces together with its linings.
+	runs: number,
 }
 
 type RunCell = { index: number, kind: string, row: number, col: number }
@@ -296,9 +299,11 @@ local function emitPieces(
 			PartFactory.make(pane, "Glass", V(hi - lo, height, GLASS), ctx.transform * frame, S.Glass)
 			pane.Parent = ctx.model
 		elseif isCore then
-			add(ctx, "Wall", V(hi - lo, height, thickness), frame * CFrame.new(0, 0, offset), style)
+			local wall = add(ctx, "Wall", V(hi - lo, height, thickness), frame * CFrame.new(0, 0, offset), style)
+			wall:SetAttribute("WallRun", ctx.runs)
 		else
-			decor(ctx, "Lining", V(hi - lo, height, thickness), frame * CFrame.new(0, 0, offset), style)
+			local lining = decor(ctx, "Lining", V(hi - lo, height, thickness), frame * CFrame.new(0, 0, offset), style)
+			lining:SetAttribute("WallRun", ctx.runs)
 		end
 	end
 end
@@ -552,6 +557,7 @@ end
 -- Wall cores merged per (symbol, style), plus a lining per side at half-cell resolution, so a lining
 -- runs on through junctions and changes colour exactly where the room on that side changes.
 local function buildRun(ctx: Ctx, floor: Floor, run: Run)
+	ctx.runs += 1
 	local cells = run.cells
 	local n = #cells
 	local sides: { { number } } = {}
@@ -1394,6 +1400,7 @@ function BuildingKit.build(
 			else S[template.roofStyle],
 		usedFaces = {},
 		doorFronts = {},
+		runs = 0,
 	}
 
 	-- Foundation plinth: just past the walls (a small lip) for closed buildings, the whole footprint
