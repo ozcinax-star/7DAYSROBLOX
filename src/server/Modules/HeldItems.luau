@@ -1,6 +1,6 @@
 --!strict
--- Builds the stylized model of an item held in the right hand. Tools get a handle and a head;
--- anything else is a small block in the item's colour. Parts are massless, non-colliding and welded
+-- Builds the stylized model of an item held in the right hand. Tools get a handle and a head, bows a
+-- limb and string, guns a grip and barrel; anything else is a small block in the item's colour. Parts are massless, non-colliding and welded
 -- to the hand, so they replicate with the character and never push it around.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -13,6 +13,7 @@ local V = Vector3.new
 local HANDLE_COLOR = Color3.fromRGB(110, 78, 48)
 local STONE_COLOR = Color3.fromRGB(128, 126, 120)
 local LASHING_COLOR = Color3.fromRGB(150, 140, 96)
+local PIPE_COLOR = Color3.fromRGB(95, 95, 100)
 
 -- The handle points forward out of the fist, tilted up by this angle (the arm hangs at the side
 -- until the tool-use step adds a swing pose).
@@ -108,6 +109,16 @@ local function bow(model: Model, hand: BasePart, fist: CFrame): BasePart
 	return limb
 end
 
+-- A gun (a ranged weapon with a magazine): a wooden grip in the fist and a metal pipe barrel above it,
+-- pointing forward.
+local function gun(model: Model, hand: BasePart, fist: CFrame): BasePart
+	local grip = part(model, "Grip", V(0.22, 0.6, 0.3), HANDLE_COLOR, Enum.Material.Wood)
+	weld(hand, grip, fist * CFrame.new(0, -0.1, 0))
+	local barrel = part(model, "Barrel", V(0.18, 0.18, 1.3), PIPE_COLOR, Enum.Material.Metal)
+	weld(grip, barrel, CFrame.new(0, 0.38, -0.45))
+	return grip
+end
+
 -- The model for item `id`, welded to `hand` at `grip` (hand space; only its position is used, since
 -- grip attachments are rotated differently between rigs). The caller parents and later destroys it.
 function HeldItems.build(id: string, hand: BasePart, grip: CFrame): Model
@@ -115,7 +126,10 @@ function HeldItems.build(id: string, hand: BasePart, grip: CFrame): Model
 	model.Name = "HeldItem"
 	local shape = SHAPES[id]
 	local fist = CFrame.new(grip.Position)
-	if Config.Ranged.Weapons[id] then
+	local weapon = Config.Ranged.Weapons[id]
+	if weapon and weapon.Magazine then
+		model.PrimaryPart = gun(model, hand, fist)
+	elseif weapon then
 		model.PrimaryPart = bow(model, hand, fist)
 	elseif shape then
 		local handle = part(model, "Handle", V(0.22, 0.22, shape.handle), HANDLE_COLOR, Enum.Material.Wood)
