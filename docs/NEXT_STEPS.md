@@ -330,7 +330,7 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Yol bulma:** 7DTD'de kazığın `Path` değeri "solid": zombi yolu varsa etrafından dolaşır, yoksa
   üstünden geçer. Bizde her zaman üstünden geçer.
 - **Vuruş sıklığı:** 7DTD'nin değme başına hasar sıklığı XML'de yok; saniyede bir bizim.
-- **Kırılınca odun:** 7DTD kırılınca 2–6 odun düşürür; BuildService kırılan bloktan düşüş vermiyor.
+- **Kırılınca odun (bitti, `bd684fc`):** oyuncu kırarsa 2–6 odun; zombi kırarsa ya da aşınırsa yok.
 - **Demir kazık:** 4 dövme demirle yükseltme (dövme demir yok).
 
 ### 20c. Kırık taş kademesi (bitti, 31 Ekim)
@@ -340,7 +340,8 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
   ahşap blok, kapı ve kırık taş yol bulmada aynı pahalılıkta. Zombi sütundaki en zayıf bloğa vurur ama
   komşu sütunlardaki daha zayıf duvarı tercih etmez. Tavanı yükseltmek tüm yol bulmayı etkiler; ayrı adım.
 - **Beton:** 10 beton karışımı + çimento karıştırıcı (istasyon yok).
-- **Kırılınca düşüş:** 7DTD kırık taş bloktan kil ve taş verir; bloklar düşüş vermiyor.
+- **Kırılınca düşüş (bitti, `bd684fc`):** oyuncunun kırdığı blok 7DTD düşüşünü verir; zombinin ya da
+  aşınmanın kırdığı blok vermez (7DTD yere düşürür).
 
 ### 21. Mobilya kırma (bitti, 31 Ekim)
 

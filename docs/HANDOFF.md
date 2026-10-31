@@ -289,6 +289,7 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 | `f7c47eb` | Tahta kazık tuzağı (7DTD trapSpikesWoodDmg0): 20 odun, sırt çantasında 4 sn; tamir 10 odun. Hücre kutusu görünmez ve çarpışmasız (oyuncu ve zombi içinden yürür, `Passable`, yol ızgarasına yapı olarak girmez); üstünde dekor taban + 3 × 3 eğik kazık. `BuildService.checkTraps` 0,2 sn'de bir: gövdesi (yarıçap 0,5) kutuya değen ve ayağı tuzak tabanına 1,5 stud yakın zombi en çok saniyede bir 33 hasar alır (saldıran yok, kovalamaya başlamaz) ve 1,2 sn 0,18 hızla yürür (`ZombieService.slow`, 7DTD movement_factor); tuzak her vuruşta 25 aşınır: 300 can = 7DTD'nin 12 vuruşu (100 canlık üç aşama × 4). Her aşama kazıkların üçte birini gizler (9 / 6 / 3). Oyuncuya vurmaz (bizim). 1 test |
 | `dbf01ae` | Silahın alet kemeri yuvası cephaneyi gösterir (7DTD): silahta "şarjördeki / taşınan" (doldururken 0, doldurma bitince dolu; `ToolController` → `InventoryController.setLoaded`), yayda taşınan ok sayısı |
 | `8b79d1a` | Kırık taş kademesi (7DTD cobblestoneShapes): taş balta ahşap bloğu 3 vuruşta 10 kırık taşla `CobblestoneBlock`a çevirir: 1500 can, aletlere taş gibi davranır (blok başına `HarvestMaterial`; kazma 26, ahşap sayılsa 5), tamiri 8 kırık taş. Kırık taş: 1 kil + 1 küçük taş, sırt çantasında 0,4 sn (kil malzeme süresi 0,2 sn eklendi). Test çantasına 20 kil ve 20 kırık taş. 1 test |
+| `bd684fc` | Oyuncu blokları kırılınca malzeme verir (7DTD): `Harvest` düşüşü oyuncunun alet vuruşlarına toplama formülüyle (`Harvest.payout`) bölünür (çerçeve ve ahşap blok 2 odun, kırık taş 6 kil + 6 taş, parmaklık 2 odun bizim), `Destroy` düşüşü kıran vuruşu yapana (merdiven 1–2 odun, kazık 2–6 odun, kamp ateşi 3 taş). Silahlar her zamanki dörtte biri alır. Zombinin ya da aşınmanın kırdığı blok bir şey vermez (bizim; 7DTD yere düşürür). 1 test |
 | `ea7e10b` | Kasaba pencere camları (274) kırılır: her cam kendi `Window` modeli, `HarvestNode = "WindowGlass"`; HarvestService bu özelliği taşıyan harita modellerini de düğüm sayar. 7DTD Mglass canı 1: her vuruş kırar, düşüş yok (bizim). Pencere denizliği zombiyi yine durdurur, yol ızgarası değişmez. Mermi camı kırmaz (yalnızca alet vuruşu) |
 
 ## Mevcut durum
@@ -500,6 +501,8 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
   bırakınca 70; nişanlıyken silahsız slota geçince 70'e döndü; silahsız elde sağ tık FOV'u değiştirmedi.
   Dokunmatik "Aim" düğmesi oluşuyor, dokunmatik olmayan Studio'da gizli (dokunmatikte denenmedi).
   Konsol temiz.
+- **Blok düşüşü (Play, 31 Ekim):** çerçeve taş kürekle (ahşaba 11 hasar) 10 vuruşta kırıldı, odun
+  50 → 51 (5. vuruş) → 52 (kıran vuruş); kamp ateşi 10 vuruşta kırıldı, taş 20 → 23. Konsol temiz.
 - **Kırık taş (Play, 31 Ekim):** 2 kırık taş üretimi 2 kil + 2 taş harcadı. Çerçeve 3 balta vuruşunda
   ahşap blok (kereste 20 → 16), 3 vuruş daha kırık taş blok oldu (1500 can, Cobblestone malzeme, taş
   22 → 12). Taş kazma bir vuruşta 26 hasar verdi (ahşap sayılsa 5); balta tamiri 1474 → 1500, 1 taş.
