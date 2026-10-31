@@ -35,6 +35,7 @@ local Strings: { [string]: { [string]: string } } = {
 		DebugGiveKit = "Give test items",
 		DebugClear = "Clear",
 		DebugSkipPhase = "Skip to next phase",
+		DebugGrowCrops = "Grow crops",
 		DebugToggleDirector = "Auto spawn on/off",
 		DebugThreat = "Threat: tier {tier}, {level} (noise {noise}, trace {trace})",
 		DebugAmbient = "Auto spawn {state}: {count} / {target}, horde left {horde}",
@@ -114,6 +115,14 @@ local Strings: { [string]: { [string]: string } } = {
 		ItemStoneSpear = "Stone Spear",
 		ItemPrimitiveBow = "Primitive Bow",
 		ItemStoneArrow = "Stone Arrow",
+		ItemCorn = "Corn",
+		ItemPotato = "Potato",
+		ItemBlueberries = "Blueberries",
+		ItemCornSeed = "Corn Seed",
+		ItemPotatoSeed = "Potato Seed",
+		ItemBlueberrySeed = "Blueberry Seed",
+		ItemFarmPlot = "Farm Plot",
+		CropHarvest = "Harvest",
 
 		-- Shop signs
 		SignMarket = "MARKET",

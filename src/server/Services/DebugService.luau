@@ -13,6 +13,7 @@ local Net = require(Shared.Net)
 
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local DayNightService = require(script.Parent.DayNightService)
+local FarmService = require(script.Parent.FarmService)
 local InventoryService = require(script.Parent.InventoryService)
 local SurvivalService = require(script.Parent.SurvivalService)
 local ThreatService = require(script.Parent.ThreatService)
@@ -89,6 +90,8 @@ local function onCommand(player: Player, command: unknown, value: unknown)
 		else
 			SurvivalService.setStats(player, nil, value)
 		end
+	elseif command == "GrowCrops" then
+		FarmService.ripenAll()
 	elseif command == "GiveKit" then
 		for _, entry in Config.Debug.TestKit do
 			InventoryService.give(player, entry.Id, entry.Count, "Loot")

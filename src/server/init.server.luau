@@ -17,6 +17,7 @@ local order = {
 	require(Services.DigService),
 	require(Services.CraftingService),
 	require(Services.BuildService),
+	require(Services.FarmService),
 	require(Services.SurvivalService),
 	require(Services.DebugService),
 }

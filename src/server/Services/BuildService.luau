@@ -1,9 +1,10 @@
 --!strict
 -- BuildService: player-built blocks on the 4-stud grid (Shared/BuildGrid), 7DTD style. A frame, a
--- ladder or a door in the hand is placed with "use" (ToolService hands it over with the head position
--- and the aim). A door takes its cell and the one above, hangs on the side its builder stood on and
--- opens and closes with the interact key; closed, it is a wall zombies path through and break, open,
--- they walk through it (7DTD zombies never open doors). The stone axe upgrades a frame to a wood block
+-- ladder, a door or a farm plot in the hand is placed with "use" (ToolService hands it over with the
+-- head position and the aim). A door takes its cell and the one above, hangs on the side its builder
+-- stood on and opens and closes with the interact key; closed, it is a wall zombies path through and
+-- break, open, they walk through it (7DTD zombies never open doors). A farm plot is a low slab crops
+-- grow on (FarmService); it blocks nobody. The stone axe upgrades a frame to a wood block
 -- (3 hits, 4 Lumber) and repairs damaged blocks with wood; other tools and the fist damage them.
 -- Zombies path through the weakest wall and break it (ZombieService structure cells); blocks that
 -- lose their way to the ground fall.
@@ -65,6 +66,7 @@ local nextPlaceAt: { [Player]: number } = {}
 local groundParams: RaycastParams
 local mapOverlap: OverlapParams
 local doorLimiter: RateLimiter.RateLimiter
+local removedCallbacks: { (key: number) -> () } = {}
 
 local function setTrace()
 	ThreatService.setTraceSource(TRACE_SOURCE, count * Config.Threat.Trace.PerBuildPart)
@@ -90,6 +92,12 @@ local function styleBlock(block: Block)
 	part:SetAttribute("MaxHealth", def.Health)
 end
 
+-- Ladders, open doors and farm plots let zombies through.
+local function passable(block: Block): boolean
+	local def = BC.Blocks[block.kind]
+	return def.Climbable == true or def.Plot == true or block.open
+end
+
 -- Recomputes whether the column (cx, cz) blocks zombies and how costly it is to path through.
 local function updateColumn(cx: number, cz: number)
 	local x, _, z = BuildGrid.center(cx, 0, cz)
@@ -100,8 +108,7 @@ local function updateColumn(cx: number, cz: number)
 	local counted: { [Block]: boolean } = {}
 	for cy = math.floor((ground - SIZE) / SIZE), math.floor((ground + BC.BodyHeight) / SIZE) do
 		local block = blocks[BuildGrid.key(cx, cy, cz)]
-		local passable = block == nil or BC.Blocks[block.kind].Climbable or block.open
-		if block and not passable and not counted[block] and BuildGrid.obstructs(cy * SIZE, ground) then
+		if block and not passable(block) and not counted[block] and BuildGrid.obstructs(cy * SIZE, ground) then
 			counted[block] = true
 			blocking = true
 			health += block.health
@@ -113,6 +120,9 @@ end
 local function removeBlock(block: Block)
 	if blocks[block.key] ~= block then
 		return
+	end
+	for _, callback in removedCallbacks do
+		task.spawn(callback, block.key)
 	end
 	blocks[block.key] = nil
 	if block.top then
@@ -224,6 +234,9 @@ local function createBlock(cx: number, cy: number, cz: number, kind: string, gro
 	if def.Door then
 		part.Size = Vector3.new(SIZE, SIZE * 2, BC.DoorThickness)
 		part.CFrame = BuildGrid.doorCFrame(cx, cy, cz, side, false, BC.DoorThickness)
+	elseif def.Plot then
+		part.Size = Vector3.new(SIZE, BC.PlotHeight, SIZE)
+		part.CFrame = BuildGrid.plotCFrame(cx, cy, cz, MapService.heightAt(x, z), BC.PlotHeight)
 	else
 		part.Size = Vector3.one * SIZE
 		part.CFrame = CFrame.new(x, y, z)
@@ -412,8 +425,7 @@ local function onStructureHit(x: number, z: number, damage: number)
 	local weakest: Block? = nil
 	for cy = math.floor((ground - SIZE) / SIZE), math.floor((ground + BC.BodyHeight) / SIZE) do
 		local block = blocks[BuildGrid.key(cx, cy, cz)]
-		local passable = block == nil or BC.Blocks[block.kind].Climbable or block.open
-		if block and not passable and BuildGrid.obstructs(cy * SIZE, ground) then
+		if block and not passable(block) and BuildGrid.obstructs(cy * SIZE, ground) then
 			if weakest == nil or block.health < weakest.health then
 				weakest = block
 			end
@@ -426,6 +438,21 @@ end
 
 function BuildService.getCount(): number
 	return count
+end
+
+-- The key of the farm plot `instance` belongs to and the centre of its top face, or nil.
+function BuildService.plotOf(instance: Instance): (number?, Vector3?)
+	local block = blockOf(instance)
+	if block == nil or not BC.Blocks[block.kind].Plot then
+		return nil, nil
+	end
+	local part = block.part
+	return block.key, part.Position + Vector3.new(0, part.Size.Y / 2, 0)
+end
+
+-- Registers a listener for blocks that are removed (destroyed, fallen or cleared), by block key.
+function BuildService.onRemoved(callback: (key: number) -> ())
+	table.insert(removedCallbacks, callback)
 end
 
 -- Debug: removes every block.

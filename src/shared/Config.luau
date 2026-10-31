@@ -24,6 +24,8 @@ export type ItemDef = {
 	Raw: boolean?,
 	Use: UseDef?,
 	Fill: string?,
+	-- A seed: the Config.Farming.Crops entry it plants on a farm plot.
+	Seed: string?,
 }
 
 -- A hunger or thirst stage: reached at or below Enter (share of the max), left above Leave, and
@@ -39,7 +41,8 @@ export type NoiseEvent = { Noise: number, Radius: number }
 -- of the same id. UpgradeTo / Upgrade: the next tier and what one upgrade costs. Repair: the item used
 -- for repairs and how many of it repair the block from nothing to full. Climbable: a ladder (players
 -- climb it; zombies walk through it). Door: a panel two cells tall that opens and closes with the
--- interact key (zombies break it when it is closed). Material and Color are the look.
+-- interact key (zombies break it when it is closed). Plot: a low farm plot slab that crops grow on;
+-- it blocks nobody. Material and Color are the look.
 export type BlockDef = {
 	Health: number,
 	Placeable: boolean?,
@@ -48,6 +51,7 @@ export type BlockDef = {
 	Repair: ItemCount,
 	Climbable: boolean?,
 	Door: boolean?,
+	Plot: boolean?,
 	Material: string,
 	Color: { number },
 	Transparency: number?,
@@ -94,6 +98,19 @@ export type RangedDef = {
 
 -- Ammo: entity damage, launch speed (m/s) and gravity (m/s^2) of its projectile.
 export type AmmoDef = { EntityDamage: number, Speed: number, Gravity: number }
+
+-- A crop (7DTD plantedX1-3): its seed and produce items, the produce a ripe player crop pays (Count,
+-- and one more at BonusChance), seeds given back on harvest, its ripe height (studs) and produce
+-- colour.
+export type CropDef = {
+	Seed: string,
+	Produce: string,
+	Count: number,
+	BonusChance: number,
+	SeedBack: number,
+	Height: number,
+	Color: { number },
+}
 
 -- Items a world object gives: Min-Max rolled again on every payout.
 export type Drop = { Id: string, Min: number, Max: number }
@@ -512,7 +529,18 @@ Config.Build = {
 			Material = "Wood",
 			Color = { 0.55, 0.4, 0.25 },
 		},
+		-- farmPlotBlockPlayer: Mfarmland 250 HP, repaired with 14 Clay.
+		FarmPlot = {
+			Health = 250,
+			Placeable = true,
+			Repair = { Id = "Clay", Count = 14 },
+			Plot = true,
+			Material = "Ground",
+			Color = { 0.36, 0.25, 0.16 },
+		},
 	} :: { [string]: BlockDef },
+	-- Height of a farm plot slab (studs); crops stand on it.
+	PlotHeight = 0.8,
 }
 
 Config.Camera = {
@@ -590,6 +618,15 @@ Config.Items = {
 		Color = { 0.8, 0.6, 0.4 },
 	},
 	StoneArrow = { Stack = 150, Color = { 0.55, 0.5, 0.42 } }, -- ammoArrowStone
+	-- Raw crops (foodCropCorn, foodCropPotato, foodCropBlueberries): 2 food each, corn also 3 health.
+	Corn = { Stack = 125, Color = { 0.95, 0.8, 0.25 }, Use = { Food = 2, Heal = 3, HealRate = 0.5 } },
+	Potato = { Stack = 125, Color = { 0.7, 0.55, 0.35 }, Use = { Food = 2 } },
+	Blueberries = { Stack = 125, Color = { 0.3, 0.35, 0.8 }, Use = { Food = 2 } },
+	-- plantedCorn1, plantedPotato1, plantedBlueberry1
+	CornSeed = { Stack = 500, Color = { 0.85, 0.75, 0.35 }, Seed = "Corn" },
+	PotatoSeed = { Stack = 500, Color = { 0.6, 0.48, 0.3 }, Seed = "Potato" },
+	BlueberrySeed = { Stack = 500, Color = { 0.35, 0.4, 0.7 }, Seed = "Blueberry" },
+	FarmPlot = { Stack = 500, Color = { 0.36, 0.25, 0.16 } }, -- farmPlotBlockVariantHelper
 } :: { [string]: ItemDef }
 
 -- Backpack crafting (7DTD 1.0-3.2 recipes.xml). Recipes are keyed by id; Order lists them for the UI.
@@ -623,6 +660,12 @@ Config.Recipes = {
 		Ingredients = costs({ SmallStone = 1, Wood = 1, PlantFiber = 1 }),
 		Seconds = 1.4,
 	},
+	-- 7DTD: 5 crops make a seed (1 s). The farm plot is 4 Wood, 100 Clay, 10 Rotting Flesh and 25
+	-- Potassium Nitrate (20 s); we have neither of the last two (PLAN, Kararlar).
+	CornSeed = { Output = "CornSeed", Count = 1, Ingredients = costs({ Corn = 5 }), Seconds = 1 },
+	PotatoSeed = { Output = "PotatoSeed", Count = 1, Ingredients = costs({ Potato = 5 }), Seconds = 1 },
+	BlueberrySeed = { Output = "BlueberrySeed", Count = 1, Ingredients = costs({ Blueberries = 5 }), Seconds = 1 },
+	FarmPlot = { Output = "FarmPlot", Count = 1, Ingredients = costs({ Wood = 4, Clay = 100 }), Seconds = 20 },
 	-- terrDirt: 16 Clay, 3 s.
 	Dirt = { Output = "Dirt", Count = 1, Ingredients = costs({ Clay = 16 }), Seconds = 3 },
 	-- Two wood per lumber keeps 7DTD's wood costs when building parts ask for lumber.
@@ -653,6 +696,10 @@ Config.Crafting = {
 		"WoodLadder",
 		"WoodDoor",
 		"Dirt",
+		"FarmPlot",
+		"CornSeed",
+		"PotatoSeed",
+		"BlueberrySeed",
 	},
 	-- 7DTD: a 4-slot queue; only the first slot works at a time.
 	QueueSlots = 4,
@@ -724,6 +771,52 @@ Config.Tools = {
 		HarvestShare = 0.25,
 	},
 } :: { [string]: ToolDef }
+
+-- Farming (7DTD 3.2 blocks.xml). Seeds go only on farm plots; a crop has three stages and is ripe at
+-- the last. 7DTD's Living off the Land perk gives player crops their bonus and seed back; without
+-- perks the seed always comes back, so farming keeps itself going (PLAN, Kararlar).
+Config.Farming = {
+	Stages = 3,
+	-- cropsGrowingMaster GrowthRate: 63 minutes a stage against 7DTD's 60-minute day.
+	StageDays = 1.05,
+	Crops = {
+		-- plantedCorn3HarvestPlayer: 2 corn, 50 % one more.
+		Corn = {
+			Seed = "CornSeed",
+			Produce = "Corn",
+			Count = 2,
+			BonusChance = 0.5,
+			SeedBack = 1,
+			Height = 3.2,
+			Color = { 0.95, 0.8, 0.25 },
+		},
+		Potato = {
+			Seed = "PotatoSeed",
+			Produce = "Potato",
+			Count = 2,
+			BonusChance = 0.5,
+			SeedBack = 1,
+			Height = 1.4,
+			Color = { 0.7, 0.55, 0.35 },
+		},
+		Blueberry = {
+			Seed = "BlueberrySeed",
+			Produce = "Blueberries",
+			Count = 2,
+			BonusChance = 0.5,
+			SeedBack = 1,
+			Height = 1.8,
+			Color = { 0.3, 0.35, 0.8 },
+		},
+	} :: { [string]: CropDef },
+	-- Seconds the harvest prompt is held, and its reach (studs).
+	HarvestSeconds = 0.5,
+	HarvestReach = 8,
+	-- Seconds between growth checks.
+	CheckSeconds = 1,
+	-- Workspace folder of the crop models.
+	FolderName = "Crops",
+}
 
 -- Bows (7DTD 3.2 items.xml). "Use" with one in the hand shoots: no draw, every shot is at full draw.
 -- Bows are silent (PLAN's noise sources do not list them).
@@ -924,6 +1017,8 @@ Config.Loot = {
 				{ Id = "CanDogFood", Min = 1, Max = 1, Weight = 2 },
 				{ Id = "BottledWater", Min = 1, Max = 2, Weight = 3 },
 				{ Id = "MurkyWater", Min = 1, Max = 1, Weight = 2 },
+				{ Id = "Corn", Min = 1, Max = 3, Weight = 1 },
+				{ Id = "Potato", Min = 1, Max = 3, Weight = 1 },
 			},
 		},
 		Cupboard = {
@@ -936,6 +1031,8 @@ Config.Loot = {
 				{ Id = "BottledWater", Min = 1, Max = 1, Weight = 1 },
 				{ Id = "MurkyWater", Min = 1, Max = 1, Weight = 1 },
 				{ Id = "Cloth", Min = 1, Max = 2, Weight = 1 },
+				{ Id = "CornSeed", Min = 1, Max = 2, Weight = 1 },
+				{ Id = "PotatoSeed", Min = 1, Max = 2, Weight = 1 },
 			},
 		},
 		Shelf = {
@@ -947,6 +1044,7 @@ Config.Loot = {
 				{ Id = "CanDogFood", Min = 1, Max = 1, Weight = 2 },
 				{ Id = "BottledWater", Min = 1, Max = 2, Weight = 3 },
 				{ Id = "Cloth", Min = 1, Max = 3, Weight = 1 },
+				{ Id = "BlueberrySeed", Min = 1, Max = 2, Weight = 1 },
 			},
 		},
 		Clothes = {
@@ -1142,6 +1240,9 @@ Config.Debug = {
 		{ Id = "StoneSpear", Count = 1 },
 		{ Id = "PrimitiveBow", Count = 1 },
 		{ Id = "StoneArrow", Count = 20 },
+		{ Id = "FarmPlot", Count = 4 },
+		{ Id = "CornSeed", Count = 2 },
+		{ Id = "PotatoSeed", Count = 2 },
 		{ Id = "Wood", Count = 50 },
 		{ Id = "SmallStone", Count = 20 },
 		{ Id = "PlantFiber", Count = 20 },

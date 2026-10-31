@@ -27,6 +27,16 @@ local BuildGrid = {}
 
 BuildGrid.NEIGHBOURS = NEIGHBOURS
 
+-- A farm plot slab `height` tall in cell (cx, cy, cz): at the bottom of the cell, lifted onto ground
+-- at `groundY` that rises into the cell (blocks on the ground sink up to a cell into it).
+function BuildGrid.plotCFrame(cx: number, cy: number, cz: number, groundY: number, height: number): CFrame
+	local x = (cx + 0.5) * SIZE
+	local z = (cz + 0.5) * SIZE
+	local floor = cy * SIZE
+	local bottom = math.clamp(groundY, floor, floor + SIZE - height)
+	return CFrame.new(x, bottom + height / 2, z)
+end
+
 function BuildGrid.key(cx: number, cy: number, cz: number): number
 	return ((cx + OFFSET) * SPAN + (cz + OFFSET)) * SPAN + (cy + OFFSET)
 end

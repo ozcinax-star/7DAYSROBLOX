@@ -13,6 +13,7 @@ local Inventory = require("../src/shared/Inventory")
 local Melee = require("../src/shared/Melee")
 local Harvest = require("../src/shared/Harvest")
 local Ballistics = require("../src/shared/Ballistics")
+local Farming = require("../src/shared/Farming")
 local Crafting = require("../src/shared/Crafting")
 local Loot = require("../src/shared/Loot")
 local DayClock = require("../src/shared/DayClock")
@@ -821,6 +822,41 @@ test("a stone arrow from the primitive bow keeps 7DTD's damage, speed and recipe
 		assert(Config.Ranged.Ammo[ammoId] and Config.Items[ammoId], `ammo {ammoId}`)
 	end
 	assert(Config.Tools.PrimitiveBow == nil, "a bow is not swung")
+end)
+
+print("Farming")
+
+test("crops ripen in two 7DTD stages and pay 2-3 produce and their seed back", function()
+	local stage = Farming.stageSeconds()
+	expectEq(stage, 1.05 * Config.DayNight.CycleSeconds, "63 of 60 minutes: 1.05 days a stage")
+	expectEq(Farming.ripeSeconds(), stage * 2, "two stages to ripe")
+	expectEq(Farming.stageAt(0), 1, "planted")
+	expectEq(Farming.stageAt(stage - 1), 1, "still a sprout")
+	expectEq(Farming.stageAt(stage), 2, "growing")
+	expectEq(Farming.stageAt(stage * 2), 3, "ripe")
+	expectEq(Farming.stageAt(stage * 99), 3, "stays ripe")
+	local corn = Config.Farming.Crops.Corn
+	expectEq(Farming.harvestCount(corn, 0.49), 3, "bonus corn")
+	expectEq(Farming.harvestCount(corn, 0.5), 2, "no bonus")
+	for name, crop in Config.Farming.Crops do
+		assert(Config.Items[crop.Produce] and Config.Items[crop.Produce].Use, `{name} produce is food`)
+		expectEq(Config.Items[crop.Seed].Seed, name, `{name} seed plants it`)
+		local recipe = Config.Recipes[crop.Seed]
+		expectEq(recipe.Ingredients[1].Id, crop.Produce, `{name} seed is made of its produce`)
+		expectEq(recipe.Ingredients[1].Count, 5, `5 {crop.Produce} per seed`)
+		assert(crop.SeedBack >= 1, `{name} gives its seed back`)
+	end
+	local plot = Config.Build.Blocks.FarmPlot
+	assert(plot.Plot and plot.Placeable, "the farm plot is a placeable plot")
+	expectEq(plot.Health, 250, "Mfarmland 250 HP")
+	-- The slab sits on the cell floor, or on ground that rises into the cell, never above the cell.
+	local h = Config.Build.PlotHeight
+	local function slabY(groundY: number): number
+		return BuildGrid.plotCFrame(0, 0, 0, groundY, h).Position.Y
+	end
+	assert(math.abs(slabY(-3) - h / 2) < 1e-4, "ground below: on the floor")
+	assert(math.abs(slabY(1.5) - (1.5 + h / 2)) < 1e-4, "ground inside: on the ground")
+	assert(math.abs(slabY(9) - (Config.Build.GridSize - h / 2)) < 1e-4, "kept in its cell")
 end)
 
 print("Crafting")

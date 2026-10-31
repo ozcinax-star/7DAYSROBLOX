@@ -137,6 +137,9 @@ function DebugOverlayController.start()
 	makeButton(buttons, order + 7, Localization.get("DebugToggleDirector"), function()
 		debugRemote:FireServer("Director")
 	end)
+	makeButton(buttons, order + 8, Localization.get("DebugGrowCrops"), function()
+		debugRemote:FireServer("GrowCrops")
+	end)
 
 	local player = Players.LocalPlayer
 	local function refreshAllowed()
