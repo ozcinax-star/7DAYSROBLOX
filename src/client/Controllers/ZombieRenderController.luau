@@ -67,6 +67,11 @@ local corpses: { View } = {}
 local container: Folder
 local renderedCount = 0
 local frame = 0
+-- LOD distances and corpse time; the graphics preset sets them (GraphicsController).
+local renderDistance = VC.RenderDistance
+local detailDistance = VC.DetailDistance
+local animateDistance = VC.AnimateDistance
+local corpseSeconds = VC.CorpseSeconds
 
 local function createView(id: number, x: number, y: number, z: number, state: string, now: number): View
 	local rig = ZombieRig.build(id)
@@ -252,9 +257,9 @@ local function onRender(dt: number)
 		return
 	end
 	local camPos = camera.CFrame.Position
-	local renderSq = VC.RenderDistance * VC.RenderDistance
-	local detailSq = VC.DetailDistance * VC.DetailDistance
-	local animateSq = VC.AnimateDistance * VC.AnimateDistance
+	local renderSq = renderDistance * renderDistance
+	local detailSq = detailDistance * detailDistance
+	local animateSq = animateDistance * animateDistance
 	local alwaysSq = VC.AlwaysUpdateDistance * VC.AlwaysUpdateDistance
 	local soundSq = VC.SoundRange * VC.SoundRange
 
@@ -311,7 +316,7 @@ local function onRender(dt: number)
 		end
 	end
 
-	local lifetime = VC.DeathFallSeconds + VC.CorpseSeconds
+	local lifetime = VC.DeathFallSeconds + corpseSeconds
 	for index = #corpses, 1, -1 do
 		local view = corpses[index]
 		local age = now - (view.diedAt :: number)
@@ -371,6 +376,15 @@ function ZombieRenderController.start()
 end
 
 -- Plays the hit flinch on a zombie (local feedback for the attacking player).
+-- Graphics preset: draw, detail and animation distances (studs) and how long corpses lie (seconds).
+-- The draw distance never goes past Config.ZombieVisual.RenderDistance, which despawns rely on.
+function ZombieRenderController.setQuality(render: number, detail: number, animate: number, corpse: number)
+	renderDistance = math.min(render, VC.RenderDistance)
+	detailDistance = detail
+	animateDistance = animate
+	corpseSeconds = corpse
+end
+
 function ZombieRenderController.flinch(id: number)
 	local view = views[id]
 	if view then

@@ -347,6 +347,18 @@ Config.FlowField = {
 	RasterEpsilon = 0.05,
 }
 
+-- A client graphics preset (Config.Graphics).
+export type GraphicsPreset = {
+	ZombieDistance: number,
+	DetailDistance: number,
+	AnimateDistance: number,
+	CorpseSeconds: number,
+	Shadows: boolean,
+	Bloom: boolean,
+	SunRays: boolean,
+	LampLightScale: number,
+}
+
 Config.Network = {
 	-- Snapshot rate toward clients; each snapshot carries only zombies updated since the last one.
 	SnapshotHz = 10,
@@ -908,6 +920,53 @@ end
 
 -- Gathering. Health and drops follow 7DTD 1.0-3.2 blocks.xml (block names in the comments); see
 -- docs/REFERENCE_7DTD.md, Part B sections 0-3.
+-- Client graphics presets (PLAN: in-game Low / Medium / High on top of Roblox's own quality level,
+-- picked by device at first). They only change what this client draws: zombie draw, detail and
+-- animation distances (ZombieDistance never past ZombieVisual.RenderDistance, which despawns rely on),
+-- how long corpses lie, sun shadows, bloom and sun rays, and how far lamp light reaches. Fog, the
+-- atmosphere, the sky and the night tint are never touched, so no preset sees further in the dark
+-- (PLAN risk). Medium is the look the game had before presets.
+Config.Graphics = {
+	Presets = {
+		Low = {
+			ZombieDistance = 160,
+			DetailDistance = 25,
+			AnimateDistance = 45,
+			CorpseSeconds = 3,
+			Shadows = false,
+			Bloom = false,
+			SunRays = false,
+			LampLightScale = 0.6,
+		},
+		Medium = {
+			ZombieDistance = 260,
+			DetailDistance = 45,
+			AnimateDistance = 70,
+			CorpseSeconds = 6,
+			Shadows = true,
+			Bloom = true,
+			SunRays = true,
+			LampLightScale = 1,
+		},
+		High = {
+			ZombieDistance = 260,
+			DetailDistance = 60,
+			AnimateDistance = 100,
+			CorpseSeconds = 12,
+			Shadows = true,
+			Bloom = true,
+			SunRays = true,
+			LampLightScale = 1.2,
+		},
+	} :: { [string]: GraphicsPreset },
+	Order = { "Low", "Medium", "High" },
+	-- Auto: phones and tablets (touch without a keyboard) get Low; otherwise Roblox's graphics quality
+	-- (1-10) picks Low up to AutoLowQuality, Medium up to AutoMediumQuality and High above; its
+	-- Automatic setting picks Medium.
+	AutoLowQuality = 3,
+	AutoMediumQuality = 7,
+}
+
 -- Power (7DTD 1.0 generator bank and lights, without wires: PLAN keeps the wire network for later).
 -- A running generator lights the lamps within PowerRadius up to its watts, each lamp from one
 -- generator. Fuel burns only for the watts in use: 7DTD's 1.8 gas per watt per real hour against its

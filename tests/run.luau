@@ -15,6 +15,7 @@ local Harvest = require("../src/shared/Harvest")
 local Ballistics = require("../src/shared/Ballistics")
 local Farming = require("../src/shared/Farming")
 local Power = require("../src/shared/Power")
+local Graphics = require("../src/shared/Graphics")
 local Crafting = require("../src/shared/Crafting")
 local Loot = require("../src/shared/Loot")
 local DayClock = require("../src/shared/DayClock")
@@ -898,6 +899,27 @@ test("generators burn 7DTD gas per watt and light the nearest lamps within their
 	assert(Config.Items.GasCan.Fuel, "gas is fuel")
 	assert(Config.Build.Blocks.ElectricLamp.Passable, "zombies pass lamps")
 	assert(Config.Threat.GeneratorNoiseSeconds < Config.Threat.SoundMergeSeconds, "one sound point per generator")
+end)
+
+print("Graphics")
+
+test("phones start on Low, PCs follow Roblox's quality, no preset draws zombies past despawn range", function()
+	expectEq(Graphics.autoPreset(true, false, 10), "Low", "phone")
+	expectEq(Graphics.autoPreset(true, true, nil), "Medium", "touch laptop on Automatic")
+	expectEq(Graphics.autoPreset(false, true, nil), "Medium", "Automatic")
+	expectEq(Graphics.autoPreset(false, true, 3), "Low", "low quality")
+	expectEq(Graphics.autoPreset(false, true, 4), "Medium", "middle quality")
+	expectEq(Graphics.autoPreset(false, true, 8), "High", "high quality")
+	local GC = Config.Graphics
+	for _, name in GC.Order do
+		local preset = GC.Presets[name]
+		assert(preset, `{name} exists`)
+		assert(preset.ZombieDistance <= Config.ZombieVisual.RenderDistance, `{name} hides zombies before despawn`)
+		assert(preset.DetailDistance <= preset.AnimateDistance, `{name} details within animation range`)
+	end
+	local medium = GC.Presets.Medium
+	expectEq(medium.ZombieDistance, Config.ZombieVisual.RenderDistance, "Medium keeps the old draw distance")
+	expectEq(medium.CorpseSeconds, Config.ZombieVisual.CorpseSeconds, "Medium keeps the old corpse time")
 end)
 
 print("Crafting")
