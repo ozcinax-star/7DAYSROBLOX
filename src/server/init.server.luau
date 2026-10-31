@@ -12,6 +12,7 @@ local order = {
 	require(Services.InventoryService),
 	require(Services.LootService),
 	require(Services.ToolService),
+	require(Services.RangedService),
 	require(Services.HarvestService),
 	require(Services.DigService),
 	require(Services.CraftingService),

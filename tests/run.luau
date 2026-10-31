@@ -12,6 +12,7 @@ local ZombieLook = require("../src/shared/ZombieLook")
 local Inventory = require("../src/shared/Inventory")
 local Melee = require("../src/shared/Melee")
 local Harvest = require("../src/shared/Harvest")
+local Ballistics = require("../src/shared/Ballistics")
 local Crafting = require("../src/shared/Crafting")
 local Loot = require("../src/shared/Loot")
 local DayClock = require("../src/shared/DayClock")
@@ -792,6 +793,34 @@ test("a dug voxel pays 7DTD's yield and the shovel digs earth fastest", function
 	expectEq(dirt.Ingredients[1].Id, "Clay", "dirt is made of clay")
 	expectEq(dirt.Ingredients[1].Count, 16, "16 clay per dirt")
 	expectEq(Config.Items.Dirt.Fill, "Ground", "dirt fills holes with ground")
+end)
+
+print("Ballistics")
+
+test("a stone arrow from the primitive bow keeps 7DTD's damage, speed and recipes", function()
+	local bow = Config.Ranged.Weapons.PrimitiveBow
+	local arrow = Config.Ranged.Ammo.StoneArrow
+	expectEq(Ballistics.damage(bow, arrow), 30, "35 arrow damage, -5 from the bow")
+	local speed = Ballistics.speed(bow, arrow)
+	assert(math.abs(speed - 31.5 * Config.Melee.StudsPerMeter) < 1e-6, "45 m/s, 30 % slower from the bow")
+	local gravity = Ballistics.gravity(arrow)
+	-- At 30 studs the arrow has dropped well under a head's height; at 100 m it is far below.
+	local drop = Ballistics.drop(30, speed, gravity)
+	assert(drop > 0.3 and drop < 1, `drop at 30 studs {drop}`)
+	assert(Ballistics.drop(100 * Config.Melee.StudsPerMeter, speed, gravity) > 10, "drop at full range")
+	local x, y, z = Ballistics.position(0, 10, 0, speed, 0, 0, gravity, 1)
+	expectEq(x, speed, "flies at its speed")
+	expectEq(z, 0, "no sideways drift")
+	assert(math.abs(y - (10 - gravity / 2)) < 1e-9, "falls under gravity")
+	expectEq(Config.Items.PrimitiveBow.Durability, 100, "bow durability")
+	expectEq(Config.Items.StoneArrow.Stack, 150, "arrow stack")
+	local recipe = Config.Recipes.StoneArrow
+	expectEq(recipe.Seconds, 1.4, "arrow craft time")
+	expectEq(#recipe.Ingredients, 3, "stone, wood and a fibre for the missing feather")
+	for _, ammoId in bow.Ammo do
+		assert(Config.Ranged.Ammo[ammoId] and Config.Items[ammoId], `ammo {ammoId}`)
+	end
+	assert(Config.Tools.PrimitiveBow == nil, "a bow is not swung")
 end)
 
 print("Crafting")

@@ -81,6 +81,20 @@ export type ToolDef = {
 	HarvestShare: number?,
 }
 
+-- A ranged weapon (7DTD Catapult action): the ammo it takes, in order of preference, seconds between
+-- shots, what it adds to the ammo's entity damage, the share of the ammo's speed it keeps and its
+-- range in metres.
+export type RangedDef = {
+	Ammo: { string },
+	ShotSeconds: number,
+	DamageOffset: number,
+	SpeedShare: number,
+	MaxRange: number,
+}
+
+-- Ammo: entity damage, launch speed (m/s) and gravity (m/s^2) of its projectile.
+export type AmmoDef = { EntityDamage: number, Speed: number, Gravity: number }
+
 -- Items a world object gives: Min-Max rolled again on every payout.
 export type Drop = { Id: string, Min: number, Max: number }
 
@@ -568,6 +582,14 @@ Config.Items = {
 	},
 	-- meleeWpnSpearT0StoneSpear
 	StoneSpear = { Stack = 1, Durability = 100, Repair = STONE_REPAIR, Color = { 0.6, 0.5, 0.36 } },
+	-- gunBowT0PrimitiveBow: repaired with Wood like the club.
+	PrimitiveBow = {
+		Stack = 1,
+		Durability = 100,
+		Repair = { Id = "Wood", Amount = 100, Seconds = 0.5 },
+		Color = { 0.8, 0.6, 0.4 },
+	},
+	StoneArrow = { Stack = 150, Color = { 0.55, 0.5, 0.42 } }, -- ammoArrowStone
 } :: { [string]: ItemDef }
 
 -- Backpack crafting (7DTD 1.0-3.2 recipes.xml). Recipes are keyed by id; Order lists them for the UI.
@@ -592,6 +614,15 @@ Config.Recipes = {
 		Count = 1,
 		Ingredients = costs({ SmallStone = 5, PlantFiber = 3, Wood = 3 }),
 	},
+	-- 7DTD: 8 Wood, 3 Plant Fibers (2.2 s). The stone arrow is 1 Small Stone, 1 Wood and 1 Feather
+	-- (1.4 s); nothing gives feathers here, so a plant fibre fletches it (PLAN, Kararlar).
+	PrimitiveBow = { Output = "PrimitiveBow", Count = 1, Ingredients = costs({ Wood = 8, PlantFiber = 3 }) },
+	StoneArrow = {
+		Output = "StoneArrow",
+		Count = 1,
+		Ingredients = costs({ SmallStone = 1, Wood = 1, PlantFiber = 1 }),
+		Seconds = 1.4,
+	},
 	-- terrDirt: 16 Clay, 3 s.
 	Dirt = { Output = "Dirt", Count = 1, Ingredients = costs({ Clay = 16 }), Seconds = 3 },
 	-- Two wood per lumber keeps 7DTD's wood costs when building parts ask for lumber.
@@ -615,6 +646,8 @@ Config.Crafting = {
 		"StonePickaxe",
 		"WoodenClub",
 		"StoneSpear",
+		"PrimitiveBow",
+		"StoneArrow",
 		"Lumber",
 		"WoodFrame",
 		"WoodLadder",
@@ -691,6 +724,31 @@ Config.Tools = {
 		HarvestShare = 0.25,
 	},
 } :: { [string]: ToolDef }
+
+-- Bows (7DTD 3.2 items.xml). "Use" with one in the hand shoots: no draw, every shot is at full draw.
+-- Bows are silent (PLAN's noise sources do not list them).
+Config.Ranged = {
+	Weapons = {
+		-- gunBowT0PrimitiveBow: EntityDamage -5, ProjectileVelocity -30 %, MaxRange 100 m. The shot
+		-- interval is ours (7DTD: a 0.5 s draw plus nocking; RoundsPerMinute does not apply to bows).
+		PrimitiveBow = {
+			Ammo = { "StoneArrow" },
+			ShotSeconds = 1,
+			DamageOffset = -5,
+			SpeedShare = 0.7,
+			MaxRange = 100,
+		},
+	} :: { [string]: RangedDef },
+	Ammo = {
+		-- ammoArrowStone: 35 damage, 45 m/s. Its Gravity is -4; we read it as m/s^2.
+		StoneArrow = { EntityDamage = 35, Speed = 45, Gravity = 4 },
+	} :: { [string]: AmmoDef },
+	-- Arrows one player may have in the air at once.
+	MaxArrowsPerPlayer = 6,
+	-- Client look: arrow length (studs) and how long a stopped arrow stays before it is removed.
+	ArrowLength = 2.4,
+	StuckSeconds = 6,
+}
 
 local function drop(id: string, min: number, max: number?): Drop
 	return { Id = id, Min = min, Max = max or min }
@@ -1082,6 +1140,8 @@ Config.Debug = {
 		{ Id = "StonePickaxe", Count = 1 },
 		{ Id = "WoodenClub", Count = 1 },
 		{ Id = "StoneSpear", Count = 1 },
+		{ Id = "PrimitiveBow", Count = 1 },
+		{ Id = "StoneArrow", Count = 20 },
 		{ Id = "Wood", Count = 50 },
 		{ Id = "SmallStone", Count = 20 },
 		{ Id = "PlantFiber", Count = 20 },

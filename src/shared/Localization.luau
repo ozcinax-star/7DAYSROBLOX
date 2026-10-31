@@ -104,6 +104,7 @@ local Strings: { [string]: { [string]: string } } = {
 		VitalFood = "Food",
 		VitalWater = "Water",
 		OutOfStamina = "Out of stamina",
+		NoAmmo = "No arrows",
 		SprintButton = "Run",
 		DrinkHint = "Use to drink",
 		ItemStoneAxe = "Stone Axe",
@@ -111,6 +112,8 @@ local Strings: { [string]: { [string]: string } } = {
 		ItemStonePickaxe = "Stone Pickaxe",
 		ItemWoodenClub = "Wooden Club",
 		ItemStoneSpear = "Stone Spear",
+		ItemPrimitiveBow = "Primitive Bow",
+		ItemStoneArrow = "Stone Arrow",
 
 		-- Shop signs
 		SignMarket = "MARKET",

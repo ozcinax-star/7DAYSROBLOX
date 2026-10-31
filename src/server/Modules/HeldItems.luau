@@ -65,6 +65,7 @@ local SHAPES: { [string]: Shape } = {
 		headMaterial = Enum.Material.Wood,
 		lashing = false,
 	},
+	-- A bow is built by `bow` below.
 	-- A long shaft with a stone point past the top end.
 	StoneSpear = {
 		handle = 4.2,
@@ -98,6 +99,15 @@ local function weld(part0: BasePart, part1: BasePart, c0: CFrame)
 	w.Parent = part1
 end
 
+-- An upright wooden limb in the fist with its string toward the player.
+local function bow(model: Model, hand: BasePart, fist: CFrame): BasePart
+	local limb = part(model, "Limb", V(0.16, 3.2, 0.22), HANDLE_COLOR, Enum.Material.Wood)
+	weld(hand, limb, fist)
+	local cord = part(model, "String", V(0.04, 3, 0.04), Color3.fromRGB(225, 220, 200), Enum.Material.Fabric)
+	weld(limb, cord, CFrame.new(0, 0, 0.45))
+	return limb
+end
+
 -- The model for item `id`, welded to `hand` at `grip` (hand space; only its position is used, since
 -- grip attachments are rotated differently between rigs). The caller parents and later destroys it.
 function HeldItems.build(id: string, hand: BasePart, grip: CFrame): Model
@@ -105,7 +115,9 @@ function HeldItems.build(id: string, hand: BasePart, grip: CFrame): Model
 	model.Name = "HeldItem"
 	local shape = SHAPES[id]
 	local fist = CFrame.new(grip.Position)
-	if shape then
+	if Config.Ranged.Weapons[id] then
+		model.PrimaryPart = bow(model, hand, fist)
+	elseif shape then
 		local handle = part(model, "Handle", V(0.22, 0.22, shape.handle), HANDLE_COLOR, Enum.Material.Wood)
 		local fromCenter = shape.handle * (0.5 - GRIP_SHARE)
 		weld(hand, handle, fist * CFrame.Angles(HOLD_TILT, 0, 0) * CFrame.new(0, 0, -fromCenter))

@@ -272,7 +272,13 @@ end
 local function updateHint()
 	local held = InventoryController.getHeld()
 	local item = held and Config.Items[held.id]
-	local bare = held == nil or not (Config.Tools[held.id] or Config.Build.Blocks[held.id] or (item and item.Use))
+	local bare = held == nil
+		or not (
+			Config.Tools[held.id]
+			or Config.Ranged.Weapons[held.id]
+			or Config.Build.Blocks[held.id]
+			or (item and (item.Use or item.Fill))
+		)
 	local aim = if bare and not InventoryController.isBackpackOpen() then ToolController.aimDirection() else nil
 	hint.Visible = aim ~= nil and ToolController.waterInReach(aim)
 end

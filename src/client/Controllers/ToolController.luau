@@ -217,6 +217,16 @@ function ToolController.waterInReach(aim: Vector3): boolean
 end
 
 -- Sends a "use" that is not a swing (placing, eating, drinking), at most every `seconds`.
+-- True when the inventory holds ammo the weapon takes.
+local function hasAmmo(weapon: Config.RangedDef): boolean
+	for _, slot in InventoryController.getSlots() do
+		if slot and table.find(weapon.Ammo, slot.id) then
+			return true
+		end
+	end
+	return false
+end
+
 local function sendUse(now: number, seconds: number)
 	local aim = ToolController.aimDirection()
 	if aim then
@@ -238,6 +248,20 @@ local function trySwing(source: Source)
 	end
 	if held and Config.Items[held.id] and Config.Items[held.id].Use then
 		sendUse(now, SC.UseSeconds)
+		return
+	end
+	local ranged = held and Config.Ranged.Weapons[held.id]
+	if held and ranged then
+		-- A bow shoots (RangedService flies the arrow; ArrowController draws it).
+		if held.durability == 0 then
+			showMessage(Localization.get("ToolBroken", { item = Localization.get(`Item{held.id}`) }))
+			nextSwingAt = now + MC.MessageSeconds
+		elseif not hasAmmo(ranged) then
+			showMessage(Localization.get("NoAmmo"))
+			nextSwingAt = now + MC.MessageSeconds
+		else
+			sendUse(now, ranged.ShotSeconds)
+		end
 		return
 	end
 	local toolId = if held and Config.Tools[held.id] then held.id else FIST

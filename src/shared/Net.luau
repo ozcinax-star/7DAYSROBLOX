@@ -38,6 +38,11 @@ local Definitions: { [string]: "RemoteEvent" | "UnreliableRemoteEvent" } = {
 	CraftUpdate = "RemoteEvent",
 	-- Client -> server: sprint held or released (boolean).
 	SprintIntent = "RemoteEvent",
+	-- Server -> client: an arrow left a bow (arrow id, origin Vector3, velocity Vector3, gravity,
+	-- server launch time).
+	ArrowFired = "UnreliableRemoteEvent",
+	-- Server -> client: an arrow stopped (arrow id, Vector3 where, id of the zombie it hit or 0).
+	ArrowStopped = "UnreliableRemoteEvent",
 }
 
 local Net = {}
