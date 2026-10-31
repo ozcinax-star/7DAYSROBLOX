@@ -506,6 +506,11 @@ Source: XML `recipes.xml`. Identical in 1.0 (exp), 1.4, 2.6 and 3.2 unless a row
 | **Corn on the Cob** | 1 Corn; campfire + Cooking Grill; 10 food, 5 health, −5 water | 5 | Campfire | Learnable (3.2 XML) |
 | **Pipe Pistol** | 4 Metal Pipe, 2 Glue, 6 Wood; 126 RPM, magazine 6, MaxRange 40 m, falloff 12 m, damage offset −4, spread 1.5° (aiming ×0.4), 1 degradation per shot | ingredient time | Backpack | 3.2 XML |
 | **9mm Round (ball)** | Bullet tip + gunpowder + casing; 32 entity damage, stack 300 | 2.4 | Workbench | 3.2 XML |
+| **Pipe Rifle** | 4 Metal Pipe, 2 Glue, 6 Wood; 120 RPM, magazine 1, reload about 2.66 s, MaxRange 150 m, falloff 50 m, damage offset −3, head damage +25 %, spread 5.7° (aiming ×0.09) | ingredient time | Backpack | 3.2 XML |
+| **Pipe Shotgun** | 4 Metal Pipe, 2 Glue, 6 Wood; 120 RPM, magazine 1, reload about 2.3 s, damage offset −2, the shell's spread +7 % | ingredient time | Backpack | 3.2 XML |
+| **Pipe Machine Gun** | 4 Metal Pipe, 2 Glue, 6 Wood; 335 RPM, full auto (burst 0), magazine 15, MaxRange 90 m, falloff 34 m, damage offset −17, spread 3.0° (aiming ×0.22); reload time not given in the XML | ingredient time | Backpack | 3.2 XML |
+| **7.62mm Round (ball)** | 47 entity damage, stack 300 | – | Workbench | 3.2 XML |
+| **Shotgun Shell** | 10 rays (RoundRayCount) of 10.1 entity damage, MaxRange 10 m, spread 4.5°, aiming −13 % | – | Workbench | 3.2 XML |
 | **Glue** | 7 Bone + 1 Boiled Water; cooking pot | ingredient time | Campfire | 3.2 XML |
 | **Boiled Water** | 1 Murky (river) Water; campfire + Cooking Pot; 20 water | 10 | Campfire | Start (3.2 XML) |
 | **Torch** | 1 Animal Fat, 5 Cloth Fragment, 1 Wood | 16.2 | Backpack | Start |

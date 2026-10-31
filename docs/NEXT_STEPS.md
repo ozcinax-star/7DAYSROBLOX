@@ -31,6 +31,7 @@ Yol haritası notu ve Kararlar tablosu).
 | Yakın dövüş silahları | Bitti: tahta sopa, taş mızrak; toplamada dörtte bir verim |
 | Yay ve ok | Bitti: ilkel yay, taş ok, sunucuda yerçekimli uçuş |
 | Boru tabanca | Bitti: 9 mm, şarjör 6, doldurma, sapma, atış gürültüsü; tutkal kamp ateşinde kemikten |
+| Boru tüfek, pompalı, makineli ve nişan | Bitti: 7DTD 3.2 sayıları, pompalıda 10 saçma, makinelide basılı tutunca otomatik atış; nişan sağ tık / L2 / dokunmatik "Aim" |
 | Tahta parmaklık | Bitti: 3 kereste, 300 can; zombiyi durdurur, mermi / ok / mızrak içinden geçer |
 | Mobilya kırma | Bitti: 30 tür kasaba mobilyası 7DTD canı ve düşüşleriyle kırılır; kap içindekini döker; pencere camı tek vuruşta kırılır |
 | Tarım | Bitti: tarla, 3 ekin, büyüme, hasat, tohum geri |
@@ -297,12 +298,14 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Ses:** kanca hazır (`293bc96`): silahın `SoundId` alanı doluysa her istemci sesi namluda çalar
   (Play'de geçici bir motor sesiyle doğrulandı: 2 atışta 2 ses, 4 sn sonra temizlendi). Ses seçimi
   kullanıcıda (Kullanıcı kararı bekleyenler 6).
-- **Nişan alma:** 7DTD'de nişan sapmayı 0,4'e indirir, yürürken / koşarken artar; bizde hep kalçadan
-  1,5°. Mobilde nişan düğmesi ister.
+- **Nişan alma (bitti, `9868b76`):** sapma silahın 7DTD nişan payına iner, kamera yaklaşır. Kalan:
+  7DTD'de yürürken / koşarken sapma artar, nişanda yürüme yavaşlar; bizde yok. Nişan dürbünü yok.
 - **Hasar düşüşü:** 7DTD'de 12 m'den sonra hasar azalır; yok.
 - **Cephane yapımı:** 9 mm çalışma masasında kurşun ucu + barut + kovan ister; üçü de yok, cephane
   yalnızca loot.
-- **Diğer boru silahlar:** boru tüfek, pompalı, makineli (aynı tarif); aynı altyapıyla config işi.
+- **Diğer boru silahlar (bitti, `9868b76`):** kalanlar: tüfeğin kafa hasarı +%25'i (bizde her silahta
+  kafa ×2), hasar düşüşü (tüfek 50 m, makineli 34 m sonrası), makinelinin gerçek doldurma süresi (XML
+  vermiyor, 3 sn bizim), 7,62 ve fişek yapımı (çalışma masası ister; cephane yalnızca loot).
 - **Tamir:** 7DTD'de silah tamir kitiyle tamir edilir; tamir kiti yok.
 - **Dayanıklılık:** 300 bizim; 7DTD'nin temel değeri doğrulanamadı.
 - **Kemik:** 7DTD'de cesetten ve hayvandan; bizde zombi torbasında.
