@@ -6,9 +6,10 @@ kodu Claude yazar.
 ## İlk iş
 
 Yeni oturumda kod yazmadan önce sırayla oku:
-1. [docs/HANDOFF.md](docs/HANDOFF.md): geçmiş, mevcut durum, Studio MCP çalışma yöntemi, tuzaklar.
-2. [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md): sıradaki işler ve kullanıcı kararı bekleyen sorular.
-3. [docs/PLAN.md](docs/PLAN.md): tasarım kararları. Kod ile plan çelişirse plan geçerli.
+1. [docs/DEVAM.md](docs/DEVAM.md): tek sayfalık özet; son oturum, doğrulanmamışlar, sıradaki işler.
+2. [docs/HANDOFF.md](docs/HANDOFF.md): geçmiş, mevcut durum, Studio MCP çalışma yöntemi, tuzaklar.
+3. [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md): sıradaki işler ve kullanıcı kararı bekleyen sorular.
+4. [docs/PLAN.md](docs/PLAN.md): tasarım kararları. Kod ile plan çelişirse plan geçerli.
 
 ## Kurallar
 
@@ -30,4 +31,4 @@ Yeni oturumda kod yazmadan önce sırayla oku:
   - Studio Edit modunda; Workspace'te yalnızca `Camera` ve `Terrain`.
   - Geçici HTTP sunucusu kapalı.
   - Her şey commit edilmiş.
-  - Durum değiştiyse HANDOFF.md ve NEXT_STEPS.md güncellenmiş.
+  - Durum değiştiyse DEVAM.md, HANDOFF.md ve NEXT_STEPS.md güncellenmiş.
