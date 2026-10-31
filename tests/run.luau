@@ -1677,6 +1677,18 @@ test("item info shows each item's numbers and every item has a name and a descri
 	end
 end)
 
+test("every crafting recipe sits under a named category tab", function()
+	local CC = Config.Crafting
+	for _, name in CC.Categories do
+		assert(Localization.has(`CraftingCategory{name}`), `category {name} has no name`)
+	end
+	for _, id in CC.Order do
+		local category = CC.Category[id]
+		assert(category ~= nil and category ~= "All", `{id} has no category`)
+		assert(table.find(CC.Categories, category), `{id} is under unknown category {category}`)
+	end
+end)
+
 print(`\n{passed} passed, {failed} failed`)
 if failed > 0 then
 	error("tests failed")

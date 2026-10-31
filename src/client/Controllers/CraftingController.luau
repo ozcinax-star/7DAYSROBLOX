@@ -3,8 +3,9 @@
 -- window). Each recipe shows its ingredients against what the player carries, a count and a Craft
 -- button. Cooking recipes also show the station they need nearby and the tool they need carried. The
 -- queue below shows the four jobs, counts the first one down, and cancels a job when it is clicked.
--- A station's "Cook" prompt opens the panel. The server owns the queue (CraftingService); this only
--- shows its copy and sends requests.
+-- Tabs over the list show one category at a time (7DTD's crafting categories); a station's "Cook"
+-- prompt opens the panel on Food. The server owns the queue (CraftingService); this only shows its
+-- copy and sends requests.
 
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
@@ -30,6 +31,9 @@ local STATION_CHECK_SECONDS = 0.5
 local PANEL_WIDTH = 340
 local PADDING = 10
 local TITLE_HEIGHT = 26
+local TAB_HEIGHT = 24
+local TAB_GAP = 3
+local TAB_TEXT_SIZE = 12
 local ROW_HEIGHT = 54
 local ROW_GAP = 6
 local SWATCH_SIZE = 32
@@ -44,6 +48,7 @@ local QUEUE_GAP = 6
 local PANEL_COLOR = Color3.fromRGB(18, 18, 20)
 local ROW_COLOR = Color3.fromRGB(28, 28, 30)
 local BUTTON_COLOR = Color3.fromRGB(44, 44, 48)
+local TAB_SELECTED_COLOR = Color3.fromRGB(150, 120, 60)
 local TEXT_COLOR = Color3.new(1, 1, 1)
 local MUTED_COLOR = Color3.fromRGB(170, 170, 176)
 local DISABLED_TRANSPARENCY = 0.6
@@ -51,7 +56,7 @@ local HAVE_HEX = "#b4dc8c"
 local MISSING_HEX = "#ff786e"
 local WAITING_COLOR = Color3.fromRGB(255, 120, 100)
 
-type Row = { ingredients: TextLabel, count: TextLabel, craft: TextButton }
+type Row = { frame: Frame, ingredients: TextLabel, count: TextLabel, craft: TextButton }
 type QueueView = { button: TextButton, swatch: Frame, name: TextLabel, left: TextLabel, time: TextLabel }
 type JobView = {
 	kind: string,
@@ -75,6 +80,9 @@ local jobs: { JobView } = {}
 local sentAt = 0
 -- Station kinds in reach at the last check, as a sorted list joined by commas.
 local nearStations = ""
+local category = "All"
+local tabs: { [string]: TextButton } = {}
+local recipeList: ScrollingFrame
 local nextStationCheck = 0
 
 local function itemName(id: string): string
@@ -306,7 +314,7 @@ local function buildRow(parent: Instance, id: string, order: number)
 	end)
 	place(minus, SMALL_BUTTON)
 
-	rows[id] = { ingredients = ingredients, count = count, craft = craft }
+	rows[id] = { frame = frame, ingredients = ingredients, count = count, craft = craft }
 end
 
 local function buildQueueSlot(parent: Instance, index: number): QueueView
@@ -341,6 +349,50 @@ local function buildQueueSlot(parent: Instance, index: number): QueueView
 	return { button = slot, swatch = swatch, name = name, left = left, time = time }
 end
 
+-- Shows only the recipes filed under `name` ("All" shows every recipe).
+local function selectCategory(name: string)
+	category = name
+	for tabName, tab in tabs do
+		tab.BackgroundColor3 = if tabName == name then TAB_SELECTED_COLOR else BUTTON_COLOR
+	end
+	for id, row in rows do
+		row.frame.Visible = name == "All" or CC.Category[id] == name
+	end
+	recipeList.CanvasPosition = Vector2.zero
+end
+
+local function buildTabs(panel: Frame, top: number)
+	local bar = Instance.new("Frame")
+	bar.Name = "Tabs"
+	bar.Position = UDim2.fromOffset(PADDING, top)
+	bar.Size = UDim2.new(1, -PADDING * 2, 0, TAB_HEIGHT)
+	bar.BackgroundTransparency = 1
+	bar.Parent = panel
+	local layout = Instance.new("UIListLayout")
+	layout.FillDirection = Enum.FillDirection.Horizontal
+	layout.Padding = UDim.new(0, TAB_GAP)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Parent = bar
+	local count = #CC.Categories
+	for order, name in CC.Categories do
+		local tab = button(bar, name, Localization.get(`CraftingCategory{name}`), function()
+			selectCategory(name)
+		end)
+		tab.LayoutOrder = order
+		-- Long names shrink to fit their share of the bar.
+		tab.TextScaled = true
+		local limit = Instance.new("UITextSizeConstraint")
+		limit.MaxTextSize = TAB_TEXT_SIZE
+		limit.Parent = tab
+		local inset = Instance.new("UIPadding")
+		inset.PaddingLeft = UDim.new(0, 2)
+		inset.PaddingRight = UDim.new(0, 2)
+		inset.Parent = tab
+		tab.Size = UDim2.new(1 / count, -TAB_GAP * (count - 1) / count, 1, 0)
+		tabs[name] = tab
+	end
+end
+
 local function buildPanel(): Frame
 	local panel = Instance.new("Frame")
 	panel.Name = "Crafting"
@@ -355,11 +407,14 @@ local function buildPanel(): Frame
 	title.Size = UDim2.new(1, -PADDING * 2, 0, TITLE_HEIGHT)
 	title.Text = Localization.get("CraftingTitle")
 
+	local tabsTop = PADDING * 2 + TITLE_HEIGHT
+	buildTabs(panel, tabsTop)
 	local queueTop = QUEUE_LABEL_HEIGHT + QUEUE_HEIGHT + PADDING
+	local listTop = tabsTop + TAB_HEIGHT + PADDING
 	local list = Instance.new("ScrollingFrame")
 	list.Name = "Recipes"
-	list.Position = UDim2.fromOffset(PADDING, PADDING * 2 + TITLE_HEIGHT)
-	list.Size = UDim2.new(1, -PADDING * 2, 1, -(PADDING * 3 + TITLE_HEIGHT + queueTop))
+	list.Position = UDim2.fromOffset(PADDING, listTop)
+	list.Size = UDim2.new(1, -PADDING * 2, 1, -(listTop + PADDING + queueTop))
 	list.BackgroundTransparency = 1
 	list.BorderSizePixel = 0
 	list.ScrollBarThickness = 4
@@ -373,6 +428,8 @@ local function buildPanel(): Frame
 	for order, id in CC.Order do
 		buildRow(list, id, order)
 	end
+	recipeList = list
+	selectCategory(category)
 
 	local queueLabel = label(panel, "QueueTitle", 12, false)
 	queueLabel.AnchorPoint = Vector2.new(0, 1)
@@ -438,6 +495,7 @@ function CraftingController.start()
 		local def = if typeof(kind) == "string" then BC.Blocks[kind] else nil
 		if def and def.Station then
 			InventoryController.setBackpackOpen(true)
+			selectCategory("Food")
 		end
 	end)
 end
