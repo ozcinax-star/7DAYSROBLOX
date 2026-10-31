@@ -22,6 +22,22 @@ export type ItemCount = { Id: string, Count: number }
 -- A noise event: points added to the Noise meter and the hearing radius of its sound point (studs).
 export type NoiseEvent = { Noise: number, Radius: number }
 
+-- A building block tier (7DTD material). Health: full cube hit points. Placeable: placed from the item
+-- of the same id. UpgradeTo / Upgrade: the next tier and what one upgrade costs. Repair: the item used
+-- for repairs and how many of it repair the block from nothing to full. Climbable: a ladder (players
+-- climb it; zombies walk through it). Material and Color are the look.
+export type BlockDef = {
+	Health: number,
+	Placeable: boolean?,
+	UpgradeTo: string?,
+	Upgrade: ItemCount?,
+	Repair: ItemCount,
+	Climbable: boolean?,
+	Material: string,
+	Color: { number },
+	Transparency: number?,
+}
+
 -- A crafting recipe: Count of item Output from the ingredients. Seconds per craft when given,
 -- otherwise the ingredients' Config.Crafting.IngredientSeconds add up (7DTD).
 export type Recipe = {
@@ -160,6 +176,8 @@ Config.Zombie = {
 	AttackHeightTolerance = 3,
 	-- 7DTD: a common zombie hits for 8 every 1.5 s by day and every 1.1 s at night.
 	AttackDamage = 8,
+	-- 7DTD meleeHandZombieShort DamageBlock: damage to a player block per hit, at the same rate.
+	AttackBlockDamage = 7,
 	-- Arms-out reach before the first grab lands; the client plays the lunge at the same moment.
 	AttackWindup = 0.6,
 	AttackCooldown = 1.5,
@@ -387,16 +405,65 @@ Config.ZombieVisual = {
 	SoundRange = 120,
 }
 
+-- Building blocks (7DTD: place a frame, upgrade it with the stone axe; docs/REFERENCE_7DTD.md).
 Config.Build = {
+	-- Workspace folder of the placed blocks (zombie sight and loot bags treat them as walls and floors).
+	FolderName = "Structures",
+	-- Cube edge in studs; the grid shares its columns with the navigation grid (FlowField.CellSize).
 	GridSize = 4,
-	WallHeight = 8,
-	-- Part cap per world: also a performance limit and the natural ceiling of Trace.
+	-- Block cap per world: also a performance limit and the natural ceiling of Trace.
 	MaxPartsPerWorld = 2000,
+	-- Reach for placing, from the head (PLAN; 7DTD has no single value).
 	MaxPlaceDistance = 24,
 	PlaceCooldown = 0.25,
-	Pieces = {
-		WoodWall = { MaxHealth = 250 },
-	},
+	-- A ray hit point is moved this far off the surface before picking its cell.
+	SurfaceOffset = 0.05,
+	-- A new block may not overlap a wall, a tree or a character; touching faces are fine.
+	OverlapInset = 0.15,
+	-- A block is grounded when terrain or the map is inside its cell or at most this far under it.
+	GroundProbe = 0.3,
+	-- Blocks between a step above the ground and this height block zombies, who break through them.
+	BodyHeight = 6,
+	-- Block health per extra path cost, so zombies path through the weakest wall (PLAN).
+	HealthPerPathCost = 70,
+	-- No building inside a town building's footprint (their upper floors have their own zombie paths).
+	BuildingMargin = 0,
+	-- The tool that upgrades and repairs instead of damaging (7DTD stone axe: secondary action), how
+	-- many of its hits one upgrade takes (UpgradeHitCount 4 - 1) and how much one hit repairs.
+	UpgradeTool = "StoneAxe",
+	UpgradeHits = 3,
+	RepairPerHit = 100,
+	-- Blocks are wood: tools damage them as wood (Config.Tools Materials).
+	HarvestMaterial = "Wood" :: HarvestMaterial,
+	Blocks = {
+		-- frameShapes: 100 HP, upgrades with 8 Wood (4 Lumber here), repair 3 Wood.
+		WoodFrame = {
+			Health = 100,
+			Placeable = true,
+			UpgradeTo = "WoodBlock",
+			Upgrade = { Id = "Lumber", Count = 4 },
+			Repair = { Id = "Wood", Count = 3 },
+			Material = "Wood",
+			Color = { 0.72, 0.56, 0.36 },
+			Transparency = 0.25,
+		},
+		-- woodShapes: 500 HP, repair 3 Wood; its next tier (cobblestone) comes with the stone tier.
+		WoodBlock = {
+			Health = 500,
+			Repair = { Id = "Wood", Count = 3 },
+			Material = "WoodPlanks",
+			Color = { 0.6, 0.44, 0.28 },
+		},
+		-- ladderWood: 150 HP, 3 Wood, repair 3 Wood.
+		WoodLadder = {
+			Health = 150,
+			Placeable = true,
+			Repair = { Id = "Wood", Count = 3 },
+			Climbable = true,
+			Material = "Wood",
+			Color = { 0.55, 0.4, 0.25 },
+		},
+	} :: { [string]: BlockDef },
 }
 
 Config.Camera = {
@@ -433,6 +500,8 @@ Config.Items = {
 	Lumber = { Stack = 6000, Color = { 0.8, 0.62, 0.4 } },
 	ScrapIron = { Stack = 6000, Color = { 0.52, 0.36, 0.3 } }, -- resourceScrapIron
 	Cloth = { Stack = 250, Color = { 0.78, 0.72, 0.6 } }, -- resourceCloth
+	WoodFrame = { Stack = 500, Color = { 0.72, 0.56, 0.36 } }, -- frameShapes
+	WoodLadder = { Stack = 500, Color = { 0.55, 0.4, 0.25 } }, -- ladderWood
 	-- meleeToolRepairT0StoneAxe
 	StoneAxe = { Stack = 1, Durability = 250, Repair = STONE_REPAIR, Color = { 0.45, 0.42, 0.38 } },
 	-- meleeToolShovelT0StoneShovel
@@ -456,10 +525,18 @@ Config.Recipes = {
 	},
 	-- Two wood per lumber keeps 7DTD's wood costs when building parts ask for lumber.
 	Lumber = { Output = "Lumber", Count = 1, Ingredients = costs({ Wood = 2 }) },
+	-- 7DTD: a frame is 2 Wood and a ladder 3 Wood; here building parts take Lumber (PLAN), same wood.
+	WoodFrame = { Output = "WoodFrame", Count = 1, Ingredients = costs({ Lumber = 1 }), Seconds = 0.4 },
+	WoodLadder = {
+		Output = "WoodLadder",
+		Count = 1,
+		Ingredients = costs({ Lumber = 1, Wood = 1 }),
+		Seconds = 0.6,
+	},
 } :: { [string]: Recipe }
 
 Config.Crafting = {
-	Order = { "StoneAxe", "StoneShovel", "StonePickaxe", "Lumber" },
+	Order = { "StoneAxe", "StoneShovel", "StonePickaxe", "Lumber", "WoodFrame", "WoodLadder" },
 	-- 7DTD: a 4-slot queue; only the first slot works at a time.
 	QueueSlots = 4,
 	-- Most crafts one queue slot may hold (7DTD's cap is unconfirmed).
@@ -664,6 +741,9 @@ Config.Debug = {
 		{ Id = "Wood", Count = 50 },
 		{ Id = "SmallStone", Count = 20 },
 		{ Id = "PlantFiber", Count = 20 },
+		{ Id = "Lumber", Count = 20 },
+		{ Id = "WoodFrame", Count = 30 },
+		{ Id = "WoodLadder", Count = 5 },
 	} :: { ItemCount },
 }
 

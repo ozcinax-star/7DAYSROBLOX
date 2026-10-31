@@ -23,7 +23,6 @@ export type SoundPoint = {
 	createdAt: number,
 }
 
-export type BuildPieceKind = "WoodWall"
 
 -- Reserved for later sessions (loot, crafting, perks, save, monetization). Kept here so the
 -- services that come next have a typed contract to implement against.

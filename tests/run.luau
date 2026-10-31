@@ -16,6 +16,7 @@ local Crafting = require("../src/shared/Crafting")
 local Loot = require("../src/shared/Loot")
 local DayClock = require("../src/shared/DayClock")
 local Threat = require("../src/shared/Threat")
+local BuildGrid = require("../src/shared/BuildGrid")
 
 local passed, failed = 0, 0
 
@@ -1002,6 +1003,75 @@ test("a horde is 20 zombies per player in waves spread over the night", function
 			end
 		end
 	end
+end)
+
+print("BuildGrid")
+
+test("cells pack into keys and a block sits next to what the ray hit", function()
+	local size = Config.Build.GridSize
+	for _, cell in { { 0, 0, 0 }, { -3, 7, 12 }, { 255, -40, -256 }, { -1, -1, -1 } } do
+		local cx, cy, cz = BuildGrid.unkey(BuildGrid.key(cell[1], cell[2], cell[3]))
+		expectEq(cx, cell[1], "x")
+		expectEq(cy, cell[2], "y")
+		expectEq(cz, cell[3], "z")
+	end
+	-- Ground at 5.3: the block sinks into it rather than float above it.
+	local cx, cy, cz = BuildGrid.target(10.5, 5.3, -2.2, 0, 1, 0, nil)
+	expectEq(cx, 2, "ground x")
+	expectEq(cz, -1, "ground z")
+	expectEq(cy * size <= 5.3 and (cy + 1) * size > 5.3, true, "sinks, never floats")
+	-- The side of a block: the next cell along the face.
+	local hx, hy, hz = BuildGrid.target(0, 0, 0, 0.97, 0.2, 0.1, { 4, 1, 4 })
+	expectEq(hx, 5, "side x")
+	expectEq(hy, 1, "side y")
+	expectEq(hz, 4, "side z")
+	local ux, uy, uz = BuildGrid.target(0, 0, 0, 0.1, 0.99, 0, { 4, 1, 4 })
+	expectEq(ux * 100 + uy * 10 + uz, 4 * 100 + 2 * 10 + 4, "top face")
+	local x, y, z = BuildGrid.center(1, 2, -1)
+	expectEq(x, 1.5 * size, "centre x")
+	expectEq(y, 2.5 * size, "centre y")
+	expectEq(z, -0.5 * size, "centre z")
+end)
+
+test("blocks across a zombie's height block it, weaker walls are cheaper to path through", function()
+	local size = Config.Build.GridSize
+	expectEq(BuildGrid.obstructs(10 - size, 10), false, "buried under the ground")
+	expectEq(BuildGrid.obstructs(10 - 1, 10), true, "sunk by one stud")
+	expectEq(BuildGrid.obstructs(10 + Config.Build.BodyHeight, 10), false, "above the head")
+	expectEq(BuildGrid.obstructs(10 + 2, 10), true, "a block resting on another")
+	expectEq(BuildGrid.pathCost(0), 2, "least cost")
+	expectEq(BuildGrid.pathCost(1e6), Config.FlowField.StructureCellCost, "most cost")
+	local weak = BuildGrid.pathCost(Config.Build.Blocks.WoodFrame.Health)
+	local strong = BuildGrid.pathCost(Config.Build.Blocks.WoodBlock.Health)
+	expectEq(weak < strong, true, "a frame is cheaper than a wood block")
+end)
+
+test("blocks that lose their way to the ground fall", function()
+	local blocks: { [number]: BuildGrid.Support } = {}
+	local function put(x: number, y: number, z: number, grounded: boolean)
+		blocks[BuildGrid.key(x, y, z)] = { grounded = grounded }
+	end
+	-- Two pillars two blocks high, joined by a bridge on top, and a lone tower.
+	put(0, 0, 0, true)
+	put(0, 1, 0, false)
+	put(3, 0, 0, true)
+	put(3, 1, 0, false)
+	put(1, 1, 0, false)
+	put(2, 1, 0, false)
+	put(9, 0, 9, true)
+	put(9, 1, 9, false)
+	put(9, 2, 9, false)
+	local removed = BuildGrid.key(0, 0, 0)
+	blocks[removed] = nil
+	expectEq(#BuildGrid.unsupported(blocks, removed), 0, "the bridge still stands on the other pillar")
+	removed = BuildGrid.key(3, 0, 0)
+	blocks[removed] = nil
+	expectEq(#BuildGrid.unsupported(blocks, removed), 4, "both pillars gone: bridge and tops fall")
+	removed = BuildGrid.key(9, 1, 9)
+	blocks[removed] = nil
+	local falling = BuildGrid.unsupported(blocks, removed)
+	expectEq(#falling, 1, "the top of the tower falls")
+	expectEq(falling[1], BuildGrid.key(9, 2, 9), "which block")
 end)
 
 print(`\n{passed} passed, {failed} failed`)

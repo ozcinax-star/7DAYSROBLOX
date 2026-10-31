@@ -277,6 +277,19 @@ function Inventory.wear(inv: Inventory, index: number, amount: number): number?
 	return left
 end
 
+-- Uses up `count` items of the stack in slot `index` (a placed block); false when it holds fewer.
+function Inventory.consume(inv: Inventory, index: number, count: number): boolean
+	local slot = inv.slots[index]
+	if slot == false or slot == nil or count <= 0 or slot.count < count then
+		return false
+	end
+	slot.count -= count
+	if slot.count == 0 then
+		inv.slots[index] = false
+	end
+	return true
+end
+
 -- Empties slot `index` and returns what it held, or nil for an empty or invalid slot.
 function Inventory.takeSlot(inv: Inventory, index: number): Stack?
 	local slot = inv.slots[index]
