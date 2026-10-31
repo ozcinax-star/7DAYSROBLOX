@@ -901,6 +901,17 @@ test("pipe guns: rifle and shotgun reload every shot, shells fire 10 pellets, ai
 	assert(Config.Remotes.UseToolRequestsPerSecond >= 1 / weapons.PipeMachineGun.ShotSeconds, "rate limit fits")
 end)
 
+test("wood spikes: twelve hits wear out a new trap, 20 wood, zombies walk across", function()
+	local def = Config.Build.Blocks.WoodSpikes
+	local spikes = Config.Build.Spikes
+	expectEq(math.ceil(def.Health / spikes.Wear), 12, "three 7DTD stages of four hits")
+	expectEq(spikes.Damage, 33, "7DTD damage")
+	expectEq(def.Passable and def.Trap and def.Placeable, true, "a placeable trap zombies pass")
+	expectEq(Config.Recipes.WoodSpikes.Ingredients[1].Id, "Wood", "wood")
+	expectEq(Config.Recipes.WoodSpikes.Ingredients[1].Count, 20, "twenty")
+	assert(Config.Items.WoodSpikes, "item")
+end)
+
 print("Farming")
 
 test("crops ripen in two 7DTD stages and pay 2-3 produce and their seed back", function()

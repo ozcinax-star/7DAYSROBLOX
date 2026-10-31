@@ -120,6 +120,7 @@ local Strings: { [string]: { [string]: string } } = {
 		ItemAmmo762mm = "7.62mm Ammo",
 		ItemAmmoShotgunShell = "Shotgun Shell",
 		ItemWoodBars = "Wood Bars",
+		ItemWoodSpikes = "Wood Spikes",
 		ItemAmmo9mm = "9mm Ammo",
 		ItemMetalPipe = "Metal Pipe",
 		ItemGlue = "Glue",

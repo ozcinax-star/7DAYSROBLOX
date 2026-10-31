@@ -69,6 +69,7 @@ export type BlockDef = {
 	Storage: boolean?,
 	Station: boolean?,
 	Bars: boolean?,
+	Trap: boolean?,
 	Material: string,
 	Color: { number },
 	Transparency: number?,
@@ -645,6 +646,21 @@ Config.Build = {
 			Material = "Metal",
 			Color = { 0.3, 0.3, 0.32 },
 		},
+		-- trapSpikesWoodDmg0: 20 Wood, repaired with 10. Three 100 HP stages (Dmg0, Dmg1, Dmg2), each
+		-- worn 33 by every zombie it hurts, so four hits a stage: here one 300 HP block worn 25 a hit
+		-- (the same twelve hits). Its box is invisible and walked through; the stakes are decoration
+		-- and show the stage. Zombies walk across (ours: 7DTD paths them around spikes when it can).
+		WoodSpikes = {
+			Health = 300,
+			Placeable = true,
+			Repair = { Id = "Wood", Count = 10 },
+			Size = { 3.6, 1.2, 3.6 },
+			Passable = true,
+			Trap = true,
+			Material = "Wood",
+			Color = { 0.5, 0.38, 0.24 },
+			Transparency = 1,
+		},
 		-- 7DTD campfire: a cooking station, 100 hit points (MaxDamage), stone. A low ring zombies walk
 		-- past (ours: 7DTD zombies path around it).
 		Campfire = {
@@ -660,6 +676,19 @@ Config.Build = {
 	} :: { [string]: BlockDef },
 	-- Height of a farm plot slab (studs); crops stand on it.
 	PlotHeight = 0.8,
+	-- Spike traps (BlockDef Trap): a zombie whose body (Melee.BodyRadius) overlaps the trap's box and
+	-- whose feet are within Reach studs of its floor takes Damage (7DTD trapSpikesWood 33) at most
+	-- every HitSeconds (ours) and walks at SlowFactor of its speed (7DTD MtrapSpikesWood
+	-- movement_factor 0.18) until the next check; the trap loses Wear a hit. Traps are checked every
+	-- CheckSeconds. Players are not hurt (ours).
+	Spikes = {
+		Damage = 33,
+		Wear = 25,
+		HitSeconds = 1,
+		SlowFactor = 0.18,
+		Reach = 1.5,
+		CheckSeconds = 0.2,
+	},
 }
 
 Config.Camera = {
@@ -743,6 +772,7 @@ Config.Items = {
 	WoodLadder = { Stack = 500, Color = { 0.55, 0.4, 0.25 } }, -- ladderWood
 	WoodDoor = { Stack = 500, Color = { 0.5, 0.36, 0.22 } }, -- oldWoodDoor
 	WoodBars = { Stack = 500, Color = { 0.55, 0.4, 0.25 } },
+	WoodSpikes = { Stack = 50, Color = { 0.5, 0.38, 0.24 } },
 	-- meleeToolRepairT0StoneAxe
 	StoneAxe = { Stack = 1, Durability = 250, Repair = STONE_REPAIR, Color = { 0.45, 0.42, 0.38 } },
 	-- meleeToolShovelT0StoneShovel
@@ -843,6 +873,8 @@ Config.Recipes = {
 	StorageCrate = { Output = "StorageCrate", Count = 1, Ingredients = costs({ Lumber = 4 }), Seconds = 7 },
 	-- Ours: three lumber, like three frames' worth of wood.
 	WoodBars = { Output = "WoodBars", Count = 1, Ingredients = costs({ Lumber = 3 }) },
+	-- trapSpikesWoodDmg0: 20 Wood in the backpack (7DTD 3.2 recipes.xml).
+	WoodSpikes = { Output = "WoodSpikes", Count = 1, Ingredients = costs({ Wood = 20 }) },
 	-- 7DTD 3.2 campfire: 5 Small Stone; cooking happens at a campfire. Times are the ingredients'
 	-- CraftingIngredientTime (river water 10, potato 10, corn 5).
 	Campfire = { Output = "Campfire", Count = 1, Ingredients = costs({ SmallStone = 5 }) },
@@ -928,6 +960,7 @@ Config.Crafting = {
 		"WoodLadder",
 		"WoodDoor",
 		"WoodBars",
+		"WoodSpikes",
 		"StorageCrate",
 		"Dirt",
 		"FarmPlot",
@@ -1765,6 +1798,7 @@ Config.Debug = {
 		{ Id = "Corn", Count = 3 },
 		{ Id = "PipePistol", Count = 1 },
 		{ Id = "WoodBars", Count = 10 },
+		{ Id = "WoodSpikes", Count = 5 },
 		{ Id = "Ammo9mm", Count = 30 },
 		{ Id = "PipeRifle", Count = 1 },
 		{ Id = "PipeShotgun", Count = 1 },

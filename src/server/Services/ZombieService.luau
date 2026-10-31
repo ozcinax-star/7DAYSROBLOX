@@ -92,6 +92,9 @@ type Zombie = {
 	-- While entering: once inside, the zombie stops walking at this deadline.
 	insideUntil: number,
 	stunUntil: number,
+	-- Until slowUntil the zombie walks at slowFactor of its speed (spike traps).
+	slowUntil: number,
+	slowFactor: number,
 	-- Navigation level (GROUND or UPPER) and, while on the stairs, the flight and its direction.
 	level: number,
 	stair: StairLink?,
@@ -475,6 +478,9 @@ end
 -- Steps toward (tx, tz), sliding along walls. Player structures stop the step: a zombie aimed into
 -- one, or stuck against it, is marked as pushing it (stepZombie decides whether it breaks it).
 local function moveToward(zombie: Zombie, tx: number, tz: number, speed: number, dt: number)
+	if zombie.slowUntil > os.clock() then
+		speed *= zombie.slowFactor
+	end
 	local dx = tx - zombie.x
 	local dz = tz - zombie.z
 	local dist = math.sqrt(dx * dx + dz * dz)
@@ -1033,6 +1039,8 @@ local function spawnOne(players: { PlayerInfo }, now: number, horde: boolean): b
 		building = building,
 		insideUntil = 0,
 		stunUntil = 0,
+		slowUntil = 0,
+		slowFactor = 1,
 		level = level,
 		stair = nil,
 		stairUp = false,
@@ -1503,6 +1511,15 @@ function ZombieService.damage(id: number, amount: number, attacker: Player?): bo
 	end
 	zombie.dormant = false
 	return false
+end
+
+-- Slows a zombie to `factor` of its speed for `seconds` (spike traps; 7DTD movement_factor).
+function ZombieService.slow(id: number, factor: number, seconds: number)
+	local zombie = zombies[id]
+	if zombie then
+		zombie.slowFactor = factor
+		zombie.slowUntil = os.clock() + seconds
+	end
 end
 
 -- Registers a listener for zombie deaths (body position, killing player if any).

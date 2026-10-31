@@ -6,8 +6,9 @@
 -- break, open, they walk through it (7DTD zombies never open doors). A farm plot is a low slab crops
 -- grow on (FarmService); it blocks nobody. Generators, lamps and storage crates are smaller boxes on
 -- the floor of their cell (PowerService and StorageService give them their prompts); lamps let
--- zombies by. The stone axe upgrades a frame to a wood block (3 hits, 4 Lumber) and repairs damaged
--- blocks with wood; other tools and the fist damage them.
+-- zombies by. Wood spikes are a trap zombies walk into: it hurts and slows them and wears out. The
+-- stone axe upgrades a frame to a wood block (3 hits, 4 Lumber) and repairs damaged blocks with wood;
+-- other tools and the fist damage them.
 -- Zombies path through the weakest wall and break it (ZombieService structure cells); blocks that
 -- lose their way to the ground fall.
 --
@@ -21,6 +22,7 @@ local CollectionService = game:GetService("CollectionService")
 local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -77,6 +79,10 @@ local groundParams: RaycastParams
 local mapOverlap: OverlapParams
 local doorLimiter: RateLimiter.RateLimiter
 local removedCallbacks: { (key: number) -> () } = {}
+-- Spike traps, and the next time each zombie may be hurt by one.
+local traps: { [Block]: boolean } = {}
+local trapHitAt: { [number]: number } = {}
+local trapClock = 0
 local placedCallbacks: { (key: number, kind: string, part: BasePart) -> () } = {}
 
 local function setTrace()
@@ -139,6 +145,7 @@ local function removeBlock(block: Block)
 	if block.top then
 		blocks[block.top] = nil
 	end
+	traps[block] = nil
 	count -= 1
 	block.part:Destroy()
 	updateColumn(block.cx, block.cz)
@@ -158,6 +165,22 @@ local function destroyBlock(block: Block)
 	setTrace()
 end
 
+-- Spike traps show their 7DTD stage: a third of the stakes go with each third of the health.
+local function showStage(block: Block)
+	if not traps[block] then
+		return
+	end
+	local def = BC.Blocks[block.kind]
+	-- Nine stakes: all at stage one, six at stage two, three at stage three.
+	local shown = math.ceil(block.health / def.Health * 3) * 3
+	for _, stake in block.part:GetChildren() do
+		local index = stake:GetAttribute("Stake")
+		if stake:IsA("BasePart") and typeof(index) == "number" then
+			stake.Transparency = if index <= shown then 0 else 1
+		end
+	end
+end
+
 local function damageBlock(block: Block, amount: number)
 	block.health -= amount
 	if block.health <= 0 then
@@ -165,6 +188,7 @@ local function damageBlock(block: Block, amount: number)
 		return
 	end
 	block.part:SetAttribute("Health", block.health)
+	showStage(block)
 	updateColumn(block.cx, block.cz)
 end
 
@@ -265,6 +289,42 @@ local function addCage(part: BasePart, color: Color3)
 	end
 end
 
+-- Spike trap decoration: a plank base and a 3 x 3 field of leaning stakes (no collision, no queries).
+local function addSpikes(part: BasePart, color: Color3)
+	local function piece(name: string, size: Vector3, offset: CFrame, stake: number?)
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Anchored = true
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CanTouch = false
+		p.CastShadow = false
+		p.Material = Enum.Material.Wood
+		p.Color = color
+		p.Size = size
+		p.CFrame = part.CFrame * offset
+		if stake then
+			p:SetAttribute("Stake", stake)
+		end
+		p.Parent = part
+	end
+	local size = part.Size
+	local floor = -size.Y / 2
+	piece("Base", Vector3.new(size.X, 0.2, size.Z), CFrame.new(0, floor + 0.1, 0))
+	local spacing = size.X / 3
+	local index = 0
+	for row = -1, 1 do
+		for column = -1, 1 do
+			index += 1
+			-- Alternate the lean so the field looks hand made.
+			local lean = math.rad(if (row + column) % 2 == 0 then 14 else -14)
+			local offset = CFrame.new(column * spacing, floor + size.Y / 2, row * spacing)
+				* CFrame.Angles(lean, math.rad(45), 0)
+			piece("Stake", Vector3.new(0.25, size.Y, 0.25), offset, index)
+		end
+	end
+end
+
 local function createBlock(cx: number, cy: number, cz: number, kind: string, grounded: boolean, side: number)
 	local x, y, z = BuildGrid.center(cx, cy, cz)
 	local def = BC.Blocks[kind]
@@ -317,6 +377,12 @@ local function createBlock(cx: number, cy: number, cz: number, kind: string, gro
 	if def.Bars then
 		part.CollisionGroup = BC.BarsGroup
 		addCage(part, Color3.new(def.Color[1], def.Color[2], def.Color[3]))
+	end
+	if def.Trap then
+		-- 7DTD spikes collide with melee only: players and zombies walk into the cell.
+		part.CanCollide = false
+		addSpikes(part, Color3.new(def.Color[1], def.Color[2], def.Color[3]))
+		traps[block] = true
 	end
 	if def.Door then
 		local prompt = Instance.new("ProximityPrompt")
@@ -447,6 +513,7 @@ local function work(player: Player, block: Block)
 		if InventoryService.take(player, { [def.Repair.Id] = cost }) then
 			block.health += repaired
 			block.part:SetAttribute("Health", block.health)
+			showStage(block)
 			updateColumn(block.cx, block.cz)
 		end
 		return
@@ -478,6 +545,39 @@ local function onWorldHit(player: Player, result: RaycastResult, toolId: string,
 		work(player, block)
 	else
 		damageBlock(block, Harvest.blockDamage(tool.BlockDamage, tool.Materials[BC.HarvestMaterial]))
+	end
+end
+
+-- Zombies standing in a spike trap take its damage and slow down; the trap wears with every hit.
+local function checkTraps(now: number)
+	for id, at in trapHitAt do
+		if now >= at then
+			trapHitAt[id] = nil
+		end
+	end
+	local spikes = BC.Spikes
+	for block in traps do
+		local part = block.part
+		local p = part.Position
+		local floor = p.Y - part.Size.Y / 2
+		-- The zombie's body touches the stakes.
+		local halfX = part.Size.X / 2 + Config.Melee.BodyRadius
+		local halfZ = part.Size.Z / 2 + Config.Melee.BodyRadius
+		for _, body in ZombieService.bodiesNear(Vector3.new(p.X, floor, p.Z), SIZE * 2) do
+			local feet = body.y + Config.Melee.HitBottom
+			local inside = math.abs(body.x - p.X) < halfX
+				and math.abs(body.z - p.Z) < halfZ
+				and math.abs(feet - floor) < spikes.Reach
+			if inside and trapHitAt[body.id] == nil then
+				trapHitAt[body.id] = now + spikes.HitSeconds
+				ZombieService.slow(body.id, spikes.SlowFactor, spikes.HitSeconds + spikes.CheckSeconds)
+				ZombieService.damage(body.id, spikes.Damage)
+				damageBlock(block, spikes.Wear)
+				if blocks[block.key] ~= block then
+					break
+				end
+			end
+		end
 	end
 end
 
@@ -582,6 +682,14 @@ function BuildService.start()
 	end
 	ToolService.onWorldHit(onWorldHit)
 	ZombieService.onStructureHit(onStructureHit)
+	RunService.Heartbeat:Connect(function(dt)
+		trapClock += dt
+		if trapClock < BC.Spikes.CheckSeconds or next(traps) == nil then
+			return
+		end
+		trapClock = 0
+		checkTraps(os.clock())
+	end)
 	Players.PlayerRemoving:Connect(function(player)
 		nextPlaceAt[player] = nil
 	end)
