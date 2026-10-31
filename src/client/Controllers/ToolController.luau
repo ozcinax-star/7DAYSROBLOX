@@ -1,6 +1,7 @@
 --!strict
--- ToolController: swings the held tool, or the fist. Left mouse, gamepad R2, or the Hit button on
--- touch; holding keeps swinging at the tool's rate. The server decides what is hit; this client
+-- ToolController: swings the held tool, or the fist; with a block in the hand the same input places
+-- it (BuildService). Left mouse, gamepad R2, or the Hit button on touch; holding keeps swinging at the
+-- tool's rate. The server decides what is hit; this client
 -- only sends its aim and animates. Its own swing plays at once, other players' swings and the
 -- zombie stagger come from the server's ToolSwing broadcast.
 --
@@ -171,7 +172,7 @@ local function canSwing(source: Source): boolean
 end
 
 -- Unit direction from the head to what is under the cursor (free mouse) or the screen centre.
-local function aimDirection(): Vector3?
+function ToolController.aimDirection(): Vector3?
 	local character = player.Character
 	local head = character and character:FindFirstChild("Head")
 	local camera = workspace.CurrentCamera
@@ -202,13 +203,22 @@ local function trySwing(source: Source)
 		return
 	end
 	local held = InventoryController.getHeld()
+	if held and Config.Build.Blocks[held.id] then
+		-- A block in the hand is placed, not swung (BuildController shows where).
+		local aim = ToolController.aimDirection()
+		if aim then
+			nextSwingAt = now + Config.Build.PlaceCooldown
+			useRemote:FireServer(aim)
+		end
+		return
+	end
 	local toolId = if held and Config.Tools[held.id] then held.id else FIST
 	if held and toolId ~= FIST and held.durability == 0 then
 		showMessage(Localization.get("ToolBroken", { item = Localization.get(`Item{held.id}`) }))
 		nextSwingAt = now + MC.MessageSeconds
 		return
 	end
-	local aim = aimDirection()
+	local aim = ToolController.aimDirection()
 	if aim == nil then
 		return
 	end

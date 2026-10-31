@@ -1,0 +1,122 @@
+--!strict
+-- BuildController: while a block item is in the hand, a see-through cube shows where "use" will put
+-- it, green when the spot looks free and supported, red otherwise. The cell comes from the same
+-- raycast and Shared/BuildGrid math as the server's; the server decides.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local BuildGrid = require(Shared.BuildGrid)
+local Config = require(Shared.Config)
+
+local InventoryController = require(script.Parent.InventoryController)
+local ToolController = require(script.Parent.ToolController)
+
+local BC = Config.Build
+local GHOST_TRANSPARENCY = 0.65
+local GHOST_INSET = 0.04
+local VALID_COLOR = Color3.fromRGB(110, 220, 120)
+local INVALID_COLOR = Color3.fromRGB(230, 80, 70)
+
+local BuildController = {}
+
+local player = Players.LocalPlayer
+local ghost: Part
+local structures: Folder
+-- Terrain and the map, what carries a block (the server's groundParams).
+local groundParams = RaycastParams.new()
+groundParams.FilterType = Enum.RaycastFilterType.Exclude
+groundParams.RespectCanCollide = true
+groundParams.IgnoreWater = true
+
+local function cellOfPart(part: Instance): { number }?
+	if not part:IsDescendantOf(structures) then
+		return nil
+	end
+	local x, y, z = part:GetAttribute("CellX"), part:GetAttribute("CellY"), part:GetAttribute("CellZ")
+	if typeof(x) == "number" and typeof(y) == "number" and typeof(z) == "number" then
+		return { x, y, z }
+	end
+	return nil
+end
+
+local function occupied(cx: number, cy: number, cz: number): boolean
+	local x, y, z = BuildGrid.center(cx, cy, cz)
+	local params = OverlapParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	local ignored: { Instance } = { ghost }
+	for _, other in Players:GetPlayers() do
+		if other.Character then
+			table.insert(ignored, other.Character)
+		end
+	end
+	params.FilterDescendantsInstances = ignored
+	params.RespectCanCollide = true
+	local size = Vector3.one * (BC.GridSize - BC.OverlapInset * 2)
+	return #Workspace:GetPartBoundsInBox(CFrame.new(x, y, z), size, params) > 0
+end
+
+local function supported(cx: number, cy: number, cz: number): boolean
+	for _, step in BuildGrid.NEIGHBOURS do
+		local x, y, z = BuildGrid.center(cx + step[1], cy + step[2], cz + step[3])
+		for _, part in Workspace:GetPartBoundsInRadius(Vector3.new(x, y, z), 0.5) do
+			if part:IsDescendantOf(structures) then
+				return true
+			end
+		end
+	end
+	local x, y, z, length = BuildGrid.groundRay(cx, cy, cz)
+	return Workspace:Raycast(Vector3.new(x, y, z), Vector3.new(0, -length, 0), groundParams) ~= nil
+end
+
+local function update()
+	local held = InventoryController.getHeld()
+	local def = held and BC.Blocks[held.id]
+	local character = player.Character
+	local head = character and character:FindFirstChild("Head")
+	local aim = if def and not InventoryController.isBackpackOpen() then ToolController.aimDirection() else nil
+	if aim == nil or character == nil or head == nil or not head:IsA("BasePart") then
+		ghost.Parent = nil
+		return
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { character, ghost }
+	params.IgnoreWater = true
+	params.RespectCanCollide = true
+	local result = Workspace:Raycast(head.Position, aim * BC.MaxPlaceDistance, params)
+	if result == nil then
+		ghost.Parent = nil
+		return
+	end
+	local p, n = result.Position, result.Normal
+	local cx, cy, cz = BuildGrid.target(p.X, p.Y, p.Z, n.X, n.Y, n.Z, cellOfPart(result.Instance))
+	local x, y, z = BuildGrid.center(cx, cy, cz)
+	ghost.CFrame = CFrame.new(x, y, z)
+	local valid = not occupied(cx, cy, cz) and supported(cx, cy, cz)
+	ghost.Color = if valid then VALID_COLOR else INVALID_COLOR
+	ghost.Parent = Workspace.CurrentCamera
+end
+
+function BuildController.init() end
+
+function BuildController.start()
+	structures = Workspace:WaitForChild(BC.FolderName) :: Folder
+	groundParams.FilterDescendantsInstances = { structures, Workspace.CurrentCamera }
+	ghost = Instance.new("Part")
+	ghost.Name = "BuildGhost"
+	ghost.Anchored = true
+	ghost.CanCollide = false
+	ghost.CanQuery = false
+	ghost.CanTouch = false
+	ghost.CastShadow = false
+	ghost.Material = Enum.Material.SmoothPlastic
+	ghost.Transparency = GHOST_TRANSPARENCY
+	ghost.Size = Vector3.one * (BC.GridSize - GHOST_INSET * 2)
+	RunService.PreRender:Connect(update)
+end
+
+return BuildController
