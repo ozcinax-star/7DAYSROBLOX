@@ -120,6 +120,9 @@ Config.Zombie = {
 	-- Non-horde zombies are slow walkers (The Walking Dead style): a player walking at 16 studs/s
 	-- outpaces them; the danger is numbers and being cornered. Speeds in studs/s.
 	ChaseSpeed = 5,
+	-- Horde-night zombies run. 7DTD's default blood moon speed is a sprint, 4.5x the day walk, which
+	-- would outrun a walking player here; we use its "jog" setting, 2.2x (lerp(0.3, 1.35, 0.35) / 0.3).
+	HordeChaseSpeed = 11,
 	-- Walking toward a heard sound.
 	SeekSpeed = 4,
 	WanderSpeed = 2,

@@ -81,6 +81,8 @@ type Zombie = {
 	speedFactor: number,
 	-- Sleepers stand still until they notice a player.
 	dormant: boolean,
+	-- Horde-night zombies always know where the nearest player is and run (7DTD blood moon).
+	horde: boolean,
 	wanderMode: WanderMode,
 	-- Index into buildingNavs while entering, lingering in or leaving a building; on the upper level
 	-- always the building the zombie is in.
@@ -201,6 +203,7 @@ local diedCallbacks: { DiedCallback } = {}
 local aliveCount = 0
 local nextId = 1
 local spawnQueue = 0
+local hordeQueue = 0
 local nextWaveTime = 0
 
 local removedIds: { number } = {}
@@ -620,7 +623,7 @@ end
 local function stateSpeed(zombie: Zombie): number
 	local state = zombie.state
 	local base = if state == "Chase" or state == "AttackPlayer"
-		then ZC.ChaseSpeed
+		then (if zombie.horde then ZC.HordeChaseSpeed else ZC.ChaseSpeed)
 		elseif state == "SeekSound" then ZC.SeekSpeed
 		else ZC.WanderSpeed
 	return base * zombie.speedFactor
@@ -703,6 +706,10 @@ local function stepZombie(zombie: Zombie, players: { PlayerInfo }, now: number, 
 
 	-- Direct sight overrides sounds. Sleepers see less, but wake when a player bumps into them.
 	local state = zombie.state
+	if zombie.horde and nearest and (zombie.targetPlayer == nil or (state ~= "Chase" and state ~= "AttackPlayer")) then
+		startChase(zombie, nearest.player)
+		state = zombie.state
+	end
 	if state ~= "Chase" and state ~= "AttackPlayer" and nearest and now >= zombie.nextSightCheck then
 		zombie.nextSightCheck = now + ZC.SightCheckInterval
 		local sight = if zombie.dormant then ZC.DormantSightRange else ZC.SightRange
@@ -728,13 +735,17 @@ local function stepZombie(zombie: Zombie, players: { PlayerInfo }, now: number, 
 	if state == "Chase" or state == "AttackPlayer" then
 		local target = findPlayerInfo(players, zombie.targetPlayer)
 		if target == nil then
-			enterSearch(zombie, now, zombie.x, zombie.z)
+			-- A horde zombie whose target left or died goes for the next player.
+			zombie.targetPlayer = nil
+			if not zombie.horde then
+				enterSearch(zombie, now, zombie.x, zombie.z)
+			end
 			return
 		end
 		local dx = target.x - zombie.x
 		local dz = target.z - zombie.z
 		local dist = math.sqrt(dx * dx + dz * dz)
-		if dist > ZC.SightRange * ZC.LoseSightMultiplier then
+		if not zombie.horde and dist > ZC.SightRange * ZC.LoseSightMultiplier then
 			enterSearch(zombie, now, target.x, target.z)
 			return
 		end
@@ -754,7 +765,7 @@ local function stepZombie(zombie: Zombie, players: { PlayerInfo }, now: number, 
 		end
 		setState(zombie, "Chase")
 		local entry = playerFields[target.player]
-		local speed = ZC.ChaseSpeed * zombie.speedFactor
+		local speed = stateSpeed(zombie)
 		travel(zombie, target.x, target.z, target.level, target.building, entry and entry.field, speed, dt, now)
 	elseif state == "SeekSound" then
 		local dx = zombie.goalX - zombie.x
@@ -911,7 +922,7 @@ local function pickSpawnPoint(players: { PlayerInfo }): (number?, number?)
 	return nil, nil
 end
 
-local function spawnOne(players: { PlayerInfo }, now: number): boolean
+local function spawnOne(players: { PlayerInfo }, now: number, horde: boolean): boolean
 	local id = allocateId()
 	if id == nil then
 		return false
@@ -919,7 +930,7 @@ local function spawnOne(players: { PlayerInfo }, now: number): boolean
 	local dormant = false
 	local x, z
 	local level, building = GROUND, 0
-	if math.random() < ZC.IndoorSpawnChance then
+	if not horde and math.random() < ZC.IndoorSpawnChance then
 		x, z, level, building = pickIndoorSpawnPoint(players)
 		dormant = x ~= nil
 	end
@@ -941,6 +952,7 @@ local function spawnOne(players: { PlayerInfo }, now: number): boolean
 		state = "Idle",
 		speedFactor = 1 + randomRange(-ZC.SpeedJitter, ZC.SpeedJitter),
 		dormant = dormant,
+		horde = horde,
 		wanderMode = "Free",
 		building = building,
 		insideUntil = 0,
@@ -972,19 +984,24 @@ local function spawnOne(players: { PlayerInfo }, now: number): boolean
 end
 
 local function processSpawnQueue(players: { PlayerInfo }, now: number)
-	if spawnQueue <= 0 or now < nextWaveTime then
+	if (spawnQueue <= 0 and hordeQueue <= 0) or now < nextWaveTime then
 		return
 	end
 	local capped = false
-	while spawnQueue > 0 do
+	while spawnQueue > 0 or hordeQueue > 0 do
 		if aliveCount >= Config.Horde.MaxConcurrent then
 			capped = true
 			break
 		end
-		if not spawnOne(players, now) then
+		local horde = hordeQueue > 0
+		if not spawnOne(players, now, horde) then
 			break
 		end
-		spawnQueue -= 1
+		if horde then
+			hordeQueue -= 1
+		else
+			spawnQueue -= 1
+		end
 	end
 	if capped then
 		-- Remaining zombies arrive as the next wave once slots are free.
@@ -1324,10 +1341,40 @@ function ZombieService.start()
 	RunService.Heartbeat:Connect(onHeartbeat)
 end
 
--- Queues `count` zombies; up to Horde.MaxConcurrent are alive at once, the rest arrive in waves.
-function ZombieService.spawn(count: number)
-	spawnQueue += math.max(0, math.floor(count))
-	nextWaveTime = 0
+-- Queues `count` zombies (horde-night zombies with `horde`); up to Horde.MaxConcurrent are alive at
+-- once, the rest arrive in waves.
+function ZombieService.spawn(count: number, horde: boolean?)
+	-- A queue that is already waiting for the cap keeps its wave timer.
+	if spawnQueue <= 0 and hordeQueue <= 0 then
+		nextWaveTime = 0
+	end
+	if horde then
+		hordeQueue += math.max(0, math.floor(count))
+	else
+		spawnQueue += math.max(0, math.floor(count))
+	end
+end
+
+-- Zombies queued and not yet spawned: ordinary ones, then horde ones.
+function ZombieService.queued(): (number, number)
+	return spawnQueue, hordeQueue
+end
+
+-- Horde night is over: the horde zombies left become ordinary zombies.
+function ZombieService.endHorde()
+	hordeQueue = 0
+	for _, zombie in zombies do
+		zombie.horde = false
+	end
+end
+
+-- Calls `callback` for every living zombie: id, position, whether it is chasing or attacking a
+-- player, and whether it belongs to the horde.
+function ZombieService.forEach(callback: (id: number, position: Vector3, busy: boolean, horde: boolean) -> ())
+	for id, zombie in zombies do
+		local busy = zombie.state == "Chase" or zombie.state == "AttackPlayer"
+		callback(id, Vector3.new(zombie.x, zombie.y, zombie.z), busy, zombie.horde)
+	end
 end
 
 -- Despawns a zombie without a death (no corpse, no loot).
@@ -1341,6 +1388,7 @@ end
 
 function ZombieService.clear()
 	spawnQueue = 0
+	hordeQueue = 0
 	for id in zombies do
 		ZombieService.remove(id)
 	end
@@ -1477,7 +1525,7 @@ function ZombieService.getStats(): Stats
 	end
 	local stats = {
 		alive = aliveCount,
-		queued = spawnQueue,
+		queued = spawnQueue + hordeQueue,
 		tickMs = tickMsAvg,
 		tickMaxMs = tickMsMax,
 		stepsPerSecond = stepsPerSecond,
