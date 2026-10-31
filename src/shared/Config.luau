@@ -120,6 +120,9 @@ export type RangedDef = {
 	ReloadSeconds: number?,
 	SpreadDegrees: number?,
 	Noise: Types.NoiseKind?,
+	-- Shot sound asset ("rbxassetid://..."), played at the muzzle by every client; "" is silent until
+	-- an asset is chosen (NEXT_STEPS).
+	SoundId: string,
 }
 
 -- Ammo: entity damage, launch speed (m/s) and gravity (m/s^2) of its projectile. Tracer: clients
@@ -1050,6 +1053,7 @@ Config.Ranged = {
 			DamageOffset = -5,
 			SpeedShare = 0.7,
 			MaxRange = 100,
+			SoundId = "",
 		},
 		-- gunHandgunT0PipePistol: 126 rounds a minute, 6-round magazine, about 2 s reload, -4 damage,
 		-- 40 m range, 1.5 degree hip spread (no aiming here). Its damage falloff past 12 m is not in.
@@ -1063,6 +1067,7 @@ Config.Ranged = {
 			ReloadSeconds = 2,
 			SpreadDegrees = 1.5,
 			Noise = "Gunshot",
+			SoundId = "",
 		},
 	} :: { [string]: RangedDef },
 	Ammo = {
@@ -1079,6 +1084,10 @@ Config.Ranged = {
 	-- Client look of a bullet: tracer length (studs) and how long the muzzle flash shows (seconds).
 	TracerLength = 5,
 	FlashSeconds = 0.06,
+	-- Shot sounds: volume, how far they are heard (studs) and how long one may play (seconds).
+	SoundVolume = 1,
+	SoundRange = 180,
+	SoundSeconds = 4,
 }
 
 local function drop(id: string, min: number, max: number?): Drop

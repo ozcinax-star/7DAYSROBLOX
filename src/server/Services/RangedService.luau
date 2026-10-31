@@ -200,7 +200,7 @@ local function onShoot(player: Player, origin: Vector3, direction: Vector3, item
 		range = weapon.MaxRange * MC.StudsPerMeter,
 	}
 	inFlight[player] = (inFlight[player] or 0) + 1
-	firedRemote:FireAllClients(id, origin, velocity, gravity, Workspace:GetServerTimeNow(), ammoId)
+	firedRemote:FireAllClients(id, origin, velocity, gravity, Workspace:GetServerTimeNow(), ammoId, itemId)
 end
 
 function RangedService.init()

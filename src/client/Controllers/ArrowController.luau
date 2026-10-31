@@ -2,7 +2,8 @@
 -- ArrowController: draws the arrows and bullets RangedService flies. Each launch comes with its origin,
 -- velocity, gravity, server time and ammo; the client runs the same arc (Shared/Ballistics) every
 -- frame, pins an arrow where the server says it stopped and removes it a few seconds later. Bullets
--- are bright tracers with a muzzle flash and vanish where they stop. A zombie hit flinches.
+-- are bright tracers with a muzzle flash and vanish where they stop. A zombie hit flinches. The
+-- weapon's shot sound plays at the muzzle when it has one.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -84,13 +85,30 @@ local function flash(origin: Vector3)
 	end)
 end
 
+-- Plays a shot sound at `origin`; its attachment goes after Config.Ranged.SoundSeconds, even when the
+-- asset never loads.
+local function playShot(origin: Vector3, soundId: string)
+	local point = Instance.new("Attachment")
+	point.Name = "ShotSound"
+	point.Position = origin
+	local sound = Instance.new("Sound")
+	sound.SoundId = soundId
+	sound.Volume = RC.SoundVolume
+	sound.RollOffMaxDistance = RC.SoundRange
+	sound.Parent = point
+	point.Parent = Workspace.Terrain
+	sound:Play()
+	task.delay(RC.SoundSeconds, point.Destroy, point)
+end
+
 local function onFired(
 	id: unknown,
 	origin: unknown,
 	velocity: unknown,
 	gravity: unknown,
 	launchedAt: unknown,
-	ammoId: unknown
+	ammoId: unknown,
+	weaponId: unknown
 )
 	if
 		typeof(id) ~= "number"
@@ -102,6 +120,10 @@ local function onFired(
 		return
 	end
 	remove(id)
+	local weapon = if typeof(weaponId) == "string" then RC.Weapons[weaponId] else nil
+	if weapon and weapon.SoundId ~= "" then
+		playShot(origin, weapon.SoundId)
+	end
 	local ammo = if typeof(ammoId) == "string" then RC.Ammo[ammoId] else nil
 	local tracer = ammo ~= nil and ammo.Tracer == true
 	local part = Instance.new("Part")
