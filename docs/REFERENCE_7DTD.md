@@ -45,6 +45,14 @@ Bu dosya PLAN.md'deki kapsam kuralının istediği referanstır: ana referans 7 
 | Tamir maliyeti | Bloğun RepairItems'ı (ahşap 3 odun), hasara orantılı | Vuruş başına 100 can, payı yukarı yuvarlanır (çerçeve tam tamir 3, ahşap blok 5 odun) | Kesirli eşya yok |
 | Yapısal destek | Malzeme başına yapışkanlık / kütle; ahşap 8 blok yatay | Yalnızca yere bağlantı | Basit tutuldu |
 | Blok bina içinde | POI'lerin içine de konur | Kasaba binası tabanına konmaz | Üst kat yol bulma katmanı yapıyı bilmiyor |
+| Hayatta kalma zaman tabanı | Yemek / su / can saat başına (varsayılan 60 dk gün = 1 gün) | Oyun günü başına aynı sayılar (11 dk); dayanıklılık ve açlık hasarı gerçek saniye | PLAN Kararlar |
+| Yeniden doğuş | Varsayılan ceza XP borcu; istatistikler dolu | İstatistikler dolu; ham kaynakların yarısı 5 dk'lık torbada | PLAN ölüm cezası |
+| Koşma hızı | m/s yok (MotorAcceleration çarpanları) | 16 yürüme, 24 koşma stud/sn | Roblox varsayılanı + yarım kat |
+| Tükenmiş koşu | Kaynakta yok | 0'da biter, 25'te yeniden başlar | Titreme olmasın |
+| Kademe blokajı tabanı | Kaynakta yok (iki stat da son kademedeyse %120) | Dayanıklılık tavanı en az 10 | Oyuncu hiç vuramaz olmasın |
+| Göl suyu | El "Drink": +10 su, −5 can, %12 dizanteri | +10 su, −5 can; dizanteri yok | Dizanteri sonra |
+| Zombi torbasında içecek | Meyve suyu, çay, kahve, bira; düz su yok | Şişe su ve bulanık su | O içecekler yok |
+| Bandaj | Düz bandaj 0 can (yalnızca kanama); ilk yardım bandajı 30 can / 15 sn | Yalnızca ilk yardım bandajı, torbadan | Kanama yok |
 | Ot ve yerdeki taş | Biyoma göre her yerde blok | 26 stud'luk orman hücrelerinde şansla; kasabada ot var, taş ve kaya yok | Parça sayısı; PLAN: kasabada kaya yok |
 
 ---
@@ -1427,3 +1435,97 @@ From Stealth.txt and entityclasses **[XML]**, plus the developer quote **[FORUM]
 13. **Food max base 100** is from the code default; no XML line sets it.
 14. **Patch notes on 7daystodie.com were not consulted.** They would answer gap 12 and confirm the version boundaries; every version claim here comes from diffing the XML mirror.
 15. **The v3.2 `ToolCategory harvestingTools` multipliers** (0.5 on clubs, bat and sledge) are inert under V1.1 code, because no natural block drop has a `tool_category`. Whether 3.x code changed that is unverified.
+
+---
+
+# Bölüm C: yiyecek, su, ilaç, ölüm, tarım
+
+## 7 Days to Die: food, water, medical, death and farming (numbers reference)
+
+**Sources.** Game XML from the tassoneroberto mirror. Consumables were checked in v1.0, v2.6 and v3.2
+and match except the v1.0 rows noted. Loot and death data come from v3.2, with v1.0 checked for
+respawn. [WIKI] marks the few answers the XML does not have. Researched 31 October 2026.
+
+**How eating works [XML v3.2 `buffs.xml`].** Food points go in at 1 a second (`buffHealFood`). The
+health on food heals over time at 0.5 a second (`buffHealHealth`). "Max stamina" is +10 maximum
+stamina for about 423 s (`buffFoodStaminaBonus`). A cooked meal costs 5 water.
+
+### C1. Consumables [XML v2.6/v3.2]
+
+| Item (internal name) | Food | Water | Health (over time) | Other | Stack |
+|---|---|---|---|---|---|
+| Can of Chili (`foodCanChili`) | 15 | 0 | +7 | — | 10 |
+| Can of Beef / Chicken / Lamb | 15 | 0 | +7 | — | 10 |
+| Can of Dog Food / Cat Food | 10 | 0 | +5 | — | 10 |
+| Grilled Corn (`foodCornOnTheCob`) | 10 | −5 | +5 | +10 max stamina | 10 |
+| Baked Potato | 10 | −5 | +5 | +10 max stamina | 10 |
+| Charred Meat | 10 | −5 | +5 | +10 max stamina | 10 |
+| Grilled Meat | 10 | 0 | +5 | +10 max stamina | 10 |
+| Blueberries, Potato (raw) | 2 | 0 | 0 | — | 125 |
+| Corn, Yucca fruit (raw) | 2 | 0 | +3 | — | 125 |
+| Murky Water (`drinkJarRiverWater`) | 0 | 10 | −5 at once | 12 % dysentery | 10 |
+| Water (`drinkJarBoiledWater`) | 0 | 20 | 0 | — | 10 |
+| Pure Mineral Water | 0 | 60 | 0 | Red Tea buff ~363 s | 10 |
+| Yucca Juice | 0 | 34 | 0 | — | 10 |
+
+- Canned food gives no water in 1.x and later.
+- v1.0: Murky Water stacks to 125, blueberries give 1 food, raw corn heals 1.
+- Recipes (campfire): Charred Meat 5 raw meat; Grilled Meat and Grilled Corn need a grill; Water
+  (1 Murky Water) and Yucca Juice (1 yucca fruit + 1 Water) need a cooking pot. Drinking from a jar
+  gives the empty jar back.
+- Dysentery: 12 % base (perks lower it); each catch adds 1080 to its counter (cap 3600); each attack
+  costs 1.5 water and 0.5 food per tick for 5.5 s.
+
+### C2. Drinking from a lake or river
+
+The bare hand (`meleeHandPlayer`) has a "Drink" action on water blocks in v1.0, v2.6 and v3.2:
++10 water, −5 health at once, 12 % dysentery roll, about 1 s per drink. An empty jar fills with
+Murky Water at a river in 3.4 s.
+
+### C3. Medical [XML v2.6/v3.2]
+
+| Item | Healing | Recipe | Stack |
+|---|---|---|---|
+| Bandage | 0 health; only stops bleeding, usable only while bleeding | 10 Cloth | 10 |
+| First Aid Bandage | 30 health over ~15 s (Physician ranks: 37.5 / 45 / 60); stops bleeding | 1 Bandage + 1 Aloe Cream (learned) | 5 |
+
+Cloth: 1 cotton plant, or 20 yucca fibres (learnable). Aloe Cream: 4 aloe leaves.
+
+### C4. Death and respawn [XML v3.2; same in v1.0]
+
+| DeathPenalty option | Respawn |
+|---|---|
+| None | Food, water, health and stamina at max; no XP debt |
+| XP Only (the `default` sequence) | XP debt; food, water, health and stamina at max; debuffs removed |
+| Injured | XP debt; food and water at 50 %; dysentery and infection stay |
+| Permanent Death | Character, map, land claims and bedroll reset |
+
+For 6.5 s after respawning: +100 physical resist and health held full. The wiki's "90 %
+health / food / water" does not match the XML. Which option is the default is not in the XML; the
+event naming suggests XP Only (unconfirmed).
+
+### C5. Farming [XML v3.2; growth also v1.0/v2.6]
+
+- **Farm Plot:** 4 wood, 10 rotting flesh, 25 potassium nitrate, 100 clay, 20 s; craftable from the
+  start. Zombies cannot spawn on a player-placed plot.
+- **Seeds:** 5 of the crop make 1 seed (unlocked: blueberry level 12, corn 18, potato 20); very rare
+  in cupboard loot.
+- **Growth:** stage 1 → stage 2 → harvestable, 63 min each (~126 min total), real time [WIKI]. Light
+  level 8+ [WIKI]. **No water needed** (removed in Alpha 9.2).
+- **Yield:** 2 crops without perks; 50 % chance to get the seed back; breaking a growing crop returns
+  its seed. Living Off The Land: +100 % / +100 % / +200 %.
+- **Zombies:** no XML rule; zombies walk through crops (trampling removed in Alpha 10 [WIKI]).
+
+### C6. Loot that carries food [XML v3.2]
+
+- Regular and feral zombies drop a bag 4 % of the time (charged 10 %).
+- `zPackReg`: ammo plus one pick from `groupZpackReg01`: food, drinks, medical, scrap, cobblestone
+  and glue at high (0.75) each, duct tape 0.5, two items at 0.05. Read as weights, ~15 % food and
+  ~15 % drink per bag.
+- Food in bags (`groupFoodUncommon`): cans of beef, chili, dog food, sham, lamb, pasta, peas, salmon,
+  stock, tuna. Drinks (`groupDrinksUncommon`): Yucca Juice, Goldenrod Tea, Red Tea, Coffee, Beer —
+  no plain water.
+- **Cupboard:** mostly food trash (bone, rotting flesh, raw corn or potato 0.35, sham sandwich);
+  common food 0.05; 20 % extra roll for ingredients or seeds.
+- **Cooler:** `groupDrinksCommon` high (empty jar base, Murky Water 0.35, Water 0.20, Mineral Water
+  0.05); common and uncommon food 0.20 each.

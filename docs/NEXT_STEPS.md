@@ -24,7 +24,8 @@ Yol haritası notu ve Kararlar tablosu).
 | Gündüz-gece | Bitti: 11 dk döngü, gün sayacı, horde gecesi işareti, gece daha sık saldırı |
 | Tehdit ve horde | Bitti: Gürültü / İz / 5 kademe, ortam nüfusu, oyuncu başına 20 zombilik horde dalgaları |
 | İnşa (ahşap) | Bitti: çerçeve, ahşap blok, merdiven; yükseltme, tamir, çökme, zombiler duvar kırar |
-| Hayatta kalma, kazı, silahlar, tarım, kapı | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
+| Hayatta kalma | Bitti: dayanıklılık, yemek, su, kademeler, koşma, zıplama, konserve / su / bandaj, gölden içme, ölüm torbası, HUD |
+| Kazı, kapı, silahlar, tarım, bina kapları | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
 | Kapı 1: 80 zombiyle orta seviye telefonda 30 FPS | **Ölçülmedi**; kullanıcı erteledi |
 | Kapı 2: 3 kişilik test grubu "bir gece daha" diyor | Henüz yapılamaz |
 
@@ -66,7 +67,6 @@ küçük taş ve bitki lifi 6000'lik yığın. Kalanlar:
 
 `6be883f`, `1b0fb72`. Kalanlar (7DTD'de var):
 - Güçlü vuruş (sağ tık): 2× veya 2,25× hasar, daha çok stamina.
-- Stamina: vuruş başına stamina; stamina yetmezse vuruş yok. Hayatta kalma istatistikleriyle birlikte.
 - Vuruş sesi ve ThreatService'e gürültü; isabet efekti.
 - PvP lobi seçeneği gelince oyuncuya vuruş.
 
@@ -98,8 +98,7 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 `74caafe`, `8c39766`, `531edd1`. Kalanlar:
 - **Torba penceresi:** 7DTD'de torba açılınca 18 slotluk pencere çıkar ve eşya tek tek alınır;
   bizde arama sığan her şeyi alır. Sandık / iş istasyonu arayüzüyle birlikte.
-- **İçerik:** yiyecek, su, ilaç, mermi ve kitap yok (hayatta kalma istatistikleri ve silahlar
-  gelince tabloya eklenecek).
+- **İçerik:** mermi ve kitap yok (silahlar gelince). Yiyecek, su ve bandaj eklendi.
 - **Üst üste torbalar:** aynı noktada ölen zombilerin torbaları üst üste duruyor; prompt en
   yakınını seçiyor.
 - **Bina loot'u:** binaların `Loot` özelliği (`Food`, `Medical`, …) aynı servisle kaplara bağlanacak.
@@ -119,7 +118,6 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Ortam ipuçları:** uzaktan inlemeler, ufukta sürü, karga, telsiz (PLAN tasarım kuralı 1).
 - **Horde hedefi:** PLAN'da İz horde'un hedefini belirler; şimdilik en yakın oyuncu. Üs gelince en
   yüksek İz'li üs.
-- **Koşma gürültüsü:** koşma (sprint) yok; hayatta kalma adımında stamina ile gelecek.
 - **Yığılma:** kovalama hâlinde hareketsiz kalan birkaç zombi görüldü (Chase, 0 stud/sn); duvar ya
   da merdiven kuyruğu olabilir, incelenmedi.
 
@@ -134,17 +132,31 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Bina içi:** kasaba binalarının tabanına blok konamaz (üst kat yol bulma katmanı yapıyı bilmiyor).
 - **Çerçeveyi geri alma:** 7DTD'de çerçeve toplanabilir; bizde yok.
 - **Kazık tuzağı:** 20 odun, 33 hasar, 3 aşınma kademesi.
-- **Zombinin üstteki oyuncuya ulaşması:** blok kulesinin tepesindeki oyuncuya zombi vuramaz; kule
-  sütununu yalnızca yol bulma oraya götürürse kırar. Ölçülmedi.
+- **Zombinin üstteki oyuncuya ulaşması:** 2 blokluk sütunun tepesindeki oyuncunun altındaki sütunu
+  zombiler ~20 sn'de kırdı (ölçüldü). Daha yüksek kule ve köprü ölçülmedi.
 - **Kayıt:** bloklar sunucu kapanınca kaybolur (kalıcılık adımı).
 
-### 9. Kazılabilir zemin
+### 9. Hayatta kalma (bitti, 31 Ekim)
+
+`c46dd6a`, `3b49494`, `1d61b94`, `b74fe9c`. Kalanlar:
+- **Yiyecek kaynağı az.** Şimdilik yalnızca zombi torbası (%20 torba × ~%16 yemek ≈ 30 zombide bir
+  konserve; günde 2 konserve gerekir). 7DTD'de erken yemek evlerdeki dolap / buzdolabı / soğutucudan
+  ve avdan gelir. Sıradaki iş bina kapları (binaların `Loot` özelliği hazır).
+- **Kamp ateşi ve pişirme:** bulanık su → su (tencere), et, mısır; pişmiş yemeğin +10 maks
+  dayanıklılık etkisi.
+- **Dizanteri** (bulanık su ve göl %12), **kanama** (bandaj yalnızca onu durdurur), kırık bacak.
+- **Yabani yiyecek:** yaban mersini, yucca, mısır bitkileri (her biri 2 yemek).
+- **Ölüm torbası herkese açık;** sahibine özel değil.
+- **Telefon:** HUD üst ortada, Run düğmesi Hit'in solunda; ikisi de ölçülmedi.
+- **İçme ipucu** ("Use to drink") Play'de görülmedi; kamera kodla aşağı eğilemedi.
+
+### 10. Kazılabilir zemin
 
 - Malzeme sınıfına göre voxel canı. Kazınca eşya verir (kil, taş).
 - Yasak alanlar: bina çevresi, asfalt ve kaldırım, su kenarı, ana kaya sınırı.
 - MapService yükseklik ızgarası ve yol bulma güncellenir.
 
-### 10. Sonra
+### 11. Sonra
 
 - **Araç zinciri:** Kullanıcı `rokit install` ve `rojo plugin install` komutlarını kendisi çalıştırır.
   Sonra `stylua --check src tests`, `selene src`, `lune run tests/run`, `rojo build -o build.rbxl`
@@ -169,9 +181,6 @@ Hepsi [REFERENCE_7DTD.md](REFERENCE_7DTD.md) dosyasında; başında bizim uyarla
 
 ## Sonra: 7DTD'den gelecekler
 
-- **Hayatta kalma istatistikleri:** can, stamina, yemek, su 100. Stamina saniyede 10 dolar, koşu net
-  −4,5/sn, zıplama 20. Yemek saatte 30, su 40 düşer (gerçek saat = 1 oyun günü). Can dakikada 1 dolar
-  (Roblox'un varsayılan %1/sn yenilenmesi kapatılır).
 - **Zombilerin oyuncuya girmesi:** saldıran zombi oyuncudan en az bir gövde mesafesinde durmalı.
 - **Taşıma yükü:** 45 slotun 27'si cezasız; sonrası her slot %2,6 yavaşlatır.
 - **Alet kalitesi (1–6).**
