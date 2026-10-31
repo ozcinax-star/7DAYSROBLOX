@@ -31,6 +31,7 @@ Yol haritası notu ve Kararlar tablosu).
 | Yakın dövüş silahları | Bitti: tahta sopa, taş mızrak; toplamada dörtte bir verim |
 | Yay ve ok | Bitti: ilkel yay, taş ok, sunucuda yerçekimli uçuş |
 | Boru tabanca | Bitti: 9 mm, şarjör 6, doldurma, sapma, atış gürültüsü; tutkal kamp ateşinde kemikten |
+| Tahta parmaklık | Bitti: 3 kereste, 300 can; zombiyi durdurur, mermi / ok / mızrak içinden geçer |
 | Tarım | Bitti: tarla, 3 ekin, büyüme, hasat, tohum geri |
 | Jeneratör ve lamba | Bitti: benzin, aç/kapa, 48 stud'da 50 W, gürültü ve İz |
 | Grafik ayarları | Bitti: Auto / Low / Medium / High, yalnızca istemci, gece görüşü sabit |
@@ -290,7 +291,17 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Dayanıklılık:** 300 bizim; 7DTD'nin temel değeri doğrulanamadı.
 - **Kemik:** 7DTD'de cesetten ve hayvandan; bizde zombi torbasında.
 
-### 20. Sonra
+### 20. Tahta parmaklık (bitti, 31 Ekim)
+
+`b39694a`. Kalanlar:
+- **Görünüm:** kafesin görüntüsü bu gece beyaz gelen ekran görüntüsü yüzünden gözle doğrulanmadı.
+- **İnce parmaklık:** 7DTD'de parmaklık ince bir bloktur; bizde tam 4 stud'luk hücre. Mızrak yine
+  uzanıyor (7,3 stud), sopa ve balta uzanmayabilir.
+- **Demir parmaklık:** PLAN'da sonraki aşama (dövme demir ve demirci ocağı ister).
+- **Pencere:** PLAN MVP'deki pencere yok; parmaklık şimdilik pencere boşluğunun yerini tutar.
+- **Loot torbası:** torba parmaklığın kutusunun üstüne düşer (diğer bloklar gibi).
+
+### 21. Sonra
 
 - **Araç zinciri:** Kullanıcı `rokit install` ve `rojo plugin install` komutlarını kendisi çalıştırır.
   Sonra `stylua --check src tests`, `selene src`, `lune run tests/run`, `rojo build -o build.rbxl`
