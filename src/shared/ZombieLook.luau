@@ -4,6 +4,7 @@
 
 local Config = require("./Config")
 local Noise = require("./World/Noise")
+local ZombieAssets = require("./ZombieAssets")
 
 local VC = Config.ZombieVisual
 
@@ -34,6 +35,10 @@ export type Look = {
 	phase: number,
 	yaw: number,
 	twitchSeed: number,
+	-- Textured head (index into ZombieAssets.Heads) and torso (index into ZombieAssets.Torsos, 0 = a
+	-- shirt-coloured block).
+	headMesh: number,
+	torsoMesh: number,
 }
 
 local ZombieLook = {}
@@ -113,6 +118,8 @@ function ZombieLook.fromId(id: number): Look
 		phase = roll(id, 14) * math.pi * 2,
 		yaw = roll(id, 15) * math.pi * 2,
 		twitchSeed = math.floor(roll(id, 16) * 1000),
+		headMesh = math.floor(roll(id, 18) * #ZombieAssets.Heads) + 1,
+		torsoMesh = if roll(id, 19) < VC.MeshTorsoChance then math.floor(roll(id, 20) * #ZombieAssets.Torsos) + 1 else 0,
 	}
 end
 

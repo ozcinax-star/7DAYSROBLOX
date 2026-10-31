@@ -520,6 +520,9 @@ Config.ZombieVisual = {
 	},
 	-- Chance that sleeves / trouser legs are torn away and rotten skin shows.
 	BareArmChance = 0.45,
+	-- Share of zombies drawn with a textured torso mesh (Shared/ZombieAssets); the rest keep a shirt-
+	-- coloured block, so a crowd mixes clothes. Every zombie gets one of the textured heads.
+	MeshTorsoChance = 0.5,
 	BareShinChance = 0.25,
 	-- Death: collapse time, then the body lies still before it is removed.
 	DeathFallSeconds = 0.8,

@@ -17,6 +17,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Noise = require(Shared.World.Noise)
+local ZombieAssets = require(Shared.ZombieAssets)
 local ZombieLook = require(Shared.ZombieLook)
 
 local VC = Config.ZombieVisual
@@ -43,6 +44,14 @@ local HEAD = V(0.82, 1, 0.88)
 local HEAD_UP = 0.55
 local UPPER_ARM = V(0.36, 1, 0.36)
 local FOREARM = V(0.32, 1, 0.32)
+-- Limbs are cylinders (axis along X), turned onto the hanging -Y axis when posed.
+local LIMB_TURN = CFrame.Angles(0, 0, math.pi / 2)
+-- Textured meshes are drawn slightly larger than their block so they meet the limbs: the head
+-- reaches the neck, the shirt the shoulders and hips.
+local HEAD_MESH_SCALE = V(1.12, 1.12, 1.12)
+local TORSO_MESH_SCALE = V(1.22, 1.06, 1.4)
+-- How much of the head texture's own colour survives the skin tint (1 = untinted).
+local HEAD_TINT_KEEP = 0.2
 -- Face and wound details, relative to the head / torso centre.
 local JAW = V(0.6, 0.2, 0.6)
 local JAW_HINGE = V(0, -0.45, 0.22)
@@ -83,6 +92,9 @@ export type Rig = {
 	scale: number,
 	-- The head came off (decapitating kill): head and face stay hidden.
 	headless: boolean,
+	-- Textured head / torso: their own face and wounds replace the block details.
+	meshHead: boolean,
+	meshTorso: boolean,
 }
 
 -- Per-frame pose input. The render controller keeps one per zombie and updates it in place.
@@ -123,9 +135,31 @@ local function color(c: { number }): Color3
 	return Color3.new(c[1], c[2], c[3])
 end
 
-local function makePart(model: Model, name: string, size: Vector3, tint: { number }, material: Enum.Material): Part
+-- Draws `part` with a textured mesh scaled onto the part's size.
+local function dress(part: BasePart, asset: ZombieAssets.Mesh, fit: Vector3)
+	local mesh = Instance.new("SpecialMesh")
+	mesh.MeshType = Enum.MeshType.FileMesh
+	mesh.MeshId = asset.mesh
+	mesh.TextureId = asset.texture
+	mesh.Scale = part.Size / V(asset.size[1], asset.size[2], asset.size[3]) * fit
+	mesh.Parent = part
+	part.Color = Color3.new(1, 1, 1)
+end
+
+-- Whether detail `index` (jaw, sockets, eyes, wound) stays hidden: a lost or textured head has no
+-- block face, a textured torso carries its own wounds.
+local function detailHidden(rig: Rig, index: number): boolean
+	if index <= 5 then
+		return rig.headless or rig.meshHead
+	end
+	return rig.meshTorso
+end
+
+local function makeShape(model: Model, name: string, size: Vector3, tint: { number }, material: Enum.Material,
+	shape: Enum.PartType): Part
 	local part = Instance.new("Part")
 	part.Name = name
+	part.Shape = shape
 	part.Size = size
 	part.Color = color(tint)
 	part.Material = material
@@ -138,6 +172,15 @@ local function makePart(model: Model, name: string, size: Vector3, tint: { numbe
 	part.CastShadow = false
 	part.Parent = model
 	return part
+end
+
+local function makePart(model: Model, name: string, size: Vector3, tint: { number }, material: Enum.Material): Part
+	return makeShape(model, name, size, tint, material, Enum.PartType.Block)
+end
+
+-- A rounded limb: a cylinder whose length (`size.Y`) runs along its X axis (see LIMB_TURN).
+local function makeLimb(model: Model, name: string, size: Vector3, tint: { number }, material: Enum.Material): Part
+	return makeShape(model, name, V(size.Y, size.X, size.Z), tint, material, Enum.PartType.Cylinder)
 end
 
 function ZombieRig.build(id: number): Rig
@@ -155,14 +198,14 @@ function ZombieRig.build(id: number): Rig
 		makePart(model, "Pelvis", PELVIS * s, look.pants, cloth),
 		makePart(model, "Torso", TORSO * s, look.shirt, cloth),
 		makePart(model, "Head", HEAD * s, look.face, skin),
-		makePart(model, "LeftUpperArm", UPPER_ARM * s, armTint, armMaterial),
-		makePart(model, "LeftForearm", FOREARM * s, look.extremity, skin),
-		makePart(model, "RightUpperArm", UPPER_ARM * s, armTint, armMaterial),
-		makePart(model, "RightForearm", FOREARM * s, look.extremity, skin),
-		makePart(model, "LeftThigh", THIGH * s, look.pants, cloth),
-		makePart(model, "LeftShin", SHIN * s, shinTint, shinMaterial),
-		makePart(model, "RightThigh", THIGH * s, look.pants, cloth),
-		makePart(model, "RightShin", SHIN * s, shinTint, shinMaterial),
+		makeLimb(model, "LeftUpperArm", UPPER_ARM * s, armTint, armMaterial),
+		makeLimb(model, "LeftForearm", FOREARM * s, look.extremity, skin),
+		makeLimb(model, "RightUpperArm", UPPER_ARM * s, armTint, armMaterial),
+		makeLimb(model, "RightForearm", FOREARM * s, look.extremity, skin),
+		makeLimb(model, "LeftThigh", THIGH * s, look.pants, cloth),
+		makeLimb(model, "LeftShin", SHIN * s, shinTint, shinMaterial),
+		makeLimb(model, "RightThigh", THIGH * s, look.pants, cloth),
+		makeLimb(model, "RightShin", SHIN * s, shinTint, shinMaterial),
 	}
 	local detail = {
 		makePart(model, "Jaw", JAW * s, look.extremity, skin),
@@ -173,7 +216,20 @@ function ZombieRig.build(id: number): Rig
 		makePart(model, "Wound", WOUND * s, VC.WoundColor, Enum.Material.Slate),
 	}
 	model.PrimaryPart = core[2]
-	return {
+	local head = ZombieAssets.Heads[look.headMesh]
+	if head then
+		dress(core[3], head, HEAD_MESH_SCALE)
+		-- Warm the textured face toward this zombie's skin so it matches its bare limbs.
+		local face = look.face
+		local k = 1 / math.max(face[1], face[2], face[3], 0.01)
+		local mesh = core[3]:FindFirstChildOfClass("SpecialMesh") :: SpecialMesh
+		mesh.VertexColor = V(face[1] * k, face[2] * k, face[3] * k):Lerp(Vector3.one, HEAD_TINT_KEEP)
+	end
+	local torso = ZombieAssets.Torsos[look.torsoMesh]
+	if torso then
+		dress(core[2], torso, TORSO_MESH_SCALE)
+	end
+	local rig: Rig = {
 		model = model,
 		core = core,
 		detail = detail,
@@ -181,7 +237,15 @@ function ZombieRig.build(id: number): Rig
 		look = look,
 		scale = s,
 		headless = false,
+		meshHead = head ~= nil,
+		meshTorso = torso ~= nil,
 	}
+	for index, part in detail do
+		if detailHidden(rig, index) then
+			part.Transparency = 1
+		end
+	end
+	return rig
 end
 
 function ZombieRig.newPose(id: number): Pose
@@ -215,8 +279,7 @@ function ZombieRig.setDetailVisible(rig: Rig, visible: boolean)
 	rig.detailVisible = visible
 	local transparency = if visible then 0 else 1
 	for index, part in rig.detail do
-		-- The face (jaw, sockets, eyes) goes with a lost head; the wound stays.
-		part.Transparency = if rig.headless and index <= 5 then 1 else transparency
+		part.Transparency = if detailHidden(rig, index) then 1 else transparency
 	end
 end
 
@@ -235,7 +298,7 @@ function ZombieRig.setTransparency(rig: Rig, transparency: number)
 	end
 	if rig.detailVisible then
 		for index, part in rig.detail do
-			part.Transparency = if rig.headless and index <= 5 then 1 else transparency
+			part.Transparency = if detailHidden(rig, index) then 1 else transparency
 		end
 	end
 end
@@ -384,9 +447,9 @@ function ZombieRig.pose(rig: Rig, p: Pose, parts: { BasePart }, cframes: { CFram
 		local shoulder = waist * CF(side * SHOULDER_X * s, SHOULDER_UP * s, 0) * ANG(pitch, 0, side * spread)
 		local elbowJoint = shoulder * CF(0, -UPPER_ARM.Y * s, 0) * ANG(elbow, 0, 0)
 		parts[n + 1] = core[2 + index * 2]
-		cframes[n + 1] = shoulder * CF(0, -UPPER_ARM.Y / 2 * s, 0)
+		cframes[n + 1] = shoulder * CF(0, -UPPER_ARM.Y / 2 * s, 0) * LIMB_TURN
 		parts[n + 2] = core[3 + index * 2]
-		cframes[n + 2] = elbowJoint * CF(0, -FOREARM.Y / 2 * s, 0)
+		cframes[n + 2] = elbowJoint * CF(0, -FOREARM.Y / 2 * s, 0) * LIMB_TURN
 		n += 2
 	end
 
@@ -411,9 +474,9 @@ function ZombieRig.pose(rig: Rig, p: Pose, parts: { BasePart }, cframes: { CFram
 		local hip = pelvisPivot * CF(side * HIP_X * s, 0, 0) * ANG(thighPitch, 0, turnOut)
 		local kneeJoint = hip * CF(0, -THIGH.Y * s, 0) * ANG(-knee, 0, 0)
 		parts[n + 1] = core[6 + index * 2]
-		cframes[n + 1] = hip * CF(0, -THIGH.Y / 2 * s, 0)
+		cframes[n + 1] = hip * CF(0, -THIGH.Y / 2 * s, 0) * LIMB_TURN
 		parts[n + 2] = core[7 + index * 2]
-		cframes[n + 2] = kneeJoint * CF(0, -SHIN.Y / 2 * s, 0)
+		cframes[n + 2] = kneeJoint * CF(0, -SHIN.Y / 2 * s, 0) * LIMB_TURN
 		n += 2
 	end
 

@@ -433,6 +433,24 @@ end)
 
 print("ZombieLook")
 
+test("every zombie gets a textured head; about half a textured torso", function()
+	local ZombieAssets = require("../src/shared/ZombieAssets")
+	local heads, meshTorsos = {}, 0
+	for id = 1, 400 do
+		local look = ZombieLook.fromId(id)
+		assert(ZombieAssets.Heads[look.headMesh] ~= nil, "head " .. id)
+		heads[look.headMesh] = true
+		if look.torsoMesh ~= 0 then
+			assert(ZombieAssets.Torsos[look.torsoMesh] ~= nil, "torso " .. id)
+			meshTorsos += 1
+		end
+	end
+	for index in ZombieAssets.Heads do
+		assert(heads[index], "head variant unused " .. index)
+	end
+	assert(meshTorsos > 140 and meshTorsos < 260, "torso share " .. meshTorsos)
+end)
+
 test("a zombie looks the same on every client", function()
 	local a = ZombieLook.fromId(1234)
 	local b = ZombieLook.fromId(1234)
