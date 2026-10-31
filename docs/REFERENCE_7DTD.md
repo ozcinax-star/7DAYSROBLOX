@@ -1051,6 +1051,30 @@ Notes on planting:
 - Wiki: [wiki.gg Small Stone](https://7daystodie.wiki.gg/wiki/Small_Stone)
 - The pickup key comes from a community tutorial only (not authoritative).
 
+### 3b. Furniture **[XML v3.2]**
+
+HP is the material's `MaxDamage` (materials.xml) unless the block sets its own. Drops tagged
+`salvageHarvest` go only to salvage tools (wrench, ratchet); `allHarvest` drops go to any tool.
+
+| Block | Material (HP) | Harvest | Destroy | Ours |
+|---|---|---|---|---|
+| `cntCabinetBottomFiller` | `Mwood_weak` (100) | none | 1–3 Wood | cabinets, counters, dressers, TV stands, dining tables |
+| `cntDeskWoodFull` | `Mwood_weak` (100) | none | 2–6 Wood | desks |
+| `cntFootlockerClosedWhite` | `MwoodReinforced` (225) | none | 1–3 Wood | crates |
+| (couches and beds not checked) | `Mfurniture` (300) | | | beds, sofas, armchairs, booths: 1–3 Wood + 1–3 Cloth (ours); wardrobes, bookshelves, workbenches: 2–6 Wood (ours) |
+| `cntRetroFridgeVer1Closed` | `Mmetal` (300) | 1–2 Scrap Iron (salvage) | 3–6 Scrap Iron | fridges, hospital beds, filing cabinets, store shelves, lockers, storage racks |
+| `cntStoveOldVer1Closed` | `Mmetal_weak` (100) | none | 3–6 Scrap Iron | stoves, medicine cabinets, waiting seats |
+| `deskLampLight02White` | `Mmetal_thin` (250) | 1–4 Electrical Parts (tool category not checked) | 5 Scrap Iron | floor lamps (Destroy only) |
+| `cntToilet01` | `MstoneFurniture` (300) | 5–10 Scrap Iron (salvage) | 1–2 Metal Pipe | toilets |
+| `cntCabinetGraniteSinkHoleRound` | `Mmetal` (300) | 2–4 Metal Pipe, 1–5 Brass, 1–5 Lead | 5–8 Scrap Iron | basins, kitchen sinks (Destroy only) |
+| `cntBathTubEmpty` | `MstoneNoGlue`, `MaxDamage=200` | 12 Small Stone + 4 Scrap Iron (all tools) | 0 | bathtubs |
+| `hayBaleSquare` | `Mhay` (50, earth) | 5–8 Yucca Fibers (all tools) | 0 | hay bales (Plant Fiber) |
+| `Mplants` | (1) | | | potted plants: 1–2 Plant Fiber (ours) |
+
+Material classes (materials.xml v3.2): `Mwood_weak` 100, `MwoodReinforced` 225, `Mfurniture` 300,
+`Mmetal` 300, `Mmetal_weak` 100, `Mmetal_thin` 250, `MstoneFurniture` 300, `MstoneNoGlue` 500,
+`Mhay` 50, `Mcloth` 5, `Mplants` 1.
+
 ---
 
 ### 4. Terrain digging

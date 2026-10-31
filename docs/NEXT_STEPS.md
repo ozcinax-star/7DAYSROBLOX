@@ -32,6 +32,7 @@ Yol haritası notu ve Kararlar tablosu).
 | Yay ve ok | Bitti: ilkel yay, taş ok, sunucuda yerçekimli uçuş |
 | Boru tabanca | Bitti: 9 mm, şarjör 6, doldurma, sapma, atış gürültüsü; tutkal kamp ateşinde kemikten |
 | Tahta parmaklık | Bitti: 3 kereste, 300 can; zombiyi durdurur, mermi / ok / mızrak içinden geçer |
+| Mobilya kırma | Bitti: 30 tür kasaba mobilyası 7DTD canı ve düşüşleriyle kırılır; kap içindekini döker |
 | Tarım | Bitti: tarla, 3 ekin, büyüme, hasat, tohum geri |
 | Jeneratör ve lamba | Bitti: benzin, aç/kapa, 48 stud'da 50 W, gürültü ve İz |
 | Grafik ayarları | Bitti: Auto / Low / Medium / High, yalnızca istemci, gece görüşü sabit |
@@ -255,7 +256,7 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Pencereler:** pencere altındaki duvar (denizlik 4 stud) yol bulmada duvar sayılır; zombi
   pencereden girmez, bu yüzden pencereyi kapatmaya gerek yok. 7DTD'de
   zombiler pencere kırar; gelirse pencere de barikatlanabilir olmalı.
-- **Binayı yıkmak:** harita parçaları (duvar, kapı kanadı, mobilya) kırılmaz. 7DTD'de her blok
+- **Binayı yıkmak:** harita parçaları (duvar, kapı kanadı) kırılmaz; mobilya artık kırılıyor (§21). 7DTD'de her blok
   kırılır; bizde binalar yüzlerce parça ve yol bulma ızgarası açılışta pişiriliyor. Ayrı adım.
 - **Taban yüksekliği:** kural döşeme üstünün bir hücre tabanına 1,25 stud'dan yakın olmasına dayanır.
   Bugün tüm binalar 0 yüksekliğinde (döşeme üstü 1,0); yüksek arazide bina kurulursa zemin kat
@@ -301,7 +302,18 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Pencere:** PLAN MVP'deki pencere yok; parmaklık şimdilik pencere boşluğunun yerini tutar.
 - **Loot torbası:** torba parmaklığın kutusunun üstüne düşer (diğer bloklar gibi).
 
-### 21. Sonra
+### 21. Mobilya kırma (bitti, 31 Ekim)
+
+`7934fed`. Kalanlar:
+- **İngiliz anahtarı:** 7DTD'de metal ve tesisat mobilyası anahtarla sökülünce ek "Harvest" verir
+  (buzdolabı 1–2, klozet 5–10 hurda demir; lavabo boru, pirinç, kurşun; mikrodalga elektrik ve
+  mekanik parça). Anahtar ve pirinç / kurşun yok; gelince `Harvest` listelerine eklenir.
+- **Üst kat:** üst kattaki mobilya kırılınca üst kat yol ızgarası güncellenmez (hücre kapalı kalır;
+  zombi boş yeri dolanır, zararsız). Üst kat inşaatıyla birlikte çözülmeli.
+- **Kayıt:** kırılan mobilya kaydedilmez; `FurnitureCell` kimliği kayıt için hazır.
+- **Görsel:** vuruşta mobilyada sarsılma / kıymık efekti yok; düşen eşya sağdaki akışta görünür.
+
+### 22. Sonra
 
 - **Araç zinciri:** Kullanıcı `rokit install` ve `rojo plugin install` komutlarını kendisi çalıştırır.
   Sonra `stylua --check src tests`, `selene src`, `lune run tests/run`, `rojo build -o build.rbxl`
