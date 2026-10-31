@@ -302,7 +302,12 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
   kullanıcıda (Kullanıcı kararı bekleyenler 6).
 - **Nişan alma (bitti, `9868b76`):** sapma silahın 7DTD nişan payına iner, kamera yaklaşır. Kalan:
   7DTD'de yürürken / koşarken sapma artar, nişanda yürüme yavaşlar; bizde yok. Nişan dürbünü yok.
-- **Hasar düşüşü:** 7DTD'de 12 m'den sonra hasar azalır; yok.
+- **Hasar düşüşü:** 7DTD'de 12 m'den sonra hasar azalır; yok. XML yalnızca menzili veriyor, eğri motor
+  kodunda; doğrulanmadan sayı uydurmamak için eklenmedi.
+- **Sağ tık ve kamera:** nişan alırken (sağ tık basılı) varsayılan kameranın fareyle dönmeye devam
+  ettiği elle doğrulanmalı (MCP ile ölçülemedi).
+- **Görünmeyen istemler:** bir test oturumunda istemler görünmez oldu, yeniden üretilemedi (HANDOFF
+  ölçümler). Görülürse ne yapıldığı not edilmeli.
 - **Cephane yapımı:** 9 mm çalışma masasında kurşun ucu + barut + kovan ister; üçü de yok, cephane
   yalnızca loot.
 - **Diğer boru silahlar (bitti, `9868b76`):** kalanlar: tüfeğin kafa hasarı +%25'i (bizde her silahta
