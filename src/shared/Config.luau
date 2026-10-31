@@ -1230,6 +1230,9 @@ Config.Harvest = {
 		FurnitureHay = { Material = "Earth", Health = 50, Harvest = { drop("PlantFiber", 5, 8) }, Destroy = {} },
 		-- Mplants (1); ours: a little fibre.
 		FurniturePlant = { Material = "Earth", Health = 1, Harvest = { drop("PlantFiber", 1, 2) }, Destroy = {} },
+		-- Window panes in town buildings (BuildingKit "HarvestNode"): Mglass (1), so any hit breaks one;
+		-- ours: no drops. The sill under a window still keeps zombies out.
+		WindowGlass = { Material = "Stone", Health = 1, Harvest = {}, Destroy = {} },
 	} :: { [string]: HarvestNode },
 	-- Breakable town furniture: the BuildingKit "Furniture" attribute to its node. The fireplace is
 	-- part of the house's chimney and stays. A container spills what it holds when it breaks.

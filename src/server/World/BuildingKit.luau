@@ -289,7 +289,12 @@ local function emitPieces(
 		local height = p.top - p.bottom
 		local frame = wallFrame(run.axis, run.fixed, (lo + hi) / 2, floor.y0 + p.bottom + height / 2, 1)
 		if p.glass then
-			add(ctx, "Glass", V(hi - lo, height, GLASS), frame, S.Glass)
+			-- Each pane is its own model so it can break on its own (HarvestService "HarvestNode").
+			local pane = Instance.new("Model")
+			pane.Name = "Window"
+			pane:SetAttribute("HarvestNode", "WindowGlass")
+			PartFactory.make(pane, "Glass", V(hi - lo, height, GLASS), ctx.transform * frame, S.Glass)
+			pane.Parent = ctx.model
 		elseif isCore then
 			add(ctx, "Wall", V(hi - lo, height, thickness), frame * CFrame.new(0, 0, offset), style)
 		else

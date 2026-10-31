@@ -1,9 +1,10 @@
 --!strict
--- HarvestService: gathering (7DTD). A swing that hits a tree, bush, grass, boulder, loose rock or piece
--- of town furniture deals the tool's block damage for that material. Harvest drops pay out while the object is hit and
--- Destroy drops when it breaks (Shared/Harvest). Everyone hitting the same object shares its damage,
--- like a 7DTD block. Loose rocks can also be picked up with the interact key. What has no room in the
--- inventory drops in a loot bag at the player's feet (7DTD drops it on the ground).
+-- HarvestService: gathering (7DTD). A swing that hits a tree, bush, grass, boulder, loose rock, piece
+-- of town furniture or window pane deals the tool's block damage for that material. Harvest drops pay
+-- out while the object is hit and Destroy drops when it breaks (Shared/Harvest). Everyone hitting the
+-- same object shares its damage, like a 7DTD block. Loose rocks can also be picked up with the
+-- interact key. What has no room in the inventory drops in a loot bag at the player's feet (7DTD drops
+-- it on the ground).
 --
 -- A felled tree stops colliding at once, frees the zombie navigation cells under it, and falls away
 -- from the player who felled it (clients animate the fall), then is removed. Nothing grows back:
@@ -190,19 +191,29 @@ function HarvestService.start()
 			addPickupPrompt(entry)
 		end
 	end
+	-- Town furniture (by its "Furniture" attribute) and other map models that name their node (window
+	-- panes, "HarvestNode").
 	for _, model in MapService.getMap():GetDescendants() do
+		if not model:IsA("Model") then
+			continue
+		end
 		local furniture = model:GetAttribute("Furniture")
-		local nodeName = if typeof(furniture) == "string" then HC.Furniture[furniture] else nil
-		if nodeName == nil or not model:IsA("Model") then
+		local nodeName = if typeof(furniture) == "string"
+			then HC.Furniture[furniture]
+			else model:GetAttribute("HarvestNode")
+		if typeof(nodeName) ~= "string" then
 			continue
 		end
 		local node = HC.Nodes[nodeName]
 		assert(node, `unknown harvest node {nodeName}`)
+		local p = model:GetPivot().Position
 		entries[model] = {
-			id = `furniture:{model:GetAttribute("FurnitureCell")}`,
+			id = if typeof(furniture) == "string"
+				then `furniture:{model:GetAttribute("FurnitureCell")}`
+				else `{nodeName}:{math.round(p.X * 10)},{math.round(p.Y * 10)},{math.round(p.Z * 10)}`,
 			node = node,
 			tree = false,
-			furniture = true,
+			furniture = typeof(furniture) == "string",
 			model = model,
 			damage = 0,
 		}
