@@ -8,10 +8,9 @@
 -- What a cancel cannot give back drops in a loot bag at the player's feet; with no character to drop
 -- it at, a cancel that does not all fit is refused, so nothing is lost.
 --
--- Station recipes (cooking) are queued only next to a placed station of their kind (a campfire) and,
--- when they name a tool (cooking pot, grill), only while the player carries it; the job then runs in
--- the player's queue like any other. Placed campfires get their fire, light and a "Cook" prompt that
--- opens the crafting panel on the client.
+-- Station recipes (cooking) are queued only next to a placed station of their kind, lit when it is a
+-- fire station (a campfire, StationService), and, when they name a tool (cooking pot, grill), only
+-- while the player carries it; the job then runs in the player's queue like any other.
 --
 -- Queues live only as long as the player is in the server (no saving yet).
 
@@ -24,7 +23,6 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Crafting = require(Shared.Crafting)
 local Inventory = require(Shared.Inventory)
-local Localization = require(Shared.Localization)
 local Net = require(Shared.Net)
 local Types = require(Shared.Types)
 
@@ -33,20 +31,10 @@ local BuildService = require(script.Parent.BuildService)
 local ChallengeService = require(script.Parent.ChallengeService)
 local InventoryService = require(script.Parent.InventoryService)
 local LootService = require(script.Parent.LootService)
+local StationService = require(script.Parent.StationService)
 
 local CC = Config.Crafting
-local BC = Config.Build
 local SOURCE: Types.ItemSource = "Craft"
-
--- Campfire look.
-local FIRE_COLOR = Color3.fromRGB(255, 140, 50)
-local FIRE_SMOKE = Color3.fromRGB(70, 60, 55)
-local FIRE_SIZE = 2.5
-local FIRE_HEAT = 6
-local FIRE_LIGHT_RANGE = 16
-local FIRE_LIGHT_BRIGHTNESS = 1.4
-local LOG_SIZE = Vector3.new(0.5, 0.5, 2.6)
-local LOG_COLOR = Color3.fromRGB(80, 55, 35)
 
 type Job = {
 	kind: "Craft" | "Repair",
@@ -227,10 +215,13 @@ local function onQueue(player: Player, recipeId: unknown, count: unknown)
 		local character = player.Character
 		local root = character and character.PrimaryPart
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-		return root ~= nil
-			and humanoid ~= nil
-			and humanoid.Health > 0
-			and BuildService.near(kind, root.Position, CC.StationReach)
+		if root == nil or humanoid == nil or humanoid.Health <= 0 then
+			return false
+		end
+		if Config.Stations.Kinds[kind] then
+			return StationService.litNear(kind, root.Position, CC.StationReach)
+		end
+		return BuildService.near(kind, root.Position, CC.StationReach)
 	end
 	if not Crafting.canUse(recipe, countOf, stationNear) then
 		return
@@ -324,48 +315,7 @@ function CraftingService.init()
 	Net.event("CraftRepair")
 end
 
--- A placed station: a campfire gets two crossed logs, fire and light, and a "Cook" prompt (the client
--- opens the crafting panel when it is triggered; the server checks the station again on every queue).
-local function onPlaced(_key: number, kind: string, part: BasePart)
-	if not BC.Blocks[kind].Station then
-		return
-	end
-	local top = part.CFrame * CFrame.new(0, part.Size.Y / 2, 0)
-	for _, angle in { 45, -45 } do
-		local log = Instance.new("Part")
-		log.Name = "Log"
-		log.Anchored = true
-		log.CanCollide = false
-		log.CanQuery = false
-		log.Size = LOG_SIZE
-		log.Material = Enum.Material.Wood
-		log.Color = LOG_COLOR
-		log.CFrame = top * CFrame.Angles(0, math.rad(angle), 0) * CFrame.new(0, LOG_SIZE.Y / 2, 0)
-		log.Parent = part
-	end
-	local fire = Instance.new("Fire")
-	fire.Color = FIRE_COLOR
-	fire.SecondaryColor = FIRE_SMOKE
-	fire.Size = FIRE_SIZE
-	fire.Heat = FIRE_HEAT
-	fire.Parent = part
-	local light = Instance.new("PointLight")
-	light.Color = FIRE_COLOR
-	light.Range = FIRE_LIGHT_RANGE
-	light.Brightness = FIRE_LIGHT_BRIGHTNESS
-	light.Shadows = true
-	light.Parent = part
-	local prompt = Instance.new("ProximityPrompt")
-	prompt.ActionText = Localization.get("CampfireCook")
-	prompt.ObjectText = Localization.get(`Item{kind}`)
-	prompt.HoldDuration = 0
-	prompt.MaxActivationDistance = CC.StationReach - 2
-	prompt.RequiresLineOfSight = false
-	prompt.Parent = part
-end
-
 function CraftingService.start()
-	BuildService.onPlaced(onPlaced)
 	Net.event("CraftQueue").OnServerEvent:Connect(onQueue)
 	Net.event("CraftCancel").OnServerEvent:Connect(onCancel)
 	Net.event("CraftRepair").OnServerEvent:Connect(onRepair)

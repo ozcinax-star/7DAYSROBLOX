@@ -57,7 +57,7 @@ export type NoiseEvent = { Noise: number, Radius: number }
 -- it blocks nobody. Size: a smaller box (studs) standing on the floor of its cell instead of a cube.
 -- Passable: zombies walk past it. Generator / Lamp: a generator or an electric lamp (PowerService).
 -- Storage: a storage crate (StorageService). Station: a crafting station; recipes that name its kind
--- need one within Config.Crafting.StationReach (CraftingService). Bars: a see-through cage
+-- need a lit one within Config.Crafting.StationReach (CraftingService, StationService). Bars: a see-through cage
 -- (Config.Build.BarsGroup): zombies cannot pass and break it like a wall, but shots, zombie sight and
 -- melee reach pass through it (PLAN: bars sit in their own collision group).
 -- Material and Color are the look.
@@ -103,6 +103,10 @@ export type Recipe = {
 	Station: string?,
 	Tool: string?,
 }
+
+-- A fire station (Config.Stations): the fuels it burns, in the order "Add fuel" takes them, the most
+-- seconds of fuel it holds, and the crafting tab its craft prompt opens.
+export type StationDef = { Fuels: { string }, MaxFuel: number, Tab: string }
 
 -- What a world object is made of, for tool damage (7DTD damage categories: earth covers dirt, grass and
 -- leaves; stone covers rock and boulders).
@@ -212,6 +216,7 @@ Config.Threat = {
 		-- Contribution per source; summed and clamped to Max.
 		PerBuildPart = 0.04,
 		PerLight = 1.5,
+		-- A lit fire station (StationService).
 		PerFire = 3,
 		-- A running generator (PLAN: generator power adds Trace).
 		PerGenerator = 3,
@@ -710,8 +715,8 @@ Config.Build = {
 			Material = "Fabric",
 			Color = { 0.33, 0.4, 0.28 },
 		},
-		-- 7DTD campfire: a cooking station, 100 hit points (MaxDamage), stone. A low ring zombies walk
-		-- past (ours: 7DTD zombies path around it).
+		-- 7DTD campfire: a cooking station, 100 hit points (MaxDamage), stone, lit with fuel
+		-- (Config.Stations). A low ring zombies walk past (ours: 7DTD zombies path around it).
 		Campfire = {
 			Health = 100,
 			Placeable = true,
@@ -870,6 +875,11 @@ Config.Items = {
 	-- cupboards (7DTD also forges them; there is no forge).
 	CookingPot = { Stack = 1, Color = { 0.35, 0.36, 0.4 } },
 	CookingGrill = { Stack = 1, Color = { 0.25, 0.25, 0.27 } },
+	-- Fire (ours, PLAN Kararlar): 7DTD lights stations with a button and burns coal dug from coal ore.
+	-- Here charcoal is burnt from wood at a campfire and stands in for coal (resourceCoal's stack), and
+	-- a lighter, found in houses, lights a station (50 lights; plant fibre tinder also works).
+	Charcoal = { Stack = 6000, Color = { 0.16, 0.15, 0.15 } },
+	Lighter = { Stack = 1, Durability = 50, Color = { 0.8, 0.22, 0.16 } },
 	ElectricLamp = { Stack = 100, Color = { 0.95, 0.85, 0.5 } },
 } :: { [string]: ItemDef }
 
@@ -987,6 +997,15 @@ Config.Recipes = {
 		Station = "Campfire",
 		Tool = "CookingGrill",
 	},
+	-- Ours (PLAN, Kararlar): three wood smoulder into one charcoal at a lit campfire. It burns twice as
+	-- long as wood (Config.Stations).
+	Charcoal = {
+		Output = "Charcoal",
+		Count = 1,
+		Ingredients = costs({ Wood = 3 }),
+		Seconds = 15,
+		Station = "Campfire",
+	},
 	-- 7DTD generator bank: 15 Forged Iron, 15 Mechanical Parts, 21 Electrical Parts at a workbench
 	-- (1:45). We have no forge, workbench or perks, and one town instead of a county: 50 Scrap Iron
 	-- stand in for the forged iron and the parts are cut to what a sweep of the storage loot gives
@@ -1038,6 +1057,7 @@ Config.Crafting = {
 		"CornOnTheCob",
 		"BoiledWater",
 		"Glue",
+		"Charcoal",
 		"Generator",
 		"ElectricLamp",
 	},
@@ -1060,6 +1080,7 @@ Config.Crafting = {
 		CobblestoneRocks = "Resources",
 		Dirt = "Resources",
 		Glue = "Resources",
+		Charcoal = "Resources",
 		WoodFrame = "Building",
 		WoodLadder = "Building",
 		WoodDoor = "Building",
@@ -1088,9 +1109,31 @@ Config.Crafting = {
 		[string]: number,
 	},
 	DefaultIngredientSeconds = 1,
-	-- How close (studs, character to the station's centre) a station recipe may be queued. Ours: 7DTD
-	-- opens the station itself at interaction reach. The job then runs in the player's queue.
+	-- How close (studs, character to the station's centre) a station recipe may be queued; the station
+	-- must be lit (Config.Stations). Ours: 7DTD opens the station itself at interaction reach. The job
+	-- then runs in the player's queue.
 	StationReach = 10,
+}
+
+-- Fire stations (StationService; 7DTD workstations that burn fuel): a station must be lit to craft
+-- at it, and a lit one burns a second of fuel per second until it runs dry. Fuel seconds per item are
+-- 7DTD's FuelValue (V3.3 files: coal 100, wood 50); charcoal stands in for coal.
+Config.Stations = {
+	FuelSeconds = { Wood = 50, Charcoal = 100 } :: { [string]: number },
+	-- Ours: a campfire holds 30 wood, over two day cycles of burning.
+	Kinds = {
+		Campfire = { Fuels = { "Wood", "Charcoal" }, MaxFuel = 1500, Tab = "Food" },
+	} :: { [string]: StationDef },
+	-- Items one "Add fuel" press puts in (ours: 7DTD drags stacks into fuel slots).
+	FuelPerAdd = 5,
+	-- Lighting (ours): a lighter loses LighterWear durability; without one, Tinder burns instead.
+	Lighter = "Lighter",
+	LighterWear = 1,
+	Tinder = { Id = "PlantFiber", Count = 2 } :: ItemCount,
+	-- Prompt reach (studs), actions per second per player, and the burn check rate (seconds).
+	PromptReach = 8,
+	ActionsPerSecond = 4,
+	CheckSeconds = 1,
 }
 
 -- Melee stats by item id. "Fist" is the empty hand; any held item without an entry here (wood,
@@ -1659,6 +1702,8 @@ Config.Loot = {
 				-- About one of each per 25 cupboards searched.
 				{ Id = "CookingPot", Min = 1, Max = 1, Weight = 0.6 },
 				{ Id = "CookingGrill", Min = 1, Max = 1, Weight = 0.6 },
+				-- Ours: a lighter in the kitchen drawer, about one per 20 cupboards.
+				{ Id = "Lighter", Min = 1, Max = 1, Weight = 1 },
 			},
 		},
 		Shelf = {
@@ -1973,6 +2018,7 @@ Config.Debug = {
 		{ Id = "GasCan", Count = 300 },
 		{ Id = "Wood", Count = 50 },
 		{ Id = "SmallStone", Count = 20 },
+		{ Id = "Lighter", Count = 1 },
 		{ Id = "Clay", Count = 20 },
 		{ Id = "CobblestoneRocks", Count = 20 },
 		{ Id = "PlantFiber", Count = 20 },

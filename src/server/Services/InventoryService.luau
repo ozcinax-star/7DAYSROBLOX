@@ -318,6 +318,21 @@ function InventoryService.wearHeld(player: Player, amount: number): number?
 	return left
 end
 
+-- Wears the first `id` the player carries that is not worn out (a lighter) by `amount`; returns the
+-- durability left, or nil when they carry none.
+function InventoryService.wearItem(player: Player, id: string, amount: number): number?
+	local state = states[player]
+	if state == nil then
+		return nil
+	end
+	local index = Inventory.findUsable(state.inventory, id)
+	local left = if index then Inventory.wear(state.inventory, index, amount) else nil
+	if left then
+		markDirty(player)
+	end
+	return left
+end
+
 -- Registers a listener for changes of the item in a player's hand.
 -- Calls `callback` after a player's inventory changed (at most once a frame, after the client copy).
 function InventoryService.onChanged(callback: ChangedCallback)

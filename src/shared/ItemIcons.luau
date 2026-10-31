@@ -62,6 +62,8 @@ ItemIcons.Glyphs = {
 	Campfire = "🔥",
 	CookingPot = "🍲",
 	CookingGrill = "♨",
+	Charcoal = "⚫",
+	Lighter = "🕯",
 	ElectricLamp = "💡",
 } :: { [string]: string }
 

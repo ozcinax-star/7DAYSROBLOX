@@ -1,11 +1,11 @@
 --!strict
 -- CraftingController: the crafting panel docked to the right of the backpack (7DTD's backpack crafting
 -- window). Each recipe shows its ingredients against what the player carries, a count and a Craft
--- button. Cooking recipes also show the station they need nearby and the tool they need carried. The
--- queue below shows the four jobs, counts the first one down, and cancels a job when it is clicked.
--- Tabs over the list show one category at a time (7DTD's crafting categories); a station's "Cook"
--- prompt opens the panel on Food. The server owns the queue (CraftingService); this only shows its
--- copy and sends requests.
+-- button. Cooking recipes also show the station they need nearby (lit, for a campfire) and the tool
+-- they need carried. The queue below shows the four jobs, counts the first one down, and cancels a job
+-- when it is clicked. Tabs over the list show one category at a time (7DTD's crafting categories); a
+-- station's craft prompt opens the panel on the station's tab. The server owns the queue
+-- (CraftingService); this only shows its copy and sends requests.
 
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
@@ -139,7 +139,8 @@ local function formatSeconds(seconds: number): string
 	return Localization.get("CraftingSeconds", { seconds = shown })
 end
 
--- Whether a placed station of `kind` is within reach of the character (the server checks again).
+-- Whether a placed station of `kind`, lit when it is a fire station, is within reach of the character
+-- (the server checks again).
 local function stationNear(kind: string): boolean
 	local character = Players.LocalPlayer.Character
 	local root = character and character.PrimaryPart
@@ -147,10 +148,12 @@ local function stationNear(kind: string): boolean
 	if root == nil or structures == nil then
 		return false
 	end
+	local needsFire = Config.Stations.Kinds[kind] ~= nil
 	for _, part in structures:GetChildren() do
 		if
 			part:IsA("BasePart")
 			and part:GetAttribute("Kind") == kind
+			and (not needsFire or part:GetAttribute(Net.Attributes.StationLit) == true)
 			and (part.Position - root.Position).Magnitude <= CC.StationReach
 		then
 			return true
@@ -490,12 +493,13 @@ function CraftingController.start()
 			end
 		end
 	end)
+	-- A station's craft prompt opens the panel on the station's tab.
 	ProximityPromptService.PromptTriggered:Connect(function(prompt)
 		local kind = prompt.Parent and prompt.Parent:GetAttribute("Kind")
-		local def = if typeof(kind) == "string" then BC.Blocks[kind] else nil
-		if def and def.Station then
+		local station = if typeof(kind) == "string" then Config.Stations.Kinds[kind] else nil
+		if station and prompt.Name == "Craft" then
 			InventoryController.setBackpackOpen(true)
-			selectCategory("Food")
+			selectCategory(station.Tab)
 		end
 	end)
 end

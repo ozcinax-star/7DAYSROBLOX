@@ -277,6 +277,16 @@ function Inventory.wear(inv: Inventory, index: number, amount: number): number?
 	return left
 end
 
+-- The first slot holding `id` that is not worn out (a lighter), or nil.
+function Inventory.findUsable(inv: Inventory, id: string): number?
+	for index, slot in inv.slots do
+		if slot and slot.id == id and (slot.durability == nil or slot.durability > 0) then
+			return index
+		end
+	end
+	return nil
+end
+
 -- Uses up `count` items of the stack in slot `index` (a placed block); false when it holds fewer.
 function Inventory.consume(inv: Inventory, index: number, count: number): boolean
 	local slot = inv.slots[index]

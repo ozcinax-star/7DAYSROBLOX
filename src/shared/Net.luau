@@ -61,12 +61,15 @@ local Definitions: { [string]: "RemoteEvent" | "UnreliableRemoteEvent" } = {
 	-- Server -> client: the player died (where their death bag dropped: Vector3, or false; seconds it
 	-- stays).
 	PlayerDied = "RemoteEvent",
+	-- Server -> client: a short message for the player (Localization key: string, parameters:
+	-- { [string]: string | number }?), shown in the pickup feed.
+	Notice = "RemoteEvent",
 }
 
 local Net = {}
 
 -- Attribute names shared by server and client. Stats live on ReplicatedStorage; DebugAllowed and the
--- survival stats on Player.
+-- survival stats on Player; station state on its block.
 Net.Attributes = {
 	TickMs = "ServerTickMs",
 	TickMaxMs = "ServerTickMaxMs",
@@ -95,6 +98,9 @@ Net.Attributes = {
 	Water = "Water",
 	Hunger = "Hunger",
 	Thirst = "Thirst",
+	-- A fire station block (StationService): whether it burns, and its fuel in whole seconds.
+	StationLit = "Lit",
+	StationFuel = "Fuel",
 }
 
 local function getFolder(): Folder

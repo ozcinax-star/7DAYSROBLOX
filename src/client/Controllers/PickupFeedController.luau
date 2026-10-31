@@ -1,7 +1,8 @@
 --!strict
 -- PickupFeedController: 7DTD's pickup feed. Items that enter the inventory show as "+N Item" lines on
 -- the right edge for a few seconds; more of the same item while its line is up adds to that line.
--- Items that did not fit show as a red "No room" line.
+-- Items that did not fit show as a red "No room" line, and so do the server's notices (why a request
+-- failed, such as lighting a fire without fuel).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -22,6 +23,8 @@ local SCREEN_MARGIN = 16
 local FEED_BOTTOM = 0.55
 local GAIN_COLOR = Color3.new(1, 1, 1)
 local LOST_COLOR = Color3.fromRGB(255, 120, 100)
+-- Notices may run longer than an item line: they wrap onto a second line in a smaller font.
+local NOTICE_TEXT_SIZE = 15
 
 type Line = { frame: Frame, label: TextLabel, count: number, token: number }
 
@@ -120,6 +123,16 @@ local function onGain(id: string, added: number, lost: number)
 	end
 end
 
+local function onNotice(key: string, params: { [string]: any }?)
+	local frame, label = newLine("Notice", LOST_COLOR)
+	frame.Name = `Notice{frame.LayoutOrder}`
+	frame.Size = UDim2.fromOffset(LINE_WIDTH, LINE_HEIGHT * 2)
+	label.TextSize = NOTICE_TEXT_SIZE
+	label.TextWrapped = true
+	label.Text = Localization.get(key, params)
+	expire(frame.Name, { frame = frame, label = label, count = 0, token = 0 })
+end
+
 function PickupFeedController.init() end
 
 function PickupFeedController.start()
@@ -142,6 +155,11 @@ function PickupFeedController.start()
 	Net.event("InventoryGain").OnClientEvent:Connect(function(id: unknown, added: unknown, lost: unknown)
 		if typeof(id) == "string" and typeof(added) == "number" and typeof(lost) == "number" then
 			onGain(id, added, lost)
+		end
+	end)
+	Net.event("Notice").OnClientEvent:Connect(function(key: unknown, params: unknown)
+		if typeof(key) == "string" and Localization.has(key) and (params == nil or typeof(params) == "table") then
+			onNotice(key, params :: { [string]: any }?)
 		end
 	end)
 end

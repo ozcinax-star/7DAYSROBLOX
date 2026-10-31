@@ -17,6 +17,7 @@ local Farming = require("../src/shared/Farming")
 local Power = require("../src/shared/Power")
 local Graphics = require("../src/shared/Graphics")
 local Crafting = require("../src/shared/Crafting")
+local Fuel = require("../src/shared/Fuel")
 local Loot = require("../src/shared/Loot")
 local DayClock = require("../src/shared/DayClock")
 local Threat = require("../src/shared/Threat")
@@ -1256,6 +1257,65 @@ test("cooking needs a campfire nearby and the cooking tool carried, which it kee
 	expectEq(Crafting.canUse(Recipes.BakedPotato, countOf, stationNear), false, "but a campfire")
 	expectEq(Crafting.canUse(Recipes.Campfire, countOf, stationNear), true, "the campfire itself is backpack crafting")
 	expectEq(Crafting.unitSeconds(Recipes.Campfire), 1, "five stones at 0.2 s")
+end)
+
+test("a fire station takes wood before charcoal, five a press, up to what it holds", function()
+	local SC = Config.Stations
+	local campfire = SC.Kinds.Campfire
+	expectEq(SC.FuelSeconds.Wood, 50, "7DTD wood burns 50 s")
+	expectEq(SC.FuelSeconds.Charcoal, 100, "charcoal burns like coal, 100 s")
+	local carried: { [string]: number } = { Wood = 3, Charcoal = 10 }
+	local function countOf(id: string): number
+		return carried[id] or 0
+	end
+	local takes, added = Fuel.feed(0, campfire, SC.FuelSeconds, SC.FuelPerAdd, countOf)
+	expectEq(takes.Wood, 3, "all the wood first")
+	expectEq(takes.Charcoal, SC.FuelPerAdd - 3, "then charcoal up to the press")
+	expectEq(added, 3 * 50 + (SC.FuelPerAdd - 3) * 100, "seconds added")
+	local nearly = campfire.MaxFuel - 120
+	takes, added = Fuel.feed(nearly, campfire, SC.FuelSeconds, SC.FuelPerAdd, countOf)
+	expectEq(takes.Wood, 2, "only the wood that fits")
+	expectEq(takes.Charcoal, nil, "no charcoal past the cap")
+	expectEq(added, 100, "two wood")
+	expectEq(Fuel.full(nearly, campfire, SC.FuelSeconds), false, "room for wood")
+	expectEq(Fuel.full(campfire.MaxFuel - 40, campfire, SC.FuelSeconds), true, "no item fits in 40 s")
+	takes, added = Fuel.feed(0, campfire, SC.FuelSeconds, SC.FuelPerAdd, function()
+		return 0
+	end)
+	expectEq(next(takes), nil, "nothing carried, nothing taken")
+	expectEq(added, 0, "nothing added")
+	expectEq(Fuel.clock(125), "2:05", "clock")
+	expectEq(Fuel.clock(0.2), "0:01", "a burning fire never shows 0:00")
+end)
+
+test("every fire station is a station block with known fuels, a crafting tab and prompt text", function()
+	local SC = Config.Stations
+	local lighter = Config.Items[SC.Lighter]
+	assert(lighter and lighter.Durability and lighter.Repair == nil, "the lighter wears out")
+	assert(Config.Items[SC.Tinder.Id] and SC.Tinder.Count >= 1, "tinder is an item")
+	for kind, def in SC.Kinds do
+		local block = Config.Build.Blocks[kind]
+		assert(block and block.Station, `{kind} is a station block`)
+		assert(#def.Fuels > 0, `{kind} burns something`)
+		for _, id in def.Fuels do
+			assert(Config.Items[id] and SC.FuelSeconds[id], `{kind} burns unknown fuel {id}`)
+			assert(SC.FuelSeconds[id] <= def.MaxFuel, `{id} fits in an empty {kind}`)
+		end
+		assert(table.find(Config.Crafting.Categories, def.Tab), `{kind} opens an unknown tab`)
+		assert(Localization.has(`StationCraft{kind}`), `{kind} has no craft prompt text`)
+	end
+	expectEq(Recipes.Charcoal.Station, "Campfire", "charcoal is burnt at a campfire")
+	expectEq(Crafting.costs(Recipes.Charcoal, 1).Wood, 3, "from three wood")
+end)
+
+test("a worn-out lighter is passed over for the next one", function()
+	local inv = Inventory.new(2, 2)
+	Inventory.add(inv, "Lighter", 1, "Loot", 0)
+	Inventory.add(inv, "Lighter", 1, "Loot", 5)
+	local index = Inventory.findUsable(inv, "Lighter")
+	assert(index, "a usable lighter")
+	expectEq((inv.slots[index] :: any).durability, 5, "the one with uses left")
+	expectEq(Inventory.findUsable(inv, "Charcoal"), nil, "none carried")
 end)
 
 print("Loot")
