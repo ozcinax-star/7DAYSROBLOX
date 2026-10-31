@@ -111,8 +111,15 @@ type Zombie = {
 	nextUpdate: number,
 	nextAttack: number,
 	nextSightCheck: number,
+	-- Ground cell of the player structure this zombie walked into this step, and whether it is
+	-- breaking one (sent to clients as AttackStructure).
+	pushing: number?,
+	breaking: boolean,
 	dirty: boolean,
 }
+
+-- (x and z of the ground cell's centre, damage) for a zombie hitting a player structure.
+export type StructureHitCallback = (x: number, z: number, damage: number) -> ()
 
 type PlayerInfo = {
 	player: Player,
@@ -200,6 +207,10 @@ local topLinks: { [number]: StairLink } = {}
 -- Upper-level fields toward one goal cell, built on first use (upper floors are small).
 local upperFields: { [number]: NavGrid.Field } = {}
 local diedCallbacks: { DiedCallback } = {}
+-- Ground cells holding a player structure that blocks zombies (BuildService), with their path cost.
+local structureCosts: { [number]: number } = {}
+local hasStructures = false
+local structureHit: StructureHitCallback? = nil
 local aliveCount = 0
 local nextId = 1
 local spawnQueue = 0
@@ -446,6 +457,21 @@ local function getSoundField(soundId: number, x: number, z: number, now: number)
 end
 
 -- Moves the zombie toward (tx, tz) at `speed`, sliding along blocked cells.
+-- The structure cell at (x, z) when it is not `here` (the cell the zombie stands in), else nil.
+local function structureCell(here: number?, x: number, z: number): number?
+	if here == nil then
+		return nil
+	end
+	local cell = grid:cellAt(x, z)
+	return if cell and cell ~= here and structureCosts[cell] then cell else nil
+end
+
+local function isFree(g: NavGrid.NavGrid, here: number?, x: number, z: number): boolean
+	return g:isWalkable(x, z) and structureCell(here, x, z) == nil
+end
+
+-- Steps toward (tx, tz), sliding along walls. Player structures stop the step: a zombie aimed into
+-- one, or stuck against it, is marked as pushing it (stepZombie decides whether it breaks it).
 local function moveToward(zombie: Zombie, tx: number, tz: number, speed: number, dt: number)
 	local dx = tx - zombie.x
 	local dz = tz - zombie.z
@@ -457,15 +483,24 @@ local function moveToward(zombie: Zombie, tx: number, tz: number, speed: number,
 	local nx = zombie.x + dx / dist * step
 	local nz = zombie.z + dz / dist * step
 	local g = levels[zombie.level]
-	if g:isWalkable(nx, nz) then
+	local here = if hasStructures and zombie.level == GROUND then grid:cellAt(zombie.x, zombie.z) else nil
+	if isFree(g, here, nx, nz) then
 		zombie.x = nx
-		zombie.z = nz
-	elseif g:isWalkable(nx, zombie.z) then
-		zombie.x = nx
-	elseif g:isWalkable(zombie.x, nz) then
 		zombie.z = nz
 	else
-		return
+		local wall = structureCell(here, nx, nz)
+		if wall and structureCell(here, tx, tz) == wall then
+			zombie.pushing = wall
+			return
+		end
+		if isFree(g, here, nx, zombie.z) then
+			zombie.x = nx
+		elseif isFree(g, here, zombie.x, nz) then
+			zombie.z = nz
+		else
+			zombie.pushing = wall
+			return
+		end
 	end
 	local floor = if zombie.level == GROUND
 		then MapService.groundAt(zombie.x, zombie.z)
@@ -490,7 +525,10 @@ local function followField(
 		if wx and wz then
 			local sx = wx + zombie.spreadX
 			local sz = wz + zombie.spreadZ
-			if g:isWalkable(sx, sz) then
+			-- The spread offset must not lead into a structure the path itself does not cross.
+			local spreadCell = if hasStructures then g:cellAt(sx, sz) else nil
+			local intoWall = spreadCell ~= nil and structureCosts[spreadCell] ~= nil and spreadCell ~= g:cellAt(wx, wz)
+			if g:isWalkable(sx, sz) and not intoWall then
 				moveToward(zombie, sx, sz, speed, dt)
 			else
 				moveToward(zombie, wx, wz, speed, dt)
@@ -701,6 +739,8 @@ local function stepWander(zombie: Zombie, now: number, dt: number)
 	moveToward(zombie, zombie.goalX, zombie.goalZ, speed, dt)
 end
 
+local stepMovement: (zombie: Zombie, players: { PlayerInfo }, now: number, dt: number) -> ()
+
 local function stepZombie(zombie: Zombie, players: { PlayerInfo }, now: number, dt: number)
 	local nearest, nearestDist = nearestPlayer(players, zombie.x, zombie.z)
 
@@ -726,7 +766,30 @@ local function stepZombie(zombie: Zombie, players: { PlayerInfo }, now: number, 
 		return
 	end
 
-	state = zombie.state
+	zombie.pushing = nil
+	stepMovement(zombie, players, now, dt)
+	-- A chasing or seeking zombie that walked into a player structure breaks it (7DTD: zombies dig
+	-- through blocks on their path); wanderers only stop.
+	local moved = zombie.state
+	local breaking = zombie.pushing ~= nil and (moved == "Chase" or moved == "SeekSound")
+	if breaking ~= zombie.breaking then
+		zombie.breaking = breaking
+		zombie.dirty = true
+		if breaking then
+			zombie.nextAttack = math.max(zombie.nextAttack, now + ZC.AttackWindup)
+		end
+	end
+	local cell = zombie.pushing
+	if breaking and cell and structureHit and now >= zombie.nextAttack then
+		zombie.nextAttack = now + (if DayNightService.isNight() then ZC.AttackCooldownNight else ZC.AttackCooldown)
+		local x, z = grid:cellCenter(cell)
+		task.spawn(structureHit, x, z, ZC.AttackBlockDamage)
+	end
+end
+
+-- Moves a zombie one step for its state: chase, attack, seek, search or wander.
+function stepMovement(zombie: Zombie, players: { PlayerInfo }, now: number, dt: number)
+	local state = zombie.state
 	-- A zombie on the stairs finishes the flight before anything but a chase moves it.
 	if zombie.stair and state ~= "Chase" and state ~= "AttackPlayer" then
 		stepStair(zombie, stateSpeed(zombie), dt)
@@ -838,12 +901,14 @@ local function separate(stepped: { Zombie })
 						local push = (radius - d) * 0.5 * ZC.SeparationStrength
 						local px = dx / d * push
 						local pz = dz / d * push
+						-- Pushes never move a zombie into a wall or a player structure.
 						local g = levels[a.level]
-						if g:isWalkable(a.x - px, a.z - pz) then
+						local here = if hasStructures and a.level == GROUND then grid:cellAt(a.x, a.z) else nil
+						if isFree(g, here, a.x - px, a.z - pz) then
 							a.x -= px
 							a.z -= pz
 						end
-						if g:isWalkable(b.x + px, b.z + pz) then
+						if isFree(g, here, b.x + px, b.z + pz) then
 							b.x += px
 							b.z += pz
 						end
@@ -915,7 +980,8 @@ local function pickSpawnPoint(players: { PlayerInfo }): (number?, number?)
 		local radius = randomRange(ZC.SpawnMinDistance, ZC.SpawnMaxDistance)
 		local x = cx + math.cos(angle) * radius
 		local z = cz + math.sin(angle) * radius
-		if grid:isWalkable(x, z) then
+		-- Never inside a player structure (structure cells are walkable for path costs).
+		if isFree(grid, -1, x, z) then
 			return x, z
 		end
 	end
@@ -976,6 +1042,8 @@ local function spawnOne(players: { PlayerInfo }, now: number, horde: boolean): b
 		nextUpdate = now + math.random() / ZC.FarHz,
 		nextAttack = 0,
 		nextSightCheck = now + math.random() * ZC.SightCheckInterval,
+		pushing = nil,
+		breaking = false,
 		dirty = true,
 	}
 	zombies[id] = zombie
@@ -1059,7 +1127,7 @@ local function sendSnapshots(now: number)
 				x = zombie.x,
 				y = zombie.y,
 				z = zombie.z,
-				state = zombie.state,
+				state = if zombie.breaking then "AttackStructure" else zombie.state,
 			})
 		end
 	end
@@ -1334,7 +1402,12 @@ end
 function ZombieService.start()
 	markNavigation()
 	buildBuildingNavs()
-	sightParams.FilterDescendantsInstances = { MapService.getMap(), Workspace.Terrain }
+	-- Player structures hide players too; BuildService creates their folder in init.
+	sightParams.FilterDescendantsInstances = {
+		MapService.getMap(),
+		Workspace.Terrain,
+		Workspace:WaitForChild(Config.Build.FolderName),
+	}
 	Players.PlayerRemoving:Connect(function(player)
 		playerFields[player] = nil
 	end)
@@ -1560,6 +1633,42 @@ function ZombieService.reopenArea(minX: number, minZ: number, maxX: number, maxZ
 		local p, halfX, halfY, halfZ = partBounds(part)
 		blockAtHeight(grid, p, halfX, halfY, halfZ, MapService.heightAt(p.X, p.Z) + FC.StepHeight)
 	end
+	-- Player structures in the area keep their path cost.
+	for cz = z0, z1 do
+		for cx = x0, x1 do
+			local index = cz * grid.width + cx
+			local cost = structureCosts[index]
+			if cost and grid:getCost(index) ~= NavGrid.BLOCKED then
+				grid:setCost(index, cost)
+			end
+		end
+	end
+end
+
+-- Marks the ground cell at (x, z) as holding a player structure that zombies must break through, with
+-- path cost `cost` (BuildGrid.pathCost); nil clears it.
+function ZombieService.setStructure(x: number, z: number, cost: number?)
+	local cell = grid:cellAt(x, z)
+	if cell == nil then
+		return
+	end
+	if cost then
+		structureCosts[cell] = cost
+		if grid:getCost(cell) ~= NavGrid.BLOCKED then
+			grid:setCost(cell, cost)
+		end
+	elseif structureCosts[cell] then
+		structureCosts[cell] = nil
+		local cx, cz = grid:cellCenter(cell)
+		local half = grid.cellSize / 2 - FC.RasterEpsilon
+		ZombieService.reopenArea(cx - half, cz - half, cx + half, cz + half)
+	end
+	hasStructures = next(structureCosts) ~= nil
+end
+
+-- Sets the listener for zombies hitting a player structure (one listener: BuildService).
+function ZombieService.onStructureHit(callback: StructureHitCallback)
+	structureHit = callback
 end
 
 function ZombieService.getNavGrid(): NavGrid.NavGrid

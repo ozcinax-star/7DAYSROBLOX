@@ -287,6 +287,16 @@ function InventoryService.getHeld(player: Player): (Inventory.Stack?, number)
 	return heldStack(state), state.selected
 end
 
+-- Uses up `count` of the held stack (a placed block); false when the hand holds fewer.
+function InventoryService.consumeHeld(player: Player, count: number): boolean
+	local state = states[player]
+	if state == nil or not Inventory.consume(state.inventory, state.selected, count) then
+		return false
+	end
+	markDirty(player)
+	return true
+end
+
 -- Wears the held tool by `amount`; returns the durability left, or nil when no tool is held.
 function InventoryService.wearHeld(player: Player, amount: number): number?
 	local state = states[player]

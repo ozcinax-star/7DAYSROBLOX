@@ -227,7 +227,11 @@ end
 function LootService.start()
 	groundParams = RaycastParams.new()
 	groundParams.FilterType = Enum.RaycastFilterType.Include
-	groundParams.FilterDescendantsInstances = { MapService.getMap(), Workspace.Terrain }
+	groundParams.FilterDescendantsInstances = {
+		MapService.getMap(),
+		Workspace.Terrain,
+		Workspace:WaitForChild(Config.Build.FolderName),
+	}
 	groundParams.RespectCanCollide = true
 	ZombieService.onDied(function(x, y, z)
 		local stacks = Loot.rollZombie(rand)

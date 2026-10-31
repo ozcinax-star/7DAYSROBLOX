@@ -34,6 +34,8 @@ local SHAPE: Melee.Shape = {
 -- (player, raycast result, tool id or "Fist", tool stats)
 export type WorldHitCallback =
 	(player: Player, result: RaycastResult, toolId: string, tool: Config.ToolDef) -> ()
+-- (player, head position, unit aim, id of the held block item)
+export type PlaceCallback = (player: Player, origin: Vector3, direction: Vector3, itemId: string) -> ()
 
 local ToolService = {}
 
@@ -42,6 +44,7 @@ local swingRemote: UnreliableRemoteEvent
 -- Earliest os.clock() of each player's next swing, set by the tool that swung last.
 local nextSwingAt: { [Player]: number } = {}
 local worldHitCallbacks: { WorldHitCallback } = {}
+local placeCallback: PlaceCallback? = nil
 
 -- Ray params that ignore every character (no friendly blocking, no PvP) and decor. Walls only
 -- (`solid`) hide zombies; world hits also land on what the player walks through, such as grass.
@@ -84,6 +87,12 @@ local function onUseTool(player: Player, aim: unknown)
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local head = character and character:FindFirstChild("Head")
 	if humanoid == nil or humanoid.Health <= 0 or head == nil or not head:IsA("BasePart") then
+		return
+	end
+	-- A block in the hand is placed instead of swung (BuildService checks the rest).
+	local held = InventoryService.getHeld(player)
+	if held and placeCallback and Config.Build.Blocks[held.id] then
+		placeCallback(player, head.Position, direction, held.id)
 		return
 	end
 	local now = os.clock()
@@ -151,6 +160,11 @@ function ToolService.start()
 	Players.PlayerRemoving:Connect(function(player)
 		nextSwingAt[player] = nil
 	end)
+end
+
+-- Sets the handler for "use" with a block item in the hand (one handler: BuildService).
+function ToolService.onPlace(callback: PlaceCallback)
+	placeCallback = callback
 end
 
 -- Registers a listener for swings that hit the world (terrain or a part) instead of a zombie.
