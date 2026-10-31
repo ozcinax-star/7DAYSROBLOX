@@ -7,6 +7,10 @@
 -- Dirt from the hand fills a dug column back in, one voxel per use, up to the height it had before it
 -- was dug (7DTD places dirt anywhere; ours only refills holes, PLAN), never onto a player or zombie.
 --
+-- Grassy ground is cut before it is dug, like a 7DTD grass block on its dirt: the first hit on a grassy
+-- column pays what a tall grass tuft pays (plant fibre) and turns the column's grass to dirt, which
+-- takes Roblox's grass decoration off it. Later hits dig the dirt.
+--
 -- Roads and paving, building footprints, the shore, the ground under trees, rocks, props and placed
 -- blocks, and the last voxel above the terrain bottom (bedrock) cannot be dug. Grass standing on a dug
 -- column sinks with it. Holes keep their zombie navigation cells: zombies follow the ground height into
@@ -44,6 +48,11 @@ local RAY_ABOVE = 20
 -- Heights within this of each other are the same voxel level.
 local LEVEL_TOLERANCE = 1e-3
 local SIDES = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } }
+-- Terrain materials that carry grass, and what they turn into once it is cut.
+local GRASSY = { [Enum.Material.Grass] = true, [Enum.Material.LeafyGrass] = true }
+local CUT_MATERIAL = Enum.Material.Ground
+-- Voxel layers under a column's surface that lose their grass when it is cut.
+local CUT_DEPTH = 2
 
 -- A column being dug: its material is fixed by the first hit, its damage is shared by everyone.
 type Column = { node: Config.HarvestNode, damage: number }
@@ -56,6 +65,8 @@ local levels: { [number]: number } = {}
 -- Voxel surface height of every dug column before its first dig: dirt fills it back up to that.
 local originals: { [number]: number } = {}
 local nextFillAt: { [Player]: number } = {}
+-- Grassy columns already cut: a hit there digs dirt even where Roblox blends a neighbour's grass in.
+local cut: { [number]: true } = {}
 local random = Random.new()
 local overlap: OverlapParams
 local characterOverlap: OverlapParams
@@ -172,6 +183,21 @@ local function settle(index: number, loose: { Model })
 		local drop = before[i] - MapService.heightAt(pivot.Position.X, pivot.Position.Z)
 		model:PivotTo(pivot - Vector3.new(0, drop, 0))
 	end
+end
+
+-- Cuts the grass of column `index` (surface at `level`): its grassy voxels become dirt.
+local function cutGrass(index: number, level: number)
+	local grid = MapService.getHeightGrid()
+	local x, z = TerrainBuilder.columnCentre(grid, index)
+	local bottom = (math.floor(level / VOXEL) - CUT_DEPTH) * VOXEL
+	local region = Region3.new(
+		Vector3.new(x - VOXEL / 2, bottom, z - VOXEL / 2),
+		Vector3.new(x + VOXEL / 2, bottom + (CUT_DEPTH + 2) * VOXEL, z + VOXEL / 2)
+	)
+	for material in GRASSY do
+		Workspace.Terrain:ReplaceMaterial(region, VOXEL, material, CUT_MATERIAL)
+	end
+	cut[index] = true
 end
 
 -- Takes one voxel off the top of column `index`.
@@ -313,7 +339,23 @@ local function onWorldHit(player: Player, result: RaycastResult, _toolId: string
 	end
 	local x, z = TerrainBuilder.columnCentre(grid, index)
 	local level = levelOf(grid, index)
-	if p.Y < level - DC.TopReach or level - VOXEL < floorHeight or not withinStep(grid, index, level - VOXEL) then
+	if p.Y < level - DC.TopReach then
+		return
+	end
+	if GRASSY[result.Material] then
+		if not cut[index] then
+			cutGrass(index, level)
+			local grass = Config.Harvest.Nodes.Grass
+			ToolService.reportHit(player, 0, grass.Health)
+			for _, drop in grass.Harvest do
+				local count = Harvest.toolCount(random:NextInteger(drop.Min, drop.Max), tool, drop.Id)
+				LootService.giveOrDrop(player, drop.Id, count, SOURCE)
+			end
+			return
+		end
+		node = DC.Materials[CUT_MATERIAL.Name] or node
+	end
+	if level - VOXEL < floorHeight or not withinStep(grid, index, level - VOXEL) then
 		return
 	end
 	if not HeightField.isPlayable(x, z) or nearWater(x, z) or insideBuilding(x, z) then
