@@ -102,6 +102,8 @@ local sideWidth = 0
 -- A panel shown in the side panel's place for a while (an open storage crate).
 local overridePanel: Frame? = nil
 local slotsChangedCallbacks: { () -> () } = {}
+-- Rounds left in each gun's magazine as ToolController counts them (nil: full).
+local loaded: { [string]: number } = {}
 local backpackCallbacks: { (open: boolean) -> () } = {}
 local nameToken = 0
 
@@ -233,6 +235,22 @@ local function canRepair(index: number?): boolean
 	return missing > 0 and countOf(repair.Id) >= Crafting.repairUnits(missing, repair.Amount)
 end
 
+-- Count text of a ranged weapon's slot (7DTD shows the ammo on the toolbelt): rounds in the magazine
+-- over the ammo carried for guns, the ammo carried for bows.
+local function ammoText(itemId: string, weapon: Config.RangedDef): string
+	local carried = 0
+	for _, slot in slots do
+		if slot and table.find(weapon.Ammo, slot.id) then
+			carried += slot.count
+		end
+	end
+	local magazine = weapon.Magazine
+	if magazine == nil then
+		return tostring(carried)
+	end
+	return `{math.min(loaded[itemId] or magazine, carried)}/{carried}`
+end
+
 local function render()
 	for index, view in views do
 		local slot = slots[index]
@@ -243,7 +261,11 @@ local function render()
 			view.icon.Visible = true
 			ItemIcons.apply(view.icon, slot.id)
 			view.name.Text = itemName(slot.id)
-			view.count.Text = if slot.count > 1 then tostring(slot.count) else ""
+			local ranged = Config.Ranged.Weapons[slot.id]
+			view.count.Text = if ranged
+				then ammoText(slot.id, ranged)
+				elseif slot.count > 1 then tostring(slot.count)
+				else ""
 			local maxDurability = if def then def.Durability else nil
 			if slot.durability and maxDurability then
 				local share = math.clamp(slot.durability / maxDurability, 0, 1)
@@ -634,6 +656,12 @@ end
 -- The toolbelt frame once it is built (other HUD parts lay themselves out around it), or nil.
 function InventoryController.getToolbelt(): Frame?
 	return toolbelt
+end
+
+-- ToolController reports the rounds left in a gun's magazine; its slot shows them.
+function InventoryController.setLoaded(itemId: string, rounds: number)
+	loaded[itemId] = rounds
+	render()
 end
 
 -- The stack in the active toolbelt slot as the server last sent it, or nil for an empty hand.

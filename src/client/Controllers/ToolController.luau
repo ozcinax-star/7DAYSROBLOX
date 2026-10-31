@@ -231,7 +231,6 @@ function ToolController.waterInReach(aim: Vector3): boolean
 	return result ~= nil and result.Instance == workspace.Terrain and result.Material == Enum.Material.Water
 end
 
--- Sends a "use" that is not a swing (placing, eating, drinking), at most every `seconds`.
 -- True when the inventory holds ammo the weapon takes.
 local function hasAmmo(weapon: Config.RangedDef): boolean
 	for _, slot in InventoryController.getSlots() do
@@ -242,6 +241,7 @@ local function hasAmmo(weapon: Config.RangedDef): boolean
 	return false
 end
 
+-- Sends a "use" that is not a swing (placing, eating, drinking, shooting), at most every `seconds`.
 local function sendUse(now: number, seconds: number)
 	local aim = ToolController.aimDirection()
 	if aim then
@@ -281,8 +281,19 @@ local function trySwing(source: Source)
 			local wait, kept = Ballistics.afterShot(ranged, (roundsFired[held.id] or 0) + 1)
 			roundsFired[held.id] = kept
 			sendUse(now, wait)
-			if kept == 0 and ranged.Magazine then
+			local magazine = ranged.Magazine
+			if magazine and kept == 0 then
 				showMessage(Localization.get("Reloading"))
+				-- Empty while reloading, full once the reload is over.
+				local id = held.id
+				InventoryController.setLoaded(id, 0)
+				task.delay(wait, function()
+					if roundsFired[id] == 0 then
+						InventoryController.setLoaded(id, magazine)
+					end
+				end)
+			elseif magazine then
+				InventoryController.setLoaded(held.id, magazine - kept)
 			end
 		end
 		return
