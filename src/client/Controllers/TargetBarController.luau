@@ -1,8 +1,8 @@
 --!strict
--- TargetBarController: a small health bar under the screen centre for what the player's last swing hit
--- in the world (a tree, a rock, a block, the ground), from the server's HitInfo. It hides again after
--- Config.Melee.HitInfoSeconds. It tells the player the hit landed and how much is left; 7DTD shows the
--- damage as cracks on the block instead.
+-- TargetBarController: a small health bar under the screen centre for what the player's last swing or
+-- shot hit (a tree, a rock, a block, the ground, a zombie), from the server's HitInfo. It hides again
+-- after Config.Melee.HitInfoSeconds. It tells the player the hit landed and how much is left; 7DTD
+-- shows a hit zombie's health the same way and block damage as cracks.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

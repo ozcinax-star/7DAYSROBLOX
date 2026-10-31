@@ -7,7 +7,8 @@
 --
 -- A swing hits the nearest zombie in reach that no wall hides, otherwise the first world surface in
 -- reach, grass and bushes included; world hits go to `onWorldHit` listeners (gathering), which report
--- what is left of the thing they damaged to the swinging player (`reportHit`). Tools wear
+-- what is left of the thing they damaged to the swinging player (`reportHit`, as a zombie hit is
+-- reported here). Tools wear
 -- by one per hit, never on a miss (7DTD). A tool at 0 durability cannot swing until it is repaired.
 -- Every swing costs the tool's stamina and needs that much (the stamina gate, SurvivalService).
 --
@@ -158,7 +159,9 @@ local function onUseTool(player: Player, aim: unknown)
 	local color: Color3? = nil
 	if hit then
 		local damage = tool.EntityDamage * (if hit.head then MC.HeadshotMultiplier else 1)
+		local _, maximum = ZombieService.getHealth(hit.id)
 		ZombieService.damage(hit.id, damage, player)
+		ToolService.reportHit(player, (ZombieService.getHealth(hit.id)), maximum)
 		zombieId = hit.id
 		headHit = hit.head
 	else

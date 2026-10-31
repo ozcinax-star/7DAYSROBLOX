@@ -121,7 +121,9 @@ local function fly(arrow: Arrow, dt: number, params: RaycastParams)
 	if hit then
 		local damage = arrow.damage * (if hit.head then MC.HeadshotMultiplier else 1)
 		if arrow.owner.Parent then
+			local _, maximum = ZombieService.getHealth(hit.id)
 			ZombieService.damage(hit.id, damage, arrow.owner)
+			ToolService.reportHit(arrow.owner, (ZombieService.getHealth(hit.id)), maximum)
 		end
 		stop(arrow, p + direction * math.min(hit.distance, length), hit.id)
 		return

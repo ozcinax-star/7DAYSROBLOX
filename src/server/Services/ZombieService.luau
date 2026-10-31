@@ -78,6 +78,8 @@ type Zombie = {
 	y: number,
 	z: number,
 	health: number,
+	-- The health it spawned with (the hit bar's maximum).
+	maxHealth: number,
 	state: Types.ZombieState,
 	-- Random per-zombie speed scale (SpeedJitter).
 	speedFactor: number,
@@ -1025,12 +1027,14 @@ local function spawnOne(players: { PlayerInfo }, now: number, horde: boolean): b
 	end
 	local floor = if level == UPPER then buildingNavs[building].upperY else MapService.groundAt(x, z)
 	local spread = ZC.SpreadRadius
+	local health = ZC.MaxHealth * (1 + randomRange(-ZC.HealthSpread, ZC.HealthSpread))
 	local zombie: Zombie = {
 		id = id,
 		x = x,
 		y = floor + ZC.RootHeight,
 		z = z,
-		health = ZC.MaxHealth * (1 + randomRange(-ZC.HealthSpread, ZC.HealthSpread)),
+		health = health,
+		maxHealth = health,
 		state = "Idle",
 		speedFactor = 1 + randomRange(-ZC.SpeedJitter, ZC.SpeedJitter),
 		dormant = dormant,
@@ -1511,6 +1515,15 @@ function ZombieService.damage(id: number, amount: number, attacker: Player?): bo
 	end
 	zombie.dormant = false
 	return false
+end
+
+-- A zombie's health and the health it spawned with; 0, 0 when it is gone.
+function ZombieService.getHealth(id: number): (number, number)
+	local zombie = zombies[id]
+	if zombie == nil then
+		return 0, 0
+	end
+	return math.max(0, zombie.health), zombie.maxHealth
 end
 
 -- Slows a zombie to `factor` of its speed for `seconds` (spike traps; 7DTD movement_factor).
