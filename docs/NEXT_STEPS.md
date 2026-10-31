@@ -5,6 +5,11 @@ Durum 1 Kasım 2026 itibarıyla. Önce [HANDOFF.md](HANDOFF.md) dosyasını oku.
 
 ## Neredeyiz
 
+**Görsel ek (31 Ekim 2026, Codex):** Kullanıcı önceliğiyle 13 alet ve silah modeli yenilendi.
+Detaylar, doğrulamalar ve kullanıcı testi [EQUIPMENT_ART.md](EQUIPMENT_ART.md) içinde.
+Binalar, mobilyalar, yerleştirilen eşyalar ve çevre bu görsel adımda değiştirilmedi.
+Mobil FPS kapısı ölçülmedi; aşağıdaki sistem sırası devam ediyor.
+
 Proje PLAN.md yol haritasının 1. aşamasında (Prototip). Kullanıcı 30 Ekim'de sırayı değiştirdi:
 telefon kapısı ertelendi, 2. aşamadan toplama, crafting ve zombi loot'u öne alındı (PLAN.md,
 Yol haritası notu ve Kararlar tablosu).

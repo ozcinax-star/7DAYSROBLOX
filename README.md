@@ -34,6 +34,13 @@ rojo build -o build.rbxl      # full place build
 | `tests` | not synced | Lune unit tests for pure modules |
 | `tools/studio` | not synced | Dev-only Studio MCP sync + test harness and the floor-plan checker (see `docs/HANDOFF.md`) |
 
+### Equipment models
+
+Equipment art and its Studio verification are documented in [docs/EQUIPMENT_ART.md](docs/EQUIPMENT_ART.md).
+`Shared/HeldItems` is the common grip factory; `EquipmentAssets` records original mesh/texture ids,
+`EquipmentMeshes` rebuilds calibrated textured components, and `EquipmentModels` supplies authored
+profiles and bindings. First-person and third-person equipment share this factory.
+
 ### Rules
 
 - `--!strict` in every file.

@@ -1,5 +1,15 @@
 # Devam notu
 
+## Güncel ek: alet ve silah görselleri (31 Ekim 2026, Codex)
+
+Kullanıcı önceliğiyle 13 alet/silahın modelleri yenilendi; 7DTD ana görsel referans.
+Dokulu özgün meshler ve elle çizilen profiller `Shared/EquipmentAssets`, `EquipmentMeshes` ve
+`EquipmentModels` içinde; `HeldItems` hem sunucu hem birinci şahıs için ortak fabrika.
+Debug GiveKit artık demir balta ve demir kürek de verir. Ayrıntı ve test adımları:
+[EQUIPMENT_ART.md](EQUIPMENT_ART.md). 85 saf mantık testi geçti; 13 eşyanın karakter ve gerçek
+birinci şahıs kopyaları Play'de denetlendi; makineliyle 3 atış sunucudan doğrulandı. Mobil FPS ölçülmedi.
+Önceki oturumların oynanış doğrulamaları ve aşağıdaki yol haritası devam ediyor.
+
 Yeni bir oturum için tek sayfalık özet. Durum 1 Kasım 2026 itibarıyla. Ayrıntılar:
 [HANDOFF.md](HANDOFF.md) (geçmiş, ölçümler, tuzaklar), [NEXT_STEPS.md](NEXT_STEPS.md) (sıradaki işler,
 kullanıcı soruları), [PLAN.md](PLAN.md) (tasarım kararları; kodla çelişirse PLAN geçerli).

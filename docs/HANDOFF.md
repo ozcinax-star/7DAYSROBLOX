@@ -658,6 +658,22 @@ anda oyundaydı). Karaktere dokunan testler durduruldu.
 
 ## Teknik notlar
 
+### Ekipman görsel yenilemesi (31 Ekim 2026, Codex)
+
+Kullanıcı önce aletler ve silahları istedi. 13 elde taşınan eşya için ortak görsel fabrika yenilendi:
+`HeldItems` → `EquipmentModels` → `EquipmentMeshes` / `EquipmentAssets`. Mesh/doku kimlikleri diskte
+manifest olarak tutulur; kaynak doğruluğu yine disktir. Prosedürel profiller ve lif bağları, hatalı
+üretilen başlıkların yerine kullanılır. Yeni remote veya hasar kuralı yok. Debug çantasında demir
+balta ve demir kürek de var. Model listesi, yöntem, ölçümler ve tam kullanıcı testi
+[EQUIPMENT_ART.md](EQUIPMENT_ART.md) içinde. 85 test geçti; 13 eşyanın karakter ve birinci şahıs
+kimlikleri Play'de eşleşti; makineliyle 3 atış sunucudan doğrulandı. Mobil ölçülmedi.
+
+Bu Codex ortamında sandbox içindeki geçici HTTP sunucusuna Studio erişemedi. Güvenilir alternatif:
+`execute_luau` koduna diskten okunan kaynakları uzun Luau string'i olarak geçir; derledikten sonra
+yalnızca değişen ModuleScript Source'larını güncelle. Harness'in `fetch("tests.luau")` ifadesini
+bellekte test kaynağıyla değiştirerek `H.test(false)` çalıştırılabilir. Yeni HTTP sunucusu gerekmez.
+Studio arka plandayken beyaz görüntü, computer-use ile Studio öne alınınca düzeldi.
+
 Kod yapısı README'de anlatılıyor. Aşağıdakiler koddan kolayca çıkarılamayan, ölçülerek öğrenilmiş
 bilgiler.
 

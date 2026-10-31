@@ -2163,6 +2163,8 @@ Config.Debug = {
 		{ Id = "SmallStone", Count = 20 },
 		{ Id = "Lighter", Count = 1 },
 		{ Id = "IronPickaxe", Count = 1 },
+		{ Id = "IronFireaxe", Count = 1 },
+		{ Id = "IronShovel", Count = 1 },
 		{ Id = "Forge", Count = 1 },
 		{ Id = "Charcoal", Count = 20 },
 		{ Id = "ScrapIron", Count = 60 },

@@ -93,6 +93,13 @@ Kapsam kuralı (31 Ekim 2026'da kullanıcı kararıyla değişti; eski kural "bi
 
 ## Teknik mimari
 
+**Alet/silah görsel uygulaması (31 Ekim 2026, kullanıcı önceliği):** 7DTD'nin aşınmış ahşap, taş,
+lif bağı ve metal eşya dili referanstır. 13 elde taşınan eşya özgün dokulu meshler ve elle çizilen
+profillerle yenilenir; oyun varlıkları çıkarılmaz. Mesh kimlikleri, ölçek ve tutuş düzeltmeleri
+`Shared/EquipmentAssets` içinde diskte tutulur. Aynı `HeldItems` fabrikası birinci ve üçüncü şahısta
+kullanılır; geometri kozmetiktir, sunucu hit hacimleri ve denge sayıları değişmez.
+Uygulama ve doğrulama: [EQUIPMENT_ART.md](EQUIPMENT_ART.md).
+
 Sunucu otoriter, istemci yalnızca görüntüler: hasar, loot, inşa ve tehdit hesabı sunucuda yapılır. Roblox'ta exploit yaygın; istemciye güvenen her RemoteEvent bir açıktır.
 
 **Zombi AI (en büyük performans riski)**
