@@ -489,6 +489,9 @@ Config.ZombieVisual = {
 Config.Build = {
 	-- Workspace folder of the placed blocks (zombie sight and loot bags treat them as walls and floors).
 	FolderName = "Structures",
+	-- CollectionService tag on town building models; their BuildMin / BuildMax (Vector2, footprint x
+	-- and z) and BuildTop attributes let the client preview the indoor rule below.
+	BuildingTag = "BuildArea",
 	-- Cube edge in studs; the grid shares its columns with the navigation grid (FlowField.CellSize).
 	GridSize = 4,
 	-- Block cap per world: also a performance limit and the natural ceiling of Trace.
@@ -506,8 +509,14 @@ Config.Build = {
 	BodyHeight = 6,
 	-- Block health per extra path cost, so zombies path through the weakest wall (PLAN).
 	HealthPerPathCost = 70,
-	-- No building inside a town building's footprint (their upper floors have their own zombie paths).
+	-- Inside a town building's footprint (grown by BuildingMargin) blocks go only on the ground storey,
+	-- at most IndoorCells cells above its floor: upper floors have their own zombie paths, which do not
+	-- see blocks. Players fortify a house from inside (7DTD: any POI can become a base).
 	BuildingMargin = 0,
+	IndoorCells = 2,
+	-- A block may sink this far into the surface it stands on (a building's floor slab, a kerb), as
+	-- found by a ray down the middle of its cell; anything else in the cell stops it.
+	SinkDepth = 1.25,
 	-- The tool that upgrades and repairs instead of damaging (7DTD stone axe: secondary action), how
 	-- many of its hits one upgrade takes (UpgradeHitCount 4 - 1) and how much one hit repairs.
 	UpgradeTool = "StoneAxe",

@@ -12,9 +12,12 @@
 -- lose their way to the ground fall.
 --
 -- Placement is checked on the server: the held item, the reach, a free cell (no block, map part,
--- character or zombie), the playable ground outside town buildings, and support from the ground or a
--- neighbouring block. Blocks are not saved yet (persistence step).
+-- character or zombie; a block may sink into the floor or kerb it stands on), playable dry ground,
+-- only the ground storey inside town buildings (players fortify houses; upper floors keep their own
+-- zombie paths), and support from the ground or a neighbouring block. Blocks are not saved yet
+-- (persistence step).
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
@@ -28,6 +31,7 @@ local HeightField = require(Shared.World.HeightField)
 local Localization = require(Shared.Localization)
 
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
+local BuildingKit = require(script.Parent.Parent.World.BuildingKit)
 local InventoryService = require(script.Parent.InventoryService)
 local MapService = require(script.Parent.MapService)
 local ThreatService = require(script.Parent.ThreatService)
@@ -239,10 +243,10 @@ local function createBlock(cx: number, cy: number, cz: number, kind: string, gro
 		part.CFrame = BuildGrid.doorCFrame(cx, cy, cz, side, false, BC.DoorThickness)
 	elseif def.Plot then
 		part.Size = Vector3.new(SIZE, BC.PlotHeight, SIZE)
-		part.CFrame = BuildGrid.plotCFrame(cx, cy, cz, MapService.heightAt(x, z), BC.PlotHeight)
+		part.CFrame = BuildGrid.plotCFrame(cx, cy, cz, MapService.groundAt(x, z), BC.PlotHeight)
 	elseif def.Size then
 		part.Size = Vector3.new(def.Size[1], def.Size[2], def.Size[3])
-		part.CFrame = BuildGrid.plotCFrame(cx, cy, cz, MapService.heightAt(x, z), def.Size[2])
+		part.CFrame = BuildGrid.plotCFrame(cx, cy, cz, MapService.groundAt(x, z), def.Size[2])
 	else
 		part.Size = Vector3.one * SIZE
 		part.CFrame = CFrame.new(x, y, z)
@@ -296,30 +300,36 @@ local function createBlock(cx: number, cy: number, cz: number, kind: string, gro
 	end
 end
 
-local function insideBuilding(cx: number, cz: number): boolean
-	local minX, minZ = cx * SIZE, cz * SIZE
-	local maxX, maxZ = minX + SIZE, minZ + SIZE
-	local m = BC.BuildingMargin
+-- The highest cell floor that takes blocks inside a town building: its ground storey only.
+local function buildTop(info: MapService.BuildingInfo): number
+	return info.baseY + BuildingKit.FloorTop + (BC.IndoorCells - 1) * SIZE
+end
+
+local function indoorBlocked(cx: number, cy: number, cz: number): boolean
 	for _, info in MapService.getBuildings() do
-		if maxX > info.minX - m and minX < info.maxX + m and maxZ > info.minZ - m and minZ < info.maxZ + m then
+		if BuildGrid.indoorBlocked(cx, cy, cz, info.minX, info.minZ, info.maxX, info.maxZ, buildTop(info)) then
 			return true
 		end
 	end
 	return false
 end
 
--- Whether cell (cx, cy, cz) is free for a block: no block, map part, character or zombie in it, on
--- playable dry ground outside town buildings.
+-- Whether cell (cx, cy, cz) is free for a block: no block, map part, character or zombie in it (it may
+-- sink into the surface it stands on), on playable dry ground, and inside a town building only on the
+-- ground storey.
 local function cellFree(cx: number, cy: number, cz: number): boolean
 	if blocks[BuildGrid.key(cx, cy, cz)] then
 		return false
 	end
 	local x, y, z = BuildGrid.center(cx, cy, cz)
-	if not HeightField.isPlayable(x, z) or HeightField.isWater(x, z) or insideBuilding(cx, cz) then
+	if not HeightField.isPlayable(x, z) or HeightField.isWater(x, z) or indoorBlocked(cx, cy, cz) then
 		return false
 	end
-	local inner = Vector3.one * (SIZE - BC.OverlapInset * 2)
-	local center = CFrame.new(x, y, z)
+	local rx, ry, rz, length = BuildGrid.sinkRay(cx, cy, cz)
+	local surface = Workspace:Raycast(Vector3.new(rx, ry, rz), Vector3.new(0, -length, 0), groundParams)
+	local bottom, top = BuildGrid.clearSpan(cy, if surface then surface.Position.Y else nil)
+	local inner = Vector3.new(SIZE - BC.OverlapInset * 2, top - bottom, SIZE - BC.OverlapInset * 2)
+	local center = CFrame.new(x, (bottom + top) / 2, z)
 	-- Map parts (walls, trunks, props) and characters may not end up inside a block.
 	if #Workspace:GetPartBoundsInBox(center, inner, mapOverlap) > 0 then
 		return false
@@ -502,6 +512,12 @@ function BuildService.start()
 	mapOverlap.FilterType = Enum.RaycastFilterType.Include
 	mapOverlap.FilterDescendantsInstances = { MapService.getMap() }
 	mapOverlap.RespectCanCollide = true
+	for _, info in MapService.getBuildings() do
+		info.model:SetAttribute("BuildMin", Vector2.new(info.minX, info.minZ))
+		info.model:SetAttribute("BuildMax", Vector2.new(info.maxX, info.maxZ))
+		info.model:SetAttribute("BuildTop", buildTop(info))
+		CollectionService:AddTag(info.model, BC.BuildingTag)
+	end
 	for id, def in BC.Blocks do
 		if def.Placeable then
 			ToolService.onUse(id, onPlace)

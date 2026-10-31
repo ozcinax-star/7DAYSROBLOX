@@ -1245,6 +1245,32 @@ test("blocks across a zombie's height block it, weaker walls are cheaper to path
 	expectEq(weak < strong, true, "a frame is cheaper than a wood block")
 end)
 
+test("a block may sink into the floor it stands on, and houses take blocks on the ground storey only", function()
+	local size = Config.Build.GridSize
+	local inset = Config.Build.OverlapInset
+	local sink = Config.Build.SinkDepth
+	-- A house floor slab whose top is 1 stud into the cell: the free span starts on it.
+	local bottom, top = BuildGrid.clearSpan(0, 1)
+	expectEq(bottom, 1 + inset, "starts on the slab")
+	expectEq(top, size - inset, "ends under the next cell")
+	-- Nothing under the cell, or a surface deeper than SinkDepth into it: the whole cell must be empty.
+	expectEq((BuildGrid.clearSpan(2, nil)), 2 * size + inset, "nothing below")
+	expectEq((BuildGrid.clearSpan(2, 2 * size + sink + 0.5)), 2 * size + inset, "too deep to sink into")
+	local rx, ry, rz, length = BuildGrid.sinkRay(1, 2, -1)
+	expectEq(rx * 10 + rz, 1.5 * size * 10 - 0.5 * size, "ray down the cell middle")
+	expectEq(ry - length < 2 * size and ry == 2 * size + sink, true, "ray spans the sink depth")
+	-- A 16 x 12 house at (0, 0) whose ground storey takes blocks with floors up to 5.
+	local function blocked(cx: number, cy: number, cz: number): boolean
+		return BuildGrid.indoorBlocked(cx, cy, cz, 0, 0, 16, 12, 5)
+	end
+	expectEq(blocked(1, 0, 1), false, "ground floor")
+	expectEq(blocked(1, 1, 1), false, "second cell up")
+	expectEq(blocked(1, 2, 1), true, "below the upper floor")
+	expectEq(blocked(1, 4, 1), true, "upper floor")
+	expectEq(blocked(4, 4, 1), false, "beside the house")
+	expectEq(blocked(-1, 4, -1), false, "touching a corner from outside")
+end)
+
 test("blocks that lose their way to the ground fall", function()
 	local blocks: { [number]: BuildGrid.Support } = {}
 	local function put(x: number, y: number, z: number, grounded: boolean)

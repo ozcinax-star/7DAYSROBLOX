@@ -2,8 +2,10 @@
 -- BuildController: while a block item is in the hand, a see-through cube (a panel for a door, a slab
 -- for a farm plot, a smaller box for a generator or lamp) shows where "use" will put it, green when
 -- the spot looks free and supported, red otherwise. The cell comes from the same raycast and
--- Shared/BuildGrid math as the server's; the server decides.
+-- Shared/BuildGrid math as the server's (a block may sink into the floor it stands on; inside a town
+-- building only its ground storey takes blocks); the server decides.
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -44,20 +46,49 @@ local function cellOfPart(part: Instance): { number }?
 	return nil
 end
 
+-- The server's indoor rule, from the attributes it puts on town building models.
+local function indoorBlocked(cx: number, cy: number, cz: number): boolean
+	for _, model in CollectionService:GetTagged(BC.BuildingTag) do
+		local low, high = model:GetAttribute("BuildMin"), model:GetAttribute("BuildMax")
+		local top = model:GetAttribute("BuildTop")
+		if
+			typeof(low) == "Vector2"
+			and typeof(high) == "Vector2"
+			and typeof(top) == "number"
+			and BuildGrid.indoorBlocked(cx, cy, cz, low.X, low.Y, high.X, high.Y, top)
+		then
+			return true
+		end
+	end
+	return false
+end
+
 local function occupied(cx: number, cy: number, cz: number): boolean
-	local x, y, z = BuildGrid.center(cx, cy, cz)
-	local params = OverlapParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
+	if indoorBlocked(cx, cy, cz) then
+		return true
+	end
+	local x, _, z = BuildGrid.center(cx, cy, cz)
 	local ignored: { Instance } = { ghost }
 	for _, other in Players:GetPlayers() do
 		if other.Character then
 			table.insert(ignored, other.Character)
 		end
 	end
+	-- What the cell stands on (map or terrain only), so it may sink into a floor slab or kerb.
+	local rayParams = RaycastParams.new()
+	rayParams.FilterType = Enum.RaycastFilterType.Exclude
+	rayParams.FilterDescendantsInstances = { structures, Workspace.CurrentCamera, table.unpack(ignored) }
+	rayParams.RespectCanCollide = true
+	rayParams.IgnoreWater = true
+	local rx, ry, rz, length = BuildGrid.sinkRay(cx, cy, cz)
+	local surface = Workspace:Raycast(Vector3.new(rx, ry, rz), Vector3.new(0, -length, 0), rayParams)
+	local bottom, top = BuildGrid.clearSpan(cy, if surface then surface.Position.Y else nil)
+	local params = OverlapParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = ignored
 	params.RespectCanCollide = true
-	local size = Vector3.one * (BC.GridSize - BC.OverlapInset * 2)
-	return #Workspace:GetPartBoundsInBox(CFrame.new(x, y, z), size, params) > 0
+	local size = Vector3.new(BC.GridSize - BC.OverlapInset * 2, top - bottom, BC.GridSize - BC.OverlapInset * 2)
+	return #Workspace:GetPartBoundsInBox(CFrame.new(x, (bottom + top) / 2, z), size, params) > 0
 end
 
 local function supported(cx: number, cy: number, cz: number): boolean

@@ -128,6 +128,45 @@ function BuildGrid.groundRay(cx: number, cy: number, cz: number): (number, numbe
 	return x, y + SIZE / 2 + 0.01, z, SIZE + 0.01 + BC.GroundProbe
 end
 
+-- The probe for what cell (cx, cy, cz) stands on: a ray from SinkDepth above the cell floor down to
+-- just below it (origin x, y, z and length).
+function BuildGrid.sinkRay(cx: number, cy: number, cz: number): (number, number, number, number)
+	local x, _, z = BuildGrid.center(cx, cy, cz)
+	local floor = cy * SIZE
+	return x, floor + BC.SinkDepth, z, BC.SinkDepth + 0.01
+end
+
+-- The height span a new block in cell `cy` must find empty (bottom, top): the cell less OverlapInset,
+-- starting on `surfaceY` (the sinkRay hit) when that lies in the bottom SinkDepth of the cell.
+function BuildGrid.clearSpan(cy: number, surfaceY: number?): (number, number)
+	local floor = cy * SIZE
+	local bottom = floor
+	if surfaceY and surfaceY > floor and surfaceY <= floor + BC.SinkDepth then
+		bottom = surfaceY
+	end
+	return bottom + BC.OverlapInset, floor + SIZE - BC.OverlapInset
+end
+
+-- Whether cell (cx, cy, cz) is closed to blocks by a town building with this footprint: inside it
+-- (grown by BuildingMargin) only cells whose floor is at or below `buildTop` take blocks.
+function BuildGrid.indoorBlocked(
+	cx: number,
+	cy: number,
+	cz: number,
+	minX: number,
+	minZ: number,
+	maxX: number,
+	maxZ: number,
+	buildTop: number
+): boolean
+	local x, z = cx * SIZE, cz * SIZE
+	local m = BC.BuildingMargin
+	if x + SIZE <= minX - m or x >= maxX + m or z + SIZE <= minZ - m or z >= maxZ + m then
+		return false
+	end
+	return cy * SIZE > buildTop
+end
+
 -- Whether a block whose cell starts at `bottom` stands in a zombie's way on ground at `ground`: it
 -- reaches above a step and starts below the top of a zombie.
 function BuildGrid.obstructs(bottom: number, ground: number): boolean

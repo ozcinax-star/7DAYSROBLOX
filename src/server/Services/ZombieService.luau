@@ -927,7 +927,8 @@ local function separate(stepped: { Zombie })
 end
 
 -- An interior floor cell (either floor) of a building near a random player, out of every player's
--- sight and at least IndoorSpawnMinDistance away from all of them. Returns x, z, level and building.
+-- sight and at least IndoorSpawnMinDistance away from all of them, and not inside a player's block.
+-- Returns x, z, level and building.
 local function pickIndoorSpawnPoint(players: { PlayerInfo }): (number?, number?, number, number)
 	if #players == 0 or #buildingNavs == 0 then
 		return nil, nil, GROUND, 0
@@ -943,18 +944,22 @@ local function pickIndoorSpawnPoint(players: { PlayerInfo }): (number?, number?,
 		if groundCount + upperCount > 0 and dx * dx + dz * dz <= maxSq then
 			local pick = math.random(1, groundCount + upperCount)
 			local level, x, z, floor
+			local ok = true
 			if pick <= groundCount then
 				level = GROUND
 				x, z = grid:cellCenter(nav.interior[pick])
 				floor = MapService.groundAt(x, z)
+				ok = structureCosts[nav.interior[pick]] == nil
 			else
 				level = UPPER
 				x, z = upperGrid:cellCenter(nav.upperCells[pick - groundCount])
 				floor = nav.upperY
 			end
 			local spot = Vector3.new(x, floor + ZC.RootHeight, z)
-			local ok = true
 			for _, info in players do
+				if not ok then
+					break
+				end
 				local px, pz = x - info.x, z - info.z
 				if px * px + pz * pz < minSq then
 					ok = false
