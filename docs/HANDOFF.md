@@ -516,10 +516,12 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
   kademesi 2'ye çıktı. Elde `Grip` + `Barrel` modeli. Konsol temiz.
 - **Tahta parmaklık (Play, 31 Ekim):** oyuncu 8 parmaklıkla çevrili hücrede. "Shots" grubuyla atılan
   sunucu ışını parmaklığın içinden geçti, normal ışın parmaklığa çarptı. Zombi yolu kesilince parmaklığa
-  vurdu (vuruş başına 7; bir parmaklık yaklaşık 85 sn'de kırıldı, zombi içeri girdi). Parmaklığın
+  vurdu (vuruş başına 7; bir parmaklık kırıldı, zombi içeri girdi. Süre ölçülmedi; Config hesabı
+  300 / 7 ≈ 43 vuruş, gündüz 1,5 sn ile ≈ 64 sn, gece 1,1 sn ile ≈ 47 sn). Parmaklığın
   dışındaki zombiye tabancayla 3 isabet (mermi parmaklığın 4 stud'luk kutusunu geçti), mızrakla 4,9
-  stud'dan 7 vuruşta öldü; parmaklığın canı yalnızca zombi vuruşlarıyla düştü. Zombi oyuncuya
-  parmaklık arkasından vuramaz (vuruş mesafesi 3,6 stud, aradaki mesafe en az ~4,9). Konsol temiz.
+  stud'dan 7 vuruşta öldü; parmaklığın canı yalnızca zombi vuruşlarıyla düştü. Ölümsüzlük kapalı,
+  oyuncu parmaklığın iç yüzüne yaslı: zombi 36 sn parmaklığa vurdu, oyuncunun canı 100'de kaldı
+  (zombi kafası ile oyuncu arası en az 5,1 stud yatay; vuruş menzili 3,6). Konsol temiz.
 - **Konsol:** Sunucu ve istemcide 0 uyarı, 0 hata.
 
 ## Teknik notlar
