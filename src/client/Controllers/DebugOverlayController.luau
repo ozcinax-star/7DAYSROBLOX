@@ -1,11 +1,13 @@
 --!strict
 -- DebugOverlayController: FPS, server tick time and zombie counts, plus stress-test buttons, the
 -- threat level and the auto-spawn state for players the server marked as DebugAllowed (PLAN: players do
--- not see the threat). The server validates every command again.
+-- not see the threat). The server validates every command again. While the mouse is locked to the
+-- screen centre (the shoulder camera) a line over the buttons says how to free the cursor.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
@@ -21,6 +23,7 @@ local BUTTON_HEIGHT = 40
 local PADDING = 6
 local TEXT_SIZE = 16
 local PANEL_TRANSPARENCY = 0.4
+local HINT_COLOR = Color3.fromRGB(235, 220, 160)
 
 local DebugOverlayController = {}
 
@@ -108,6 +111,11 @@ function DebugOverlayController.start()
 	labels.Threat = makeLabel(panel, 5)
 	labels.Ambient = makeLabel(panel, 6)
 
+	local hint = makeLabel(buttons, 0)
+	hint.TextWrapped = true
+	hint.TextColor3 = HINT_COLOR
+	hint.Text = Localization.get("DebugCursorHint")
+
 	local debugRemote = Net.event("DebugCommand")
 	local order = 0
 	for _, count in Config.Debug.StressCounts do
@@ -154,6 +162,7 @@ function DebugOverlayController.start()
 	local frames = 0
 	RunService.PreRender:Connect(function()
 		frames += 1
+		hint.Visible = UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter
 	end)
 
 	local attributes = Net.Attributes

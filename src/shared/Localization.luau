@@ -46,6 +46,7 @@ local Strings: { [string]: { [string]: string } } = {
 		DebugClear = "Clear",
 		DebugSkipPhase = "Skip to next phase",
 		DebugGrowCrops = "Grow crops",
+		DebugCursorHint = "Press Tab or hold Alt to click these",
 		DebugToggleDirector = "Auto spawn on/off",
 		DebugThreat = "Threat: tier {tier}, {level} (noise {noise}, trace {trace})",
 		DebugAmbient = "Auto spawn {state}: {count} / {target}, horde left {horde}",
