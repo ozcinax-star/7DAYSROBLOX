@@ -43,7 +43,7 @@ Yol haritası notu ve Kararlar tablosu).
 | Depolama sandığı | Bitti: 36 yuva, ortak, kırılınca torba |
 | Evin içine inşaat | Bitti: zemin katta 2 hücre, kapı boşluğu barikatı |
 | Kamp ateşi ve pişirme | Bitti: fırında patates, közde mısır (ızgara), kaynamış su (tencere) |
-| İlk dakikalar (1 Kasım kullanıcı testi) | Bitti: Tab / I / Bag düğmesi, oyuncu listesi kapalı, 7DTD başlangıç eşyaları, vuruş can çubuğu ve "Too far away", kontrol listesi (H), görev zinciri (19 görev), omuz kamerası (V, Alt), vuruş parçacıkları, ölüm ekranı ve torba işareti, otlu zeminden lif |
+| İlk dakikalar (1 Kasım kullanıcı testi) | Bitti: Tab / I / Bag düğmesi, oyuncu listesi kapalı, 7DTD başlangıç eşyaları, vuruş can çubuğu ve "Too far away", kontrol listesi (H), görev zinciri (19 görev), omuz kamerası (V, Alt), vuruş parçacıkları, ölüm ekranı ve torba işareti, otlu zeminden lif, eşya bilgi paneli (çanta ve crafting satırı) |
 | UI cilası | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
 | Kapı 1: 80 zombiyle orta seviye telefonda 30 FPS | **Ölçülmedi**; kullanıcı erteledi |
 | Kapı 2: 3 kişilik test grubu "bir gece daha" diyor | Henüz yapılamaz |
