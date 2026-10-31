@@ -30,6 +30,7 @@ Yol haritası notu ve Kararlar tablosu).
 | Ahşap kapı | Bitti: 1000 can, aç/kapa, açıkken zombi geçer, kapalıyken duvar |
 | Yakın dövüş silahları | Bitti: tahta sopa, taş mızrak; toplamada dörtte bir verim |
 | Yay ve ok | Bitti: ilkel yay, taş ok, sunucuda yerçekimli uçuş |
+| Boru tabanca | Bitti: 9 mm, şarjör 6, doldurma, sapma, atış gürültüsü; tutkal kamp ateşinde kemikten |
 | Tarım | Bitti: tarla, 3 ekin, büyüme, hasat, tohum geri |
 | Jeneratör ve lamba | Bitti: benzin, aç/kapa, 48 stud'da 50 W, gürültü ve İz |
 | Grafik ayarları | Bitti: Auto / Low / Medium / High, yalnızca istemci, gece görüşü sabit |
@@ -275,7 +276,21 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Çalışma masası:** PLAN MVP parçası. Aynı istasyon altyapısıyla gelir (7DTD tarifi 25 dövme
   demir, 20 mekanik parça, 5 bant, 100 çivi, 100 odun; bizde demir, bant ve çivi yok).
 
-### 19. Sonra
+### 19. Boru tabanca (bitti, 31 Ekim)
+
+`7e1c6ed`, `fdde123`. Kalanlar:
+- **Ses:** atış sesi dosyası yok; Creator Store'dan (script'siz) bir atış sesi alınmalı.
+- **Nişan alma:** 7DTD'de nişan sapmayı 0,4'e indirir, yürürken / koşarken artar; bizde hep kalçadan
+  1,5°. Mobilde nişan düğmesi ister.
+- **Hasar düşüşü:** 7DTD'de 12 m'den sonra hasar azalır; yok.
+- **Cephane yapımı:** 9 mm çalışma masasında kurşun ucu + barut + kovan ister; üçü de yok, cephane
+  yalnızca loot.
+- **Diğer boru silahlar:** boru tüfek, pompalı, makineli (aynı tarif); aynı altyapıyla config işi.
+- **Tamir:** 7DTD'de silah tamir kitiyle tamir edilir; tamir kiti yok.
+- **Dayanıklılık:** 300 bizim; 7DTD'nin temel değeri doğrulanamadı.
+- **Kemik:** 7DTD'de cesetten ve hayvandan; bizde zombi torbasında.
+
+### 20. Sonra
 
 - **Araç zinciri:** Kullanıcı `rokit install` ve `rojo plugin install` komutlarını kendisi çalıştırır.
   Sonra `stylua --check src tests`, `selene src`, `lune run tests/run`, `rojo build -o build.rbxl`

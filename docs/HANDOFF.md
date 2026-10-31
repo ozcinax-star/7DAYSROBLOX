@@ -260,6 +260,13 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 | --- | --- |
 | `7748aed` | Her eşyanın renkli karesinin üstüne bir emoji (`Shared/ItemIcons`): çanta, alet kemeri, sandık, crafting satırları, toplama akışı. Roblox Unicode 12'ye kadar emoji çiziyor; kütük, kaya, merdiven, yaban mersini kutu çıktığı için yerine ağaç, yeni ay, tırmanan kişi, üzüm. Her eşyanın simgesi olduğunu test denetler. Play'de ekran görüntüsüyle doğrulandı |
 
+### 22. Bölüm: boru tabanca (31 Ekim)
+
+| Commit | Ne yapıldı |
+| --- | --- |
+| `7e1c6ed` | Boru tabanca (7DTD 3.2: 4 metal boru + 2 tutkal + 6 odun, sırt çantasında): yayın sunucu uçuşunu kullanır. Dakikada 126 atış, 6'lık şarjör, 2 sn doldurma, 1,5° sapma, 9 mm 32 − 4 = 28 hasar (kafa ×2), 40 m, 250 m/sn düşüşsüz mermi, her atış "Gunshot" gürültüsü (25, 180 stud). 300 dayanıklılık (bizim), tamir yok. İstemci mermiyi parlak iz ve namlu ışığıyla çizer, şarjörü sayar ve "Reloading..." gösterir. Tutkal: 7 kemik + 1 kaynamış su, kamp ateşi + tencere. Zombi torbası kemik (2–6) ve 9 mm (2–6), depo kapları boru, tutkal ve 9 mm verir. `Ballistics.afterShot`, `spread` (1 test) |
+| `fdde123` | Silah elde yay yerine tahta kabza + metal boru namlu olarak görünür |
+
 ## Mevcut durum
 
 | Alan | Durum |
@@ -281,6 +288,7 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 | Jeneratör ve lamba (`PowerService` + `Shared/Power`) | Çalışıyor. İkisi de inşa bloğu (`Size` alanı: hücre tabanında küçük kutu; `BuildGrid.plotCFrame` ile zemine oturur). Jeneratör 3,2 × 2,4 × 2,2, zombiyi durdurur ve kırılır; lamba 0,4 × 3,2 × 0,4 direk, `Passable` (zombi geçer). Kablo yok (PLAN: elektrik ağı sonraya). Jeneratör: tek "Turn on / Turn off" istemi (8 stud, oyuncu başına saniyede 4), nesne metni "Generator  Gas x/1000"; benzinsiz açılmaz. Elde Gas Can varken "use": sunucu baştan 8 stud ışın atar, jeneratöre değerse en çok 250 benzin döker (depoyu taşırmaz, taşınan kadar). Saniyede bir: çalışan jeneratörler (yakıtı > 0) 48 stud içindeki lambaları anahtar sırasıyla, en yakın jeneratörden, 50 W bitene kadar yakar (dünyada en çok 40 lamba); her jeneratör yalnızca yüklü watt için yakar (5 W lamba günde 9 benzin; yüksüz jeneratör yakıt harcamaz ama ses yapar). Benzin bitince jeneratör durur. Yanan lamba: Neon baş + PointLight (20 stud, gölgesiz). Çalışan jeneratör 3 sn'de bir "Generator" gürültüsü (3 puan, 90 stud; tek ses noktası, Noise ≈ 21'de dengelenir); İz: yanan lamba 1,5, çalışan jeneratör 3 (`Power` kaynağı). Jeneratörün üstünde gösterge: çalışırken yeşil Neon, dururken kırmızı. Kırılan jeneratörün lambaları söner. Kayıt yok. |
 | Tarım (`FarmService` + `Shared/Farming`) | Çalışıyor. Farm Plot bir inşa bloğu (`Plot = true`): hücresinin dibinde 0,8 stud'luk yassı parça; hücreye yükselen zemin varsa onun üstüne kalkar (`BuildGrid.plotCFrame`). Yol bulmada geçilir, zombi vuruşu onu seçmez, taş baltayla 14 kille tamir edilir. Elde tohum (`Seed` alanı) varken "use": sunucu baştan 24 stud ışın atar, tarlaya değerse ve tarlada ekin yoksa tohumu harcar. Ekin 3 aşamalı; aşama `StageDays` (1,05) × gün süresi (≈ 11,5 dk), olgunluk ≈ 23 dk; sunucu saniyede bir bakar ve modeli yeniden kurar (filiz, büyüyen bitki, ürünlü bitki). Olgun ekinde 0,5 sn basılı "Harvest" istemi (8 stud): sunucu canlı karakteri ve mesafeyi denetler, 2 ürün + %50 bir ürün daha ve 1 tohum verir (sığmayan ayağa düşer), ekin kalkar, tarla kalır. Ürünler yenir: mısır 2 yemek + 3 can, patates ve yaban mersini 2 yemek. Tohum kaynağı: dolap (mısır, patates tohumu), raf (yaban mersini tohumu), buzdolabı (mısır, patates); 5 ürün = 1 tohum. Ekinler `workspace.Crops` içinde, kayıt yok. Debug: `GrowCrops` hepsini olgunlaştırır. API: `ripenAll` (debug). |
 | Yay (`RangedService` + `Shared/Ballistics`) | Çalışıyor. Elde yay varken "use" ok atar (germe yok; her atış tam gerili). Sunucu: kendi atış aralığı (1 sn, %12 tolerans), yayın dayanıklılığı, oyuncu başına havada en çok 6 ok; envanterden 1 ok alır (hep ya da hiç), yayı 1 aşındırır. Ok sunucunun baş konumundan çıkar, 88 stud/sn hızla ve 11,2 stud/sn² yerçekimiyle Heartbeat'te uçar; her adım `Melee.hitBody` ile zombilere (kafa ×2) ve ışınla dünyaya (duvar, blok, arazi, su) sınanır, hangisi yakınsa orada durur. 280 stud'da düşer. Yalnızca zombilere hasar verir; vurulan zombi atanı kovalar (yakın dövüşteki gibi). Ok geri alınmaz, bloğa hasar vermez, ses çıkarmaz. İstemci: `ArrowFired` (id, çıkış, hız, yerçekimi, sunucu saati) ile yayı her karede kendisi hesaplar; `ArrowStopped` ile oku durduğu yere saplar, 6 sn sonra siler; zombiye saplanan ok hemen silinir, zombi sendeler. Elde yay varken ok yoksa "No arrows". |
+| Boru tabanca (`RangedService`) | Çalışıyor. Yay yolunu kullanır; ek olarak oyuncu ve silah başına şarjör sayacı (6 atıştan sonra bir sonraki atış 2 sn bekler; silah değiştirmek sayacı sıfırlamaz), sunucuda rastgele 1,5° sapma (`Ballistics.spread`), her atışta `ThreatService.emit("Gunshot")`. `ArrowFired` artık cephane kimliğini de taşır; `Tracer` cephanesi istemcide 5 stud'luk neon iz ve 0,06 sn'lik namlu ışığıdır, durduğu yerde silinir. Mermi yalnızca zombiye hasar verir. Ses dosyası yok (atış sessiz duyulur, zombiler yine duyar). Uzaklıkla hasar düşüşü yok. |
 | Toplama (`HarvestService` + `Shared/Harvest`) | Çalışıyor. 7DTD formülü: verimin üçte ikisi nesnenin toplam hasarıyla orantılı olarak vuruşlarda, üçte biri kıran vuruşta; iyi alet yalnızca hızlandırır. Silahlar (tahta sopa, taş mızrak; 7DTD HarvestCount −0,75) odun, taş, kil ve kumun dörtte birini verir (aşağı yuvarlanır: çalıdan odun çıkmaz), lifin tamamını. Hasar = aletin blok hasarı × malzeme çarpanı, tam sayıya kesilir, en az 1. Aynı nesneye vuran herkes aynı hasarı paylaşır. Ağaç: 300/30, 600/70, 900/110, 1200/150 (can/odun, boy ölçeğe göre). Çalı 1–3 odun, ot 2 lif, yerdeki taş 1 taş (E ile de alınır), kaya 400 can / 22 taş. Devrilen ağaç çarpışmayı hemen bırakır, altındaki yol hücreleri açılır, 3,5 sn sonra silinir. Hiçbir şey yeniden çıkmaz (7DTD). Sığmayan eşya kaybolur ve kırmızı satırla bildirilir (loot torbası gelince yere düşecek). |
 | Crafting (`CraftingService` + `Shared/Crafting`) | Çalışıyor. 7DTD sırt çantası crafting'i: 4 işlik kuyruk, yalnızca ilk iş sunucu saatiyle ilerler (çanta kapalıyken de). Süre = Σ adet × malzeme süresi (odun, taş, lif 0,2 sn; diğerleri 1 sn), tarif kendi süresini verirse o. Malzemeler kuyruğa alınırken kaynaklarıyla düşer; iptal kalanı iade eder. Sığmayan ürün kuyrukta "No room" ile bekler. İadesi sığmayan iptal reddedilir ve kırmızı satırla bildirilir (loot torbası gelince yere düşebilir). Tamir: hasarlı taş alet + gereken taş (taş başına 300 dayanıklılık, 0,5 sn) kuyruğa girer; alet boşsa eski slotuna döner. Kuyruk oyuncu çıkınca kaybolur (kayıt yok). Tarifler: taş balta, taş kürek, taş kazma, tahta sopa, taş mızrak, kereste, çerçeve, merdiven, kapı, toprak. İstasyon tarifleri (`Station`, `Tool`): sunucu kuyruğa alırken canlı karakterin 10 stud içinde o türden konmuş blok olduğunu ve aletin envanterde olduğunu denetler; iş sonra oyuncunun kuyruğunda sürer (uzaklaşınca durmaz, alet harcanmaz). |
 | Kamp ateşi ve pişirme | Çalışıyor. Kamp ateşi `Size` 3,2 × 0,9 × 3,2 taş blok, zombiler içinden geçer (`Passable`), kırılır, taş baltayla 5 taşla tamir edilir. `CraftingService` konunca ateş (`Fire`), sıcak ışık (16 stud, gölgeli), iki kütük ve "Cook" istemi ekler; istem istemcide sırt çantasını açar. Fırında patates, közde mısır (ızgara), kaynamış su (tencere). Yakıt yok. |
@@ -293,8 +301,8 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 
 Ölçümler 30–31 Ekim 2026'da PC'de, Studio içinde alındı. Telefonda ölçüm yok.
 
-- **Testler:** 69/69 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
-  Inventory 7, Melee 5, Harvest 6, Ballistics 1, Farming 1, Power 1, Graphics 1, Crafting 7, Loot 3,
+- **Testler:** 70/70 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
+  Inventory 7, Melee 5, Harvest 6, Ballistics 2, Farming 1, Power 1, Graphics 1, Crafting 7, Loot 3,
   DayClock 2, Threat 4, BuildGrid 5, Vitals 4).
   Testler yalnızca Studio düzeneğiyle çalıştırıldı; Lune ile hiç çalıştırılmadı.
 - **Zombi performansı:** 80 zombiyle tick ortalaması 0,04–0,17 ms, en kötü tick genelde 1,3–1,8 ms
@@ -496,6 +504,10 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
   çantayı açtı; panel yakında yeşil "at a Campfire", 30 stud uzakta tarifi soluk gösterdi. Konsol
   temiz. Not: bu oturumda Studio ekran görüntüsü (Edit ve Play) beyaz geldi; ateşin görüntüsü
   gözle doğrulanmadı.
+- **Boru tabanca (Play, 31 Ekim):** 0,5 sn arayla 10 atış isteği: 6 atış (30 → 24 mermi), sonraki 3
+  istek doldurmada yok sayıldı, 10. atış geçti (23); dayanıklılık 300 → 293; istemcide 7 mermi izi.
+  15 stud'daki zombiye 12 istek (doldurma dahil): 3 isabet, zombi öldü; Gürültü 60,8'e, tehdit
+  kademesi 2'ye çıktı. Elde `Grip` + `Barrel` modeli. Konsol temiz.
 - **Konsol:** Sunucu ve istemcide 0 uyarı, 0 hata.
 
 ## Teknik notlar
@@ -562,7 +574,7 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
    local src = Http:GetAsync("http://127.0.0.1:8765/Harness.luau", true)
    Http.HttpEnabled = was
    local H = loadstring(src)()
-   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "69 passed, 0 failed"
+   return H.sync() .. "\n" .. H.test(false)   -- beklenen: "70 passed, 0 failed"
    ```
    Düzenek place'e hiçbir şey bırakmaz.
 3. Her kod değişikliğinden sonra adım 1'deki bundle komutunu tekrar çalıştır, sonra `H.sync()`.
