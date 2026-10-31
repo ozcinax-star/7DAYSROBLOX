@@ -352,7 +352,11 @@ function BuildService.start()
 	mapOverlap.FilterType = Enum.RaycastFilterType.Include
 	mapOverlap.FilterDescendantsInstances = { MapService.getMap() }
 	mapOverlap.RespectCanCollide = true
-	ToolService.onPlace(onPlace)
+	for id, def in BC.Blocks do
+		if def.Placeable then
+			ToolService.onUse(id, onPlace)
+		end
+	end
 	ToolService.onWorldHit(onWorldHit)
 	ZombieService.onStructureHit(onStructureHit)
 	Players.PlayerRemoving:Connect(function(player)
