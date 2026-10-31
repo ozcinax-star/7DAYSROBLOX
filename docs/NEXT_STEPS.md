@@ -33,6 +33,7 @@ Yol haritası notu ve Kararlar tablosu).
 | Boru tabanca | Bitti: 9 mm, şarjör 6, doldurma, sapma, atış gürültüsü; tutkal kamp ateşinde kemikten |
 | Boru tüfek, pompalı, makineli ve nişan | Bitti: 7DTD 3.2 sayıları, pompalıda 10 saçma, makinelide basılı tutunca otomatik atış; nişan sağ tık / L2 / dokunmatik "Aim" |
 | Tahta parmaklık | Bitti: 3 kereste, 300 can; zombiyi durdurur, mermi / ok / mızrak içinden geçer |
+| Yatak rulosu | Bitti: 10 lif; kuran oyuncu ölünce üstünde doğar. Kayıt yok |
 | Kırık taş kademesi | Bitti: ahşap blok + 10 kırık taş → 1500 can; kırık taş 1 kil + 1 taş. Beton kademesi (çimento karıştırıcı) yok |
 | Tahta kazık tuzağı | Bitti: 20 odun; zombiye saniyede 33 hasar, hızını 0,18'e düşürür, 12 vuruşta kırılır |
 | Mobilya kırma | Bitti: 30 tür kasaba mobilyası 7DTD canı ve düşüşleriyle kırılır; kap içindekini döker; pencere camı tek vuruşta kırılır |

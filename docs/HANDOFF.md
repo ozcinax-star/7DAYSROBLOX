@@ -279,7 +279,7 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 | --- | --- |
 | `7934fed` | Kasaba mobilyası (şömine hariç 30 tür, haritada 442 parça) toplama düğümü oldu: can 7DTD 3.2 blok malzemesinin MaxDamage'ı (zayıf ahşap 100, mobilya 300, takviyeli ahşap 225, metal 300, zayıf metal 100, ince metal 250, taş mobilya 300, küvet 200, saman 50, bitki 1), düşenler eşleşen 7DTD bloğundan: dolap / masa / sandık odun, yatak / kanepe odun + kumaş (kumaş bizim), buzdolabı / ocak / metal raf hurda demir, klozet boru, lavabo hurda demir, küvet taş + hurda, saman ve bitki lif. 7DTD metal ve tesisatın "Harvest" düşüşlerini yalnızca İngiliz anahtarına verir (`salvageHarvest`); anahtar yok, o parçalar yalnızca kırılma düşüşünü verir. Metal için aletlerde çarpan yok, taş çarpanı kullanılır. Kırılan mobilya hücrelerini zombiye ve inşaata açar (`release`), kap mobilyası içindekini (gerekirse önce zar atarak) torbaya döker (`LootService.spillContainer`). Modellerde `FurnitureCell` (bina adı / kat:satır:sütun) kimliği (1 test satırı) |
 
-### 25. Bölüm: atış sesi, eşya atma, cam, boru silahlar, kazık tuzağı, kırık taş, blok düşüşleri (31 Ekim)
+### 25. Bölüm: atış sesi, eşya atma, cam, boru silahlar, kazık tuzağı, kırık taş, blok düşüşleri, yatak rulosu (31 Ekim)
 
 | Commit | Ne yapıldı |
 | --- | --- |
@@ -290,6 +290,7 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 | `dbf01ae` | Silahın alet kemeri yuvası cephaneyi gösterir (7DTD): silahta "şarjördeki / taşınan" (doldururken 0, doldurma bitince dolu; `ToolController` → `InventoryController.setLoaded`), yayda taşınan ok sayısı |
 | `8b79d1a` | Kırık taş kademesi (7DTD cobblestoneShapes): taş balta ahşap bloğu 3 vuruşta 10 kırık taşla `CobblestoneBlock`a çevirir: 1500 can, aletlere taş gibi davranır (blok başına `HarvestMaterial`; kazma 26, ahşap sayılsa 5); 7DTD tam tamiri 8 kırık taş, bizde vuruş (100 can) başına 1 taş, 1500 can için 15 taş. Kırık taş: 1 kil + 1 küçük taş, sırt çantasında 0,4 sn (kil malzeme süresi 0,2 sn eklendi). Test çantasına 20 kil ve 20 kırık taş. 1 test |
 | `bd684fc` | Oyuncu blokları kırılınca malzeme verir (7DTD): `Harvest` düşüşü oyuncunun alet vuruşlarına toplama formülüyle (`Harvest.payout`) bölünür (çerçeve ve ahşap blok 2 odun, kırık taş 6 kil + 6 taş, parmaklık 2 odun bizim), `Destroy` düşüşü kıran vuruşu yapana (merdiven 1–2 odun, kazık 2–6 odun, kamp ateşi 3 taş). Silahlar her zamanki dörtte biri alır. Zombinin ya da aşınmanın kırdığı blok bir şey vermez (bizim; 7DTD yere düşürür). 1 test |
+| `77080f5` | Yatak rulosu (7DTD bedroll, SleepingBag): 10 bitki lifi, sırt çantasında 2 sn; 100 can, aletlere toprak, tamir 20 lif, vuruşlarda 5 lif, kırılınca 1–3 lif; zombi üstünden geçer. Kuran oyuncu ölünce üstünde doğar (`BuildService` `CharacterAdded` → `PivotTo`, kök 3 stud yukarıda); yenisi eskisinin yerini alır, kırılırsa harita doğuşuna döner. Kayıt yok (bloklar gibi). 1 test |
 | `ea7e10b` | Kasaba pencere camları (274) kırılır: her cam kendi `Window` modeli, `HarvestNode = "WindowGlass"`; HarvestService bu özelliği taşıyan harita modellerini de düğüm sayar. 7DTD Mglass canı 1: her vuruş kırar, düşüş yok (bizim). Pencere denizliği zombiyi yine durdurur, yol ızgarası değişmez. Mermi camı kırmaz (yalnızca alet vuruşu) |
 
 ## Mevcut durum
@@ -501,6 +502,9 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
   bırakınca 70; nişanlıyken silahsız slota geçince 70'e döndü; silahsız elde sağ tık FOV'u değiştirmedi.
   Dokunmatik "Aim" düğmesi oluşuyor, dokunmatik olmayan Studio'da gizli (dokunmatikte denenmedi).
   Konsol temiz.
+- **Yatak rulosu (Play, 31 Ekim):** varsayılan doğuştan 60 stud öteye kondu (18; 0,17; 122). Oyuncu
+  40 stud uzaklaştırılıp öldürülünce 4,2 sn sonra (18; 3,45; 122)'de doğdu. Rulo taş kürekle 3 vuruşta
+  kırıldı (lif 10 → 16: 5 + 1). Yeniden ölünce harita doğuşunda (−38; 4,1; 127) doğdu. Konsol temiz.
 - **Tuzak maliyeti (31 Ekim):** `checkTraps`'in işi (20 tuzak × 120 zombi `bodiesNear` + kutu kontrolü)
   sunucu komut bağlamında tek kontrolde 0,062 ms, 0,2 sn aralıkla saniyede 0,31 ms.
 - **Duman testi (Play, 31 Ekim):** 80 zombi + yönetici açık: tik ort./en çok 0,09 / 1,79 ms. Taş balta
