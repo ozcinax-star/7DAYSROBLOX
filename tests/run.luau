@@ -949,6 +949,15 @@ test("player blocks pay their 7DTD harvest over the hits that break them", funct
 	end
 end)
 
+test("a bedroll is a fibre respawn point", function()
+	local bed = Config.Build.Blocks.Bedroll
+	expectEq(bed.Bed and bed.Placeable and bed.Passable, true, "a placed respawn point zombies pass")
+	expectEq(bed.Health, 100, "7DTD bedroll")
+	expectEq(Config.Recipes.Bedroll.Ingredients[1].Id, "PlantFiber", "fibre")
+	expectEq(Config.Recipes.Bedroll.Ingredients[1].Count, 10, "ten")
+	expectEq(Config.Items.Bedroll.Stack, 10, "stack of ten")
+end)
+
 print("Farming")
 
 test("crops ripen in two 7DTD stages and pay 2-3 produce and their seed back", function()

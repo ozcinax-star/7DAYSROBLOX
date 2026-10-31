@@ -6,10 +6,11 @@
 -- break, open, they walk through it (7DTD zombies never open doors). A farm plot is a low slab crops
 -- grow on (FarmService); it blocks nobody. Generators, lamps and storage crates are smaller boxes on
 -- the floor of their cell (PowerService and StorageService give them their prompts); lamps let
--- zombies by. Wood spikes are a trap zombies walk into: it hurts and slows them and wears out. The
--- stone axe upgrades a frame to a wood block (3 hits, 4 Lumber) and a wood block to cobblestone
--- (10 Cobblestone Rocks), and repairs damaged blocks with their repair item; other tools and the fist
--- damage them (cobblestone as stone) and gather the block's 7DTD Harvest and Destroy drops.
+-- zombies by. A bedroll is its builder's respawn point (the newest one counts). Wood spikes are a
+-- trap zombies walk into: it hurts and slows them and wears out. The stone axe upgrades a frame to a
+-- wood block (3 hits, 4 Lumber) and a wood block to cobblestone (10 Cobblestone Rocks), and repairs
+-- damaged blocks with their repair item; other tools and the fist damage them (cobblestone as stone)
+-- and gather the block's 7DTD Harvest and Destroy drops.
 -- Zombies path through the weakest wall and break it (ZombieService structure cells); blocks that
 -- lose their way to the ground fall.
 --
@@ -86,6 +87,8 @@ local traps: { [Block]: boolean } = {}
 local trapHitAt: { [number]: number } = {}
 local trapClock = 0
 local random = Random.new()
+-- Each player's respawn bedroll.
+local beds: { [Player]: Block } = {}
 local placedCallbacks: { (key: number, kind: string, part: BasePart) -> () } = {}
 
 local function setTrace()
@@ -149,6 +152,11 @@ local function removeBlock(block: Block)
 		blocks[block.top] = nil
 	end
 	traps[block] = nil
+	for owner, bed in beds do
+		if bed == block then
+			beds[owner] = nil
+		end
+	end
 	count -= 1
 	block.part:Destroy()
 	updateColumn(block.cx, block.cz)
@@ -328,7 +336,14 @@ local function addSpikes(part: BasePart, color: Color3)
 	end
 end
 
-local function createBlock(cx: number, cy: number, cz: number, kind: string, grounded: boolean, side: number)
+local function createBlock(
+	cx: number,
+	cy: number,
+	cz: number,
+	kind: string,
+	grounded: boolean,
+	side: number
+): Block
 	local x, y, z = BuildGrid.center(cx, cy, cz)
 	local def = BC.Blocks[kind]
 	local part: BasePart
@@ -411,6 +426,7 @@ local function createBlock(cx: number, cy: number, cz: number, kind: string, gro
 	for _, callback in placedCallbacks do
 		task.spawn(callback, key, kind, part)
 	end
+	return block
 end
 
 -- The highest cell floor that takes blocks inside a town building: its ground storey only.
@@ -502,7 +518,10 @@ local function onPlace(player: Player, origin: Vector3, direction: Vector3, item
 		ok = cellFree(cx, cy + 1, cz)
 	end
 	if ok and InventoryService.consumeHeld(player, 1) then
-		createBlock(cx, cy, cz, itemId, grounded, BuildGrid.sideToward(cx, cz, origin.X, origin.Z))
+		local block = createBlock(cx, cy, cz, itemId, grounded, BuildGrid.sideToward(cx, cz, origin.X, origin.Z))
+		if def.Bed then
+			beds[player] = block
+		end
 	end
 end
 
@@ -562,6 +581,20 @@ local function onWorldHit(player: Player, result: RaycastResult, toolId: string,
 			LootService.giveOrDrop(player, drop.Id, random:NextInteger(drop.Min, drop.Max), "Loot")
 		end
 	end
+end
+
+-- A player with a bedroll respawns standing on it.
+local function onCharacterAdded(player: Player, character: Model)
+	local bed = beds[player]
+	if bed == nil or blocks[bed.key] ~= bed then
+		return
+	end
+	local part = bed.part
+	task.defer(function()
+		if character.Parent then
+			character:PivotTo(CFrame.new(part.Position + Vector3.new(0, BC.BedSpawnHeight, 0)))
+		end
+	end)
 end
 
 -- Zombies standing in a spike trap take its damage and slow down; the trap wears with every hit.
@@ -706,8 +739,18 @@ function BuildService.start()
 		trapClock = 0
 		checkTraps(os.clock())
 	end)
+	local function onPlayerAdded(player: Player)
+		player.CharacterAdded:Connect(function(character)
+			onCharacterAdded(player, character)
+		end)
+	end
+	Players.PlayerAdded:Connect(onPlayerAdded)
+	for _, player in Players:GetPlayers() do
+		onPlayerAdded(player)
+	end
 	Players.PlayerRemoving:Connect(function(player)
 		nextPlaceAt[player] = nil
+		beds[player] = nil
 	end)
 end
 

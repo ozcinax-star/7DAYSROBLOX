@@ -70,6 +70,8 @@ export type BlockDef = {
 	Station: boolean?,
 	Bars: boolean?,
 	Trap: boolean?,
+	-- A respawn point (7DTD SleepingBag): its builder respawns on it.
+	Bed: boolean?,
 	-- How tools damage it (Config.Tools Materials); Build.HarvestMaterial when nil.
 	HarvestMaterial: HarvestMaterial?,
 	-- 7DTD drops: Harvest is paid over a player's tool hits like a world object (Shared/Harvest),
@@ -685,6 +687,21 @@ Config.Build = {
 			Color = { 0.5, 0.38, 0.24 },
 			Transparency = 1,
 		},
+		-- bedroll: 10 Plant Fiber, 100 HP (Mplants, Earth to tools), repaired with 20 fiber; harvest 5
+		-- fiber, 1-3 when broken. Its builder respawns on it; a newer one takes over (7DTD: one each).
+		Bedroll = {
+			Health = 100,
+			Placeable = true,
+			Repair = { Id = "PlantFiber", Count = 20 },
+			Harvest = { { Id = "PlantFiber", Min = 5, Max = 5 } },
+			Destroy = { { Id = "PlantFiber", Min = 1, Max = 3 } },
+			Size = { 1.6, 0.35, 3.6 },
+			Passable = true,
+			Bed = true,
+			HarvestMaterial = "Earth",
+			Material = "Fabric",
+			Color = { 0.33, 0.4, 0.28 },
+		},
 		-- 7DTD campfire: a cooking station, 100 hit points (MaxDamage), stone. A low ring zombies walk
 		-- past (ours: 7DTD zombies path around it).
 		Campfire = {
@@ -701,6 +718,8 @@ Config.Build = {
 	} :: { [string]: BlockDef },
 	-- Height of a farm plot slab (studs); crops stand on it.
 	PlotHeight = 0.8,
+	-- A player respawning on a bedroll stands with the root this far above its centre (studs).
+	BedSpawnHeight = 3,
 	-- Spike traps (BlockDef Trap): a zombie whose body (Melee.BodyRadius) overlaps the trap's box and
 	-- whose feet are within Reach studs of its floor takes Damage (7DTD trapSpikesWood 33) at most
 	-- every HitSeconds (ours) and walks at SlowFactor of its speed (7DTD MtrapSpikesWood
@@ -800,6 +819,7 @@ Config.Items = {
 	WoodBars = { Stack = 500, Color = { 0.55, 0.4, 0.25 } },
 	-- No Stacknumber in the XML; 500 is the probable block default (docs/REFERENCE_7DTD.md).
 	WoodSpikes = { Stack = 500, Color = { 0.5, 0.38, 0.24 } },
+	Bedroll = { Stack = 10, Color = { 0.33, 0.4, 0.28 } }, -- bedroll
 	-- meleeToolRepairT0StoneAxe
 	StoneAxe = { Stack = 1, Durability = 250, Repair = STONE_REPAIR, Color = { 0.45, 0.42, 0.38 } },
 	-- meleeToolShovelT0StoneShovel
@@ -908,6 +928,8 @@ Config.Recipes = {
 	WoodBars = { Output = "WoodBars", Count = 1, Ingredients = costs({ Lumber = 3 }) },
 	-- trapSpikesWoodDmg0: 20 Wood in the backpack (7DTD 3.2 recipes.xml).
 	WoodSpikes = { Output = "WoodSpikes", Count = 1, Ingredients = costs({ Wood = 20 }) },
+	-- bedroll: 10 Yucca Fibers in the backpack.
+	Bedroll = { Output = "Bedroll", Count = 1, Ingredients = costs({ PlantFiber = 10 }) },
 	-- 7DTD 3.2 campfire: 5 Small Stone; cooking happens at a campfire. Times are the ingredients'
 	-- CraftingIngredientTime (river water 10, potato 10, corn 5).
 	Campfire = { Output = "Campfire", Count = 1, Ingredients = costs({ SmallStone = 5 }) },
@@ -995,6 +1017,7 @@ Config.Crafting = {
 		"WoodDoor",
 		"WoodBars",
 		"WoodSpikes",
+		"Bedroll",
 		"StorageCrate",
 		"Dirt",
 		"FarmPlot",
@@ -1836,6 +1859,7 @@ Config.Debug = {
 		{ Id = "PipePistol", Count = 1 },
 		{ Id = "WoodBars", Count = 10 },
 		{ Id = "WoodSpikes", Count = 5 },
+		{ Id = "Bedroll", Count = 1 },
 		{ Id = "Ammo9mm", Count = 30 },
 		{ Id = "PipeRifle", Count = 1 },
 		{ Id = "PipeShotgun", Count = 1 },
