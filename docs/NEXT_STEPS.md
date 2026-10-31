@@ -131,7 +131,7 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 ### 8. İnşa (bitti, 31 Ekim)
 
 `c95e07a`, `7574e5f`, `123b9d8`. Kalanlar:
-- **Kapı (bitti, 1 Kasım, `f84534b`):** kalanlar: kilit ve sahiplik yok (7DTD'de kilitli kapıyı
+- **Kapı (bitti, 31 Ekim, `f84534b`):** kalanlar: kilit ve sahiplik yok (7DTD'de kilitli kapıyı
   yalnızca sahibi ve arkadaşları açar); açılma / kapanma sesi ve kırılma gürültüsü yok; demir kapı,
   kapak (hatch) ve garaj kapısı yok; kapı taş baltayla yükseltilmez.
 - **Taş kademesi:** ahşap blok → kırık taş (10 Cobblestone, 1500 can); taş ocağı / betonarme
@@ -156,7 +156,7 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Ölüm torbası herkese açık;** sahibine özel değil.
 - **Telefon:** HUD üst ortada, Run düğmesi Hit'in solunda; ikisi de ölçülmedi.
 
-### 10. Kazılabilir zemin (bitti, 1 Kasım)
+### 10. Kazılabilir zemin (bitti, 31 Ekim)
 
 `499eb61`, `858d355`. Kalanlar:
 - **Kil ne işe yarar:** şimdilik yalnızca Dirt. 7DTD'de kırık taş (1 kil + 1 taş) → taş blok
@@ -170,7 +170,7 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Görsel:** kazı vuruşunda toz efekti ve ses yok; Dirt için hedef önizlemesi yok.
 - **Kar:** 7DTD kartopu vermez bizde; kar boş kazılır.
 
-### 11. Yakın dövüş silahları (bitti, 1 Kasım)
+### 11. Yakın dövüş silahları (bitti, 31 Ekim)
 
 `114cc42`. Kalanlar:
 - **Mızrak:** güçlü saldırı (3,6 m) ve fırlatma yok; tek "use" düğmesi var.
@@ -178,7 +178,7 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Sinsi saldırı:** 7DTD'de fark etmemiş zombiye çömelerek vuruş ×2 (bizde çömelme yok).
 - **Görsel:** sopa ve mızrak da aletlerin sallama pozunu kullanıyor; mızrak dürtmesi yok.
 
-### 12. Yay (bitti, 1 Kasım)
+### 12. Yay (bitti, 31 Ekim)
 
 `e72be4b`. Kalanlar:
 - **Germe:** 7DTD'de yay 0,5 sn gerilir, erken bırakılan ok zayıftır; bizde her atış tam gerili.
@@ -190,7 +190,7 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Tüy:** 7DTD'de kuş yuvasından; tüy kaynağı gelince ok tarifindeki lif tüye döner.
 - **Sinsi atış:** fark etmemiş zombiye çömelerek ×3 (7DTD); bizde çömelme yok.
 
-### 13. Tarım (bitti, 1 Kasım)
+### 13. Tarım (bitti, 31 Ekim)
 
 `6303735`. Kalanlar:
 - **Pişirme:** 7DTD'de ürünler kamp ateşinde pişer (fırında patates, közde mısır); kamp ateşi yok,

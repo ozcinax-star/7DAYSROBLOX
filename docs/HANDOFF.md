@@ -155,7 +155,7 @@ tablosu var).
 
 ### 7. Bölüm: zombi loot'u (31 Ekim)
 
-Kullanıcı 31 Ekim akşamı "her iş bitince sıradaki eksiği kapat" dedi ve ertesi gün öğlene kadar
+Kullanıcı 31 Ekim gecesi (02.30 civarı) "her iş bitince sıradaki eksiği kapat" dedi ve öğlene kadar
 yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan seçilip kaydedilir.
 
 | Commit | Ne yapıldı |
@@ -201,14 +201,14 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 | --- | --- |
 | `91a33a8` | 174 mobilya aranabilir kap (`Loot.rollContainer`, 1 test); ilk aramada dolar, 7 oyun günü sonra yeniden; duvar arkasından arama reddedilir; ölüm torbaları torba tavanından muaf |
 
-### 13. Bölüm: kazı (1 Kasım)
+### 13. Bölüm: kazı (31 Ekim)
 
 | Commit | Ne yapıldı |
 | --- | --- |
 | `499eb61` | `DigService`: araziye vuruş 4 stud'luk sütunun tepesinden bir voksel kazar; 7DTD can ve verimi (`Config.Dig`); kil ve kırık kum eşyaları; sütun yan komşusundan en çok 2 voksel aşağı iner; yasak yerler; kazının gerçek yüzeyi yükseklik ızgarasına döner, `MapService` çukur çevresinde yüksekliği ışınla okur; 12 stud altında kaya katmanı (1 test) |
 | `858d355` | Dirt (16 kil, 3 sn): kazılmış sütunu bir voksel doldurur, yalnızca eski yüksekliğine kadar; içinde oyuncu ya da zombi varken reddedilir |
 
-### 14. Bölüm: kapı ve takılan zombiler (1 Kasım)
+### 14. Bölüm: kapı ve takılan zombiler (31 Ekim)
 
 | Commit | Ne yapıldı |
 | --- | --- |
@@ -217,7 +217,7 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 | `114cc42` | Tahta sopa ve taş mızrak (7DTD: 12 hasar, 55 vuruş/dk, 100 dayanıklılık; sopa 5 odun, mızrak 5 taş + 3 lif + 3 odun); toplamada odun, taş, kil ve kumun dörtte biri, lifin tamamı (`Harvest.toolCount`, `Config.Harvest.SharedItems`); zombi torbasından da çıkar (1 test) |
 | `e72be4b` | İlkel yay ve taş ok (7DTD: ok 35 − yay 5 = 30 hasar, 45 m/sn × 0,7, 100 m, yay 100 dayanıklılık / atış başına 1; yay 8 odun + 3 lif, ok 1 taş + 1 odun + 1 lif, 1,4 sn); `RangedService` oku sunucuda yerçekimiyle uçurur, her adımı zombi vuruş hacmine ve dünyaya karşı sınar; `ArrowController` aynı yayı çizer; saf `Shared/Ballistics` (1 test) |
 
-### 15. Bölüm: tarım (1 Kasım)
+### 15. Bölüm: tarım (31 Ekim)
 
 | Commit | Ne yapıldı |
 | --- | --- |
@@ -387,7 +387,7 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
   - 14 faz atlayıp 8. güne geçince aranmış 5 kaptan 5 eşya daha geldi.
   - Test tuzağı: yakında birden çok istem varken `InputHoldBegin` yalnızca o an gösterilen istemde
     çalışır (tuş başına tek istem). Testte diğer istemleri istemcide `Enabled = false` yap.
-- **Kazı (Play, 1 Kasım):**
+- **Kazı (Play, 31 Ekim):**
   - Taş kürekle çim 7 vuruş / 22 kil + 2 lif, toprak 6 vuruş / 22 kil; kazmayla kaya 20 vuruş /
     55 taş, gürültü 0 → 17,8. Toprak kazısı gürültüsüz.
   - Roblox yumuşak arazisi dar çukurları yuvarlıyor: tek sütun −4 / −8 / −12 kazılınca yüzey ortada
@@ -401,24 +401,24 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
   - Dirt: 2 kazıdan 44 kil, 2 Dirt üretildi; çukurun içinde dururken doldurma reddedildi; 8 stud
     yandan iki doldurmayla −8 → 0 (yüzey 0,00); eski yüksekliğin üstüne ve kazılmamış zemine
     doldurma reddedildi. Üretim panelinde Dirt satırı kaydırınca görünüyor.
-- **Kapı (Play, 1 Kasım):**
+- **Kapı (Play, 31 Ekim):**
   - Kapı 4 × 8 × 0,35 panel olarak kuruldu; Open / Close paneli açık konuma döndürüp geri getirdi;
     aralıkta dururken Close reddedildi; kapalı kapıya yürüyen oyuncu panelin önünde durdu.
   - 14 çerçeve + kapıdan 3×3 çit, oyuncu içinde, 1 zombi ve her saniye Noise: kapı açıkken zombi
     28. saniyede kapıdan girdi, hiçbir blok hasar almadı. Kapı kapalıyken zombi kapıya dokunmadı
     (1000 / 1000), doğudaki çerçeveyi kırdı (üstteki de düştü) ve 66. saniyede içeri girdi.
-- **Takılan zombiler (Play, 1 Kasım):** açık arazide 80 zombi ve 40 sn Noise sonrası 8 sn içinde
+- **Takılan zombiler (Play, 31 Ekim):** açık arazide 80 zombi ve 40 sn Noise sonrası 8 sn içinde
   0,3 stud'dan az kımıldayan kovalayan / sese giden zombi: düzeltmeden önce 10 (biri oyuncudan
   30 stud uzakta, yalnızca bir eksende kayarak), sonra 2 (ikisi de oyuncunun 5,4 stud yakınındaki
   kalabalıkta); oyuncuya ulaşan 63 → 72.
-- **Silahlar (Play, 1 Kasım):** tahta sopa küçük ağacı (300 can, 11 hasar) devirdi, 7 odun verdi
+- **Silahlar (Play, 31 Ekim):** tahta sopa küçük ağacı (300 can, 11 hasar) devirdi, 7 odun verdi
   (30'un dörtte biri); taş mızrak tek zombiyi gövdeye 10 vuruşta öldürdü (125 ± %15 can, 12 hasar);
   sopa + mızrak üretimi 8 odun, 5 taş, 3 lif harcadı.
-- **Yay (Play, 1 Kasım):** tek zombiye 38, 34, 30, 25 ve 21 stud'dan 5 ok, 5 isabet, zombi öldü
+- **Yay (Play, 31 Ekim):** tek zombiye 38, 34, 30, 25 ve 21 stud'dan 5 ok, 5 isabet, zombi öldü
   (30 × 5 ≥ 107–144 can); uçuşta istemcide bir ok çizildi, durunca silindi. Ahşap çerçeveye atılan ok
   çerçevenin yüzünde durdu (x = −52,0). 14 ok yere atılıp bitince atış olmadı; yay 20 atışta
   100 → 80.
-- **Tarım (Play, 1 Kasım):** tarla düz zeminde 4 × 0,8 × 4 olarak y = 0,4'te kuruldu; mısır tohumu
+- **Tarım (Play, 31 Ekim):** tarla düz zeminde 4 × 0,8 × 4 olarak y = 0,4'te kuruldu; mısır tohumu
   ekildi (tohum 2 → 1, filiz); "Grow crops" ile olgunlaştı (3,2 stud sap, 3 ürün, Harvest / Corn
   istemi); hasat 3 mısır + 1 tohum verdi, ekin kalktı, tarla kaldı. Yeniden ekilen tarla sopayla
   26 vuruşta kırıldı ve ekini de gitti.
