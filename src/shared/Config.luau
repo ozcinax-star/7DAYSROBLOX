@@ -728,6 +728,20 @@ Config.Build = {
 			Material = "Slate",
 			Color = { 0.4, 0.38, 0.36 },
 		},
+		-- 7DTD forge (workstationForge): a fire station that turns scrap iron into forged iron and iron
+		-- parts. Its hit points are not on the wiki; ours are a generator's, repaired with cobblestone
+		-- rocks. Zombies break it like a wall.
+		Forge = {
+			Health = 500,
+			Placeable = true,
+			Repair = { Id = "CobblestoneRocks", Count = 10 },
+			Destroy = { { Id = "CobblestoneRocks", Min = 5, Max = 10 } },
+			Size = { 3.2, 3.6, 3.2 },
+			Station = true,
+			HarvestMaterial = "Stone",
+			Material = "Brick",
+			Color = { 0.45, 0.3, 0.25 },
+		},
 	} :: { [string]: BlockDef },
 	-- Height of a farm plot slab (studs); crops stand on it.
 	PlotHeight = 0.8,
@@ -872,7 +886,7 @@ Config.Items = {
 	StorageCrate = { Stack = 10, Color = { 0.55, 0.42, 0.28 } }, -- cntStorageGeneric
 	Campfire = { Stack = 10, Color = { 0.45, 0.42, 0.4 } }, -- campfire
 	-- Cooking tools (7DTD toolCookingPot / toolCookingGrill): kept by the cook, found in kitchen
-	-- cupboards (7DTD also forges them; there is no forge).
+	-- cupboards or forged.
 	CookingPot = { Stack = 1, Color = { 0.35, 0.36, 0.4 } },
 	CookingGrill = { Stack = 1, Color = { 0.25, 0.25, 0.27 } },
 	-- Fire (ours, PLAN Kararlar): 7DTD lights stations with a button and burns coal dug from coal ore.
@@ -880,6 +894,9 @@ Config.Items = {
 	-- a lighter, found in houses, lights a station (50 lights; plant fibre tinder also works).
 	Charcoal = { Stack = 6000, Color = { 0.16, 0.15, 0.15 } },
 	Lighter = { Stack = 1, Durability = 50, Color = { 0.8, 0.22, 0.16 } },
+	Forge = { Stack = 10, Color = { 0.45, 0.3, 0.25 } }, -- workstationForge
+	-- resourceForgedIron; its stack is ours.
+	ForgedIron = { Stack = 500, Color = { 0.4, 0.42, 0.46 } },
 	ElectricLamp = { Stack = 100, Color = { 0.95, 0.85, 0.5 } },
 } :: { [string]: ItemDef }
 
@@ -998,7 +1015,7 @@ Config.Recipes = {
 		Tool = "CookingGrill",
 	},
 	-- Ours (PLAN, Kararlar): three wood smoulder into one charcoal at a lit campfire. It burns twice as
-	-- long as wood (Config.Stations).
+	-- long as wood (Config.Stations) and is the forge's fuel.
 	Charcoal = {
 		Output = "Charcoal",
 		Count = 1,
@@ -1006,14 +1023,55 @@ Config.Recipes = {
 		Seconds = 15,
 		Station = "Campfire",
 	},
+	-- 7DTD forge: 50 Cobblestone Rocks, 1 Wood Log, 10 Leather, 3 Duct Tape and 3 Short Iron Pipes in
+	-- the backpack (81 s). We have no logs, leather or duct tape: 10 Wood, 10 Cloth and 3 Glue stand in
+	-- (PLAN, Kararlar). Pipes and glue are found in storage loot and toilets.
+	Forge = {
+		Output = "Forge",
+		Count = 1,
+		Ingredients = costs({ CobblestoneRocks = 50, Wood = 10, Cloth = 10, Glue = 3, MetalPipe = 3 }),
+		Seconds = 81,
+	},
+	-- Forge recipes. 7DTD smelts scrap iron and clay into the forge's material pool and casts from it;
+	-- here the forge crafts straight from the items (PLAN, Kararlar). Forged iron: 10 iron and 1 clay
+	-- (7.5 s); a short iron pipe takes the same (its time is ours); a cooking pot or grill 25 iron and
+	-- 1 clay (15 s).
+	ForgedIron = {
+		Output = "ForgedIron",
+		Count = 1,
+		Ingredients = costs({ ScrapIron = 10, Clay = 1 }),
+		Seconds = 7.5,
+		Station = "Forge",
+	},
+	MetalPipe = {
+		Output = "MetalPipe",
+		Count = 1,
+		Ingredients = costs({ ScrapIron = 10, Clay = 1 }),
+		Seconds = 7.5,
+		Station = "Forge",
+	},
+	CookingPot = {
+		Output = "CookingPot",
+		Count = 1,
+		Ingredients = costs({ ScrapIron = 25, Clay = 1 }),
+		Seconds = 15,
+		Station = "Forge",
+	},
+	CookingGrill = {
+		Output = "CookingGrill",
+		Count = 1,
+		Ingredients = costs({ ScrapIron = 25, Clay = 1 }),
+		Seconds = 15,
+		Station = "Forge",
+	},
 	-- 7DTD generator bank: 15 Forged Iron, 15 Mechanical Parts, 21 Electrical Parts at a workbench
-	-- (1:45). We have no forge, workbench or perks, and one town instead of a county: 50 Scrap Iron
-	-- stand in for the forged iron and the parts are cut to what a sweep of the storage loot gives
-	-- (PLAN, Kararlar). The lamp is ours (7DTD bulb recipes vary and need a headlight).
+	-- (1:45). We have no workbench or perks, and one town instead of a county: it is backpack crafting
+	-- and the parts are cut to what a sweep of the storage loot gives (PLAN, Kararlar). The lamp is ours
+	-- (7DTD bulb recipes vary and need a headlight).
 	Generator = {
 		Output = "Generator",
 		Count = 1,
-		Ingredients = costs({ ScrapIron = 50, MechanicalParts = 6, ElectricalParts = 8 }),
+		Ingredients = costs({ ForgedIron = 15, MechanicalParts = 6, ElectricalParts = 8 }),
 		Seconds = 105,
 	},
 	ElectricLamp = {
@@ -1058,6 +1116,11 @@ Config.Crafting = {
 		"BoiledWater",
 		"Glue",
 		"Charcoal",
+		"Forge",
+		"ForgedIron",
+		"MetalPipe",
+		"CookingPot",
+		"CookingGrill",
 		"Generator",
 		"ElectricLamp",
 	},
@@ -1081,6 +1144,11 @@ Config.Crafting = {
 		Dirt = "Resources",
 		Glue = "Resources",
 		Charcoal = "Resources",
+		ForgedIron = "Resources",
+		MetalPipe = "Resources",
+		CookingPot = "Tools",
+		CookingGrill = "Tools",
+		Forge = "Building",
 		WoodFrame = "Building",
 		WoodLadder = "Building",
 		WoodDoor = "Building",
@@ -1117,12 +1185,16 @@ Config.Crafting = {
 
 -- Fire stations (StationService; 7DTD workstations that burn fuel): a station must be lit to craft
 -- at it, and a lit one burns a second of fuel per second until it runs dry. Fuel seconds per item are
--- 7DTD's FuelValue (V3.3 files: coal 100, wood 50); charcoal stands in for coal.
+-- 7DTD's FuelValue (V3.3 files: coal 100, wood 50); charcoal stands in for coal. The forge burns
+-- charcoal only (ours: 7DTD's forge also takes wood; here it needs the hotter fuel, which is what the
+-- charcoal recipe is for).
 Config.Stations = {
 	FuelSeconds = { Wood = 50, Charcoal = 100 } :: { [string]: number },
 	-- Ours: a campfire holds 30 wood, over two day cycles of burning.
 	Kinds = {
 		Campfire = { Fuels = { "Wood", "Charcoal" }, MaxFuel = 1500, Tab = "Food" },
+		-- Ours: 30 charcoal.
+		Forge = { Fuels = { "Charcoal" }, MaxFuel = 3000, Tab = "Resources" },
 	} :: { [string]: StationDef },
 	-- Items one "Add fuel" press puts in (ours: 7DTD drags stacks into fuel slots).
 	FuelPerAdd = 5,
@@ -1130,6 +1202,9 @@ Config.Stations = {
 	Lighter = "Lighter",
 	LighterWear = 1,
 	Tinder = { Id = "PlantFiber", Count = 2 } :: ItemCount,
+	-- A light / put out press this soon after the last change is ignored, so one press (or a bounced
+	-- key or tap) never lights and puts out at once.
+	ToggleSeconds = 0.5,
 	-- Prompt reach (studs), actions per second per player, and the burn check rate (seconds).
 	PromptReach = 8,
 	ActionsPerSecond = 4,
@@ -2019,6 +2094,9 @@ Config.Debug = {
 		{ Id = "Wood", Count = 50 },
 		{ Id = "SmallStone", Count = 20 },
 		{ Id = "Lighter", Count = 1 },
+		{ Id = "Forge", Count = 1 },
+		{ Id = "Charcoal", Count = 20 },
+		{ Id = "ScrapIron", Count = 60 },
 		{ Id = "Clay", Count = 20 },
 		{ Id = "CobblestoneRocks", Count = 20 },
 		{ Id = "PlantFiber", Count = 20 },

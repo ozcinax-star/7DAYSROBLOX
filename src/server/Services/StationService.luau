@@ -1,8 +1,8 @@
 --!strict
--- StationService: fire stations, the campfire for now (7DTD workstations that burn fuel). A station is
--- a build block (BuildService); this service gives it fuel and fire. Three prompts sit on it: craft
--- (the client opens the crafting panel on the station's tab), add fuel (a few wood or charcoal from
--- the inventory, up to what it holds) and light / put out. Lighting needs fuel and either a lighter,
+-- StationService: fire stations, the campfire and the forge (7DTD workstations that burn fuel). A
+-- station is a build block (BuildService); this service gives it fuel and fire. Three prompts sit on
+-- it: craft (the client opens the crafting panel on the station's tab), add fuel (a few of its fuel
+-- items from the inventory, up to what it holds) and light / put out. Lighting needs fuel and either a lighter,
 -- which wears, or a little plant fibre as tinder. A lit station burns a second of fuel per second and
 -- goes out when it runs dry; while lit it shows fire and light and adds Trace (PLAN: fire gives a
 -- base away). Station recipes need a lit station of their kind nearby (CraftingService, `litNear`);
@@ -36,8 +36,25 @@ local FIRE_LIGHT_RANGE = 16
 local FIRE_LIGHT_BRIGHTNESS = 1.4
 local LOG_SIZE = Vector3.new(0.5, 0.5, 2.6)
 local LOG_COLOR = Color3.fromRGB(80, 55, 35)
+-- Forge look: a chimney on top and a mouth in the front face whose coals glow while it burns.
+local CHIMNEY_SIZE = Vector3.new(0.9, 1.4, 0.9)
+local CHIMNEY_COLOR = Color3.fromRGB(70, 60, 55)
+local MOUTH_SIZE = Vector3.new(1.6, 1.1, 0.2)
+local COAL_COLOR = Color3.fromRGB(45, 42, 40)
+local ASH_COLOR = Color3.fromRGB(20, 18, 18)
+local EMBER_COLOR = Color3.fromRGB(255, 110, 40)
+local FORGE_FIRE_SIZE = 1.2
+local FORGE_LIGHT_RANGE = 12
 -- The prompts stack downwards this many pixels apart.
 local PROMPT_SPACING = 76
+
+-- How a station shows its state: parts seen only while it has fuel (campfire logs), a part whose
+-- coals glow while it burns (the forge's mouth), and fire, smoke and light that burn while lit.
+type Look = {
+	fuelParts: { BasePart },
+	glow: BasePart?,
+	effects: { Fire | Smoke | PointLight },
+}
 
 type Station = {
 	key: number,
@@ -45,14 +62,13 @@ type Station = {
 	part: BasePart,
 	fuel: number,
 	lit: boolean,
-	flame: Fire,
-	light: PointLight,
-	-- Logs show while there is fuel.
-	logs: { BasePart },
+	look: Look,
 	fuelPrompt: ProximityPrompt,
 	lightPrompt: ProximityPrompt,
 	-- Whole fuel seconds last shown, so the labels are rewritten only when they change.
 	shown: number,
+	-- When it was last lit or put out (os.clock).
+	toggledAt: number,
 }
 
 local StationService = {}
@@ -89,15 +105,23 @@ local function label(station: Station)
 	station.fuelPrompt.ObjectText = Localization.get(status, { time = Fuel.clock(station.fuel) })
 	station.lightPrompt.ActionText = Localization.get(if station.lit then "StationPutOut" else "StationLight")
 	station.part:SetAttribute(Net.Attributes.StationFuel, station.shown)
-	for _, log in station.logs do
-		log.Transparency = if station.fuel > 0 then 0 else 1
+	local look = station.look
+	for _, part in look.fuelParts do
+		part.Transparency = if station.fuel > 0 then 0 else 1
+	end
+	local glow = look.glow
+	if glow then
+		glow.Material = if station.lit then Enum.Material.Neon else Enum.Material.Slate
+		glow.Color = if station.lit then EMBER_COLOR elseif station.fuel > 0 then COAL_COLOR else ASH_COLOR
 	end
 end
 
 local function setLit(station: Station, lit: boolean)
 	station.lit = lit
-	station.flame.Enabled = lit
-	station.light.Enabled = lit
+	station.toggledAt = os.clock()
+	for _, effect in station.look.effects do
+		effect.Enabled = lit
+	end
 	station.part:SetAttribute(Net.Attributes.StationLit, lit)
 	label(station)
 end
@@ -149,7 +173,7 @@ local function onAddFuel(player: Player, station: Station)
 end
 
 local function onLight(player: Player, station: Station)
-	if not canReach(player, station) then
+	if not canReach(player, station) or os.clock() - station.toggledAt < SC.ToggleSeconds then
 		return
 	end
 	if station.lit then
@@ -173,26 +197,87 @@ local function onLight(player: Player, station: Station)
 	refreshTrace()
 end
 
--- Two crossed logs on top of the ring; no collisions or queries, so hits go to the block itself.
-local function addLogs(part: BasePart): { BasePart }
+-- A part decorating a station: no collisions or queries, so rays and hits go to the block itself.
+local function detail(parent: BasePart, name: string, size: Vector3, cframe: CFrame, color: Color3): Part
+	local part = Instance.new("Part")
+	part.Name = name
+	part.Size = size
+	part.CFrame = cframe
+	part.Color = color
+	part.Material = Enum.Material.Slate
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CastShadow = false
+	part.Parent = parent
+	return part
+end
+
+local function addLight(parent: Instance, range: number, shadows: boolean): PointLight
+	local light = Instance.new("PointLight")
+	light.Color = FIRE_COLOR
+	light.Range = range
+	light.Brightness = FIRE_LIGHT_BRIGHTNESS
+	light.Shadows = shadows
+	light.Parent = parent
+	return light
+end
+
+local function addFire(parent: Instance, size: number): Fire
+	local flame = Instance.new("Fire")
+	flame.Color = FIRE_COLOR
+	flame.SecondaryColor = FIRE_SMOKE
+	flame.Size = size
+	flame.Heat = FIRE_HEAT
+	flame.Parent = parent
+	return flame
+end
+
+-- A campfire: two crossed logs on top of the stone ring, an open fire and its light.
+local function campfireLook(part: BasePart): Look
 	local logs: { BasePart } = {}
 	local top = part.CFrame * CFrame.new(0, part.Size.Y / 2, 0)
 	for _, angle in { 45, -45 } do
-		local log = Instance.new("Part")
-		log.Name = "Log"
-		log.Anchored = true
-		log.CanCollide = false
-		log.CanQuery = false
-		log.CanTouch = false
-		log.Size = LOG_SIZE
+		local cframe = top * CFrame.Angles(0, math.rad(angle), 0) * CFrame.new(0, LOG_SIZE.Y / 2, 0)
+		local log = detail(part, "Log", LOG_SIZE, cframe, LOG_COLOR)
 		log.Material = Enum.Material.Wood
-		log.Color = LOG_COLOR
-		log.CFrame = top * CFrame.Angles(0, math.rad(angle), 0) * CFrame.new(0, LOG_SIZE.Y / 2, 0)
-		log.Parent = part
 		table.insert(logs, log)
 	end
-	return logs
+	local effects = { addFire(part, FIRE_SIZE), addLight(part, FIRE_LIGHT_RANGE, true) }
+	return { fuelParts = logs, glow = nil, effects = effects }
 end
+
+-- A forge: a chimney that smokes and a mouth in the front face where the coals glow and burn.
+local function forgeLook(part: BasePart): Look
+	local size = part.Size
+	local top = part.CFrame * CFrame.new(0, size.Y / 2, 0)
+	local chimney = detail(
+		part,
+		"Chimney",
+		CHIMNEY_SIZE,
+		top * CFrame.new(0, CHIMNEY_SIZE.Y / 2, size.Z / 4),
+		CHIMNEY_COLOR
+	)
+	local front = part.CFrame * CFrame.new(0, -size.Y / 2 + MOUTH_SIZE.Y, -size.Z / 2 - MOUTH_SIZE.Z / 2 + 0.05)
+	local mouth = detail(part, "Mouth", MOUTH_SIZE, front, ASH_COLOR)
+	local smoke = Instance.new("Smoke")
+	smoke.Color = FIRE_SMOKE
+	smoke.Opacity = 0.15
+	smoke.RiseVelocity = 4
+	smoke.Size = 1
+	smoke.Parent = chimney
+	return {
+		fuelParts = {},
+		glow = mouth,
+		effects = { addFire(mouth, FORGE_FIRE_SIZE), smoke, addLight(mouth, FORGE_LIGHT_RANGE, false) },
+	}
+end
+
+local LOOKS: { [string]: (part: BasePart) -> Look } = {
+	Campfire = campfireLook,
+	Forge = forgeLook,
+}
 
 local function addPrompt(
 	part: BasePart,
@@ -214,24 +299,10 @@ local function addPrompt(
 end
 
 local function onPlaced(key: number, kind: string, part: BasePart)
-	if SC.Kinds[kind] == nil then
+	local makeLook = LOOKS[kind]
+	if SC.Kinds[kind] == nil or makeLook == nil then
 		return
 	end
-	local logs = addLogs(part)
-	local flame = Instance.new("Fire")
-	flame.Color = FIRE_COLOR
-	flame.SecondaryColor = FIRE_SMOKE
-	flame.Size = FIRE_SIZE
-	flame.Heat = FIRE_HEAT
-	flame.Enabled = false
-	flame.Parent = part
-	local light = Instance.new("PointLight")
-	light.Color = FIRE_COLOR
-	light.Range = FIRE_LIGHT_RANGE
-	light.Brightness = FIRE_LIGHT_BRIGHTNESS
-	light.Shadows = true
-	light.Enabled = false
-	light.Parent = part
 	-- The client opens the crafting panel when "Craft" is triggered; the server checks the station
 	-- again on every queue.
 	local craft = addPrompt(part, "Craft", Enum.KeyCode.E, Enum.KeyCode.ButtonX, 0)
@@ -246,12 +317,11 @@ local function onPlaced(key: number, kind: string, part: BasePart)
 		part = part,
 		fuel = 0,
 		lit = false,
-		flame = flame,
-		light = light,
-		logs = logs,
+		look = makeLook(part),
 		fuelPrompt = fuelPrompt,
 		lightPrompt = lightPrompt,
 		shown = -1,
+		toggledAt = 0,
 	}
 	fuelPrompt.Triggered:Connect(function(player)
 		onAddFuel(player, station)

@@ -1308,6 +1308,25 @@ test("every fire station is a station block with known fuels, a crafting tab and
 	expectEq(Crafting.costs(Recipes.Charcoal, 1).Wood, 3, "from three wood")
 end)
 
+test("the forge burns charcoal and forges 7DTD's iron from scrap and clay", function()
+	local forge = Config.Stations.Kinds.Forge
+	expectEq(#forge.Fuels, 1, "one fuel")
+	expectEq(forge.Fuels[1], "Charcoal", "charcoal only")
+	local block = Config.Build.Blocks.Forge
+	assert(block.Station and not block.Passable, "zombies break the forge like a wall")
+	local iron = Crafting.costs(Recipes.ForgedIron, 1)
+	expectEq(iron.ScrapIron, 10, "forged iron: 10 scrap iron")
+	expectEq(iron.Clay, 1, "and 1 clay")
+	expectEq(Crafting.unitSeconds(Recipes.ForgedIron), 7.5, "in 7.5 s")
+	for _, id in { "ForgedIron", "MetalPipe", "CookingPot", "CookingGrill" } do
+		expectEq(Recipes[id].Station, "Forge", `{id} is forged`)
+	end
+	expectEq(Crafting.costs(Recipes.CookingPot, 1).ScrapIron, 25, "a pot is 25 scrap iron")
+	expectEq(Recipes.Forge.Station, nil, "the forge itself is backpack crafting")
+	expectEq(Crafting.unitSeconds(Recipes.Forge), 81, "in 81 s")
+	expectEq(Crafting.costs(Recipes.Generator, 1).ForgedIron, 15, "the generator takes 7DTD's forged iron")
+end)
+
 test("a worn-out lighter is passed over for the next one", function()
 	local inv = Inventory.new(2, 2)
 	Inventory.add(inv, "Lighter", 1, "Loot", 0)
