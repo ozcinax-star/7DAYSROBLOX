@@ -1181,7 +1181,81 @@ Config.Harvest = {
 		LooseRock = { Material = "Stone", Health = 1, Harvest = {}, Destroy = { drop("SmallStone", 1) } },
 		-- resourceRock01-03
 		Boulder = { Material = "Stone", Health = 400, Harvest = { drop("SmallStone", 22) }, Destroy = {} },
+		-- Town furniture (Furniture below): health is the 7DTD block material's MaxDamage
+		-- (materials.xml), drops come from a matching block. 7DTD pays metal and plumbing Harvest drops
+		-- only to salvage tools (wrench); there is none yet, so those pieces pay their Destroy drops.
+		-- Our tools have no metal multiplier: metal takes the stone one (the pickaxe is best on both).
+		-- Mwood_weak (100), cntCabinetBottomFiller.
+		FurnitureCabinet = { Material = "Wood", Health = 100, Harvest = {}, Destroy = { drop("Wood", 1, 3) } },
+		-- Mwood_weak (100), cntDeskWoodFull.
+		FurnitureDesk = { Material = "Wood", Health = 100, Harvest = {}, Destroy = { drop("Wood", 2, 6) } },
+		-- Mfurniture (300); ours: the desk's wood.
+		FurnitureLarge = { Material = "Wood", Health = 300, Harvest = {}, Destroy = { drop("Wood", 2, 6) } },
+		-- Mfurniture (300); ours: frame wood and cover cloth.
+		FurnitureSoft = {
+			Material = "Wood",
+			Health = 300,
+			Harvest = {},
+			Destroy = { drop("Wood", 1, 3), drop("Cloth", 1, 3) },
+		},
+		-- MwoodReinforced (225), cntFootlockerClosedWhite.
+		FurnitureCrate = { Material = "Wood", Health = 225, Harvest = {}, Destroy = { drop("Wood", 1, 3) } },
+		-- Mmetal (300), cntRetroFridgeVer1Closed.
+		FurnitureMetal = { Material = "Stone", Health = 300, Harvest = {}, Destroy = { drop("ScrapIron", 3, 6) } },
+		-- Mmetal_weak (100), cntStoveOldVer1Closed.
+		FurnitureMetalWeak = { Material = "Stone", Health = 100, Harvest = {}, Destroy = { drop("ScrapIron", 3, 6) } },
+		-- Mmetal_thin (250), deskLampLight02White.
+		FurnitureLamp = { Material = "Stone", Health = 250, Harvest = {}, Destroy = { drop("ScrapIron", 5) } },
+		-- MstoneFurniture (300), cntToilet01.
+		FurnitureToilet = { Material = "Stone", Health = 300, Harvest = {}, Destroy = { drop("MetalPipe", 1, 2) } },
+		-- Mmetal (300), cntCabinetGraniteSinkHoleRound.
+		FurnitureSink = { Material = "Stone", Health = 300, Harvest = {}, Destroy = { drop("ScrapIron", 5, 8) } },
+		-- cntBathTubEmpty: Harvest drops any tool gets.
+		FurnitureBathtub = {
+			Material = "Stone",
+			Health = 200,
+			Harvest = { drop("SmallStone", 12), drop("ScrapIron", 4) },
+			Destroy = {},
+		},
+		-- Mhay (50), hayBaleSquare.
+		FurnitureHay = { Material = "Earth", Health = 50, Harvest = { drop("PlantFiber", 5, 8) }, Destroy = {} },
+		-- Mplants (1); ours: a little fibre.
+		FurniturePlant = { Material = "Earth", Health = 1, Harvest = { drop("PlantFiber", 1, 2) }, Destroy = {} },
 	} :: { [string]: HarvestNode },
+	-- Breakable town furniture: the BuildingKit "Furniture" attribute to its node. The fireplace is
+	-- part of the house's chimney and stays. A container spills what it holds when it breaks.
+	Furniture = {
+		Bed = "FurnitureSoft",
+		Sofa = "FurnitureSoft",
+		Armchair = "FurnitureSoft",
+		Booth = "FurnitureSoft",
+		Wardrobe = "FurnitureLarge",
+		Bookshelf = "FurnitureLarge",
+		Workbench = "FurnitureLarge",
+		Dresser = "FurnitureCabinet",
+		KitchenCounter = "FurnitureCabinet",
+		Counter = "FurnitureCabinet",
+		TVStand = "FurnitureCabinet",
+		DiningTable = "FurnitureCabinet",
+		Desk = "FurnitureDesk",
+		Crates = "FurnitureCrate",
+		Fridge = "FurnitureMetal",
+		HospitalBed = "FurnitureMetal",
+		FilingCabinets = "FurnitureMetal",
+		StoreShelf = "FurnitureMetal",
+		Lockers = "FurnitureMetal",
+		StorageRack = "FurnitureMetal",
+		Stove = "FurnitureMetalWeak",
+		MedicineCabinet = "FurnitureMetalWeak",
+		WaitingSeats = "FurnitureMetalWeak",
+		FloorLamp = "FurnitureLamp",
+		Toilet = "FurnitureToilet",
+		Basin = "FurnitureSink",
+		KitchenSink = "FurnitureSink",
+		Bathtub = "FurnitureBathtub",
+		HayBales = "FurnitureHay",
+		Plant = "FurniturePlant",
+	} :: { [string]: string },
 	-- Forest trees are scaled 0.8-1.3; a tree takes the first size whose MaxScale it does not exceed.
 	-- Our trees are 4-6.5 m tall against 7DTD's 4-48 m, so size follows the scale, not the height.
 	TreeSizes = {

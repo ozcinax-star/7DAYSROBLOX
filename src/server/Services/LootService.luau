@@ -317,10 +317,8 @@ local function inSight(player: Player, container: Container): boolean
 	return Workspace:Raycast(head.Position, offset, params) == nil
 end
 
-local function onSearchContainer(player: Player, container: Container)
-	if not canSearch(player, container.point.WorldPosition) or not inSight(player, container) then
-		return
-	end
+-- What the container holds, rolled first when it was never filled or is due a refill.
+local function fill(container: Container): Inventory.Inventory
 	local day = DayNightService.getState().day
 	if container.inventory == nil or day - container.filledDay >= LC.ContainerRespawnDays then
 		local inventory = Inventory.new(0, LC.BagSlots)
@@ -330,8 +328,37 @@ local function onSearchContainer(player: Player, container: Container)
 		container.inventory = inventory
 		container.filledDay = day
 	end
-	takeAll(player, container.inventory :: Inventory.Inventory)
+	return container.inventory :: Inventory.Inventory
+end
+
+local function onSearchContainer(player: Player, container: Container)
+	if not canSearch(player, container.point.WorldPosition) or not inSight(player, container) then
+		return
+	end
+	takeAll(player, fill(container))
 	container.prompt.ObjectText = containerName(container)
+end
+
+-- Forgets the container furniture `model` and drops what it holds in a bag where it was searched from
+-- (HarvestService breaks furniture; a broken 7DTD container drops its contents). Breaking pays what
+-- searching would have. Does nothing for furniture that is not a container.
+function LootService.spillContainer(model: Model)
+	for index, container in containers do
+		if container.model ~= model then
+			continue
+		end
+		table.remove(containers, index)
+		local stacks: { Inventory.Stack } = {}
+		for _, slot in fill(container).slots do
+			if slot then
+				table.insert(stacks, slot)
+			end
+		end
+		if #stacks > 0 then
+			LootService.drop(container.point.WorldPosition, stacks, true)
+		end
+		return
+	end
 end
 
 -- The Loot attribute of the building model `model` stands in.

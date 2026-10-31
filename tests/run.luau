@@ -772,6 +772,9 @@ test("every node, tree size and tool is well formed", function()
 			end
 		end
 	end
+	for furniture, nodeName in Config.Harvest.Furniture do
+		assert(Nodes[nodeName], `{furniture} uses unknown node {nodeName}`)
+	end
 	local previous = 0
 	for _, size in Config.Harvest.TreeSizes do
 		assert(Nodes[size.Node], `tree size {size.Node}`)

@@ -1,13 +1,14 @@
 --!strict
--- HarvestService: gathering (7DTD). A swing that hits a tree, bush, grass, boulder or loose rock deals
--- the tool's block damage for that material. Harvest drops pay out while the object is hit and
+-- HarvestService: gathering (7DTD). A swing that hits a tree, bush, grass, boulder, loose rock or piece
+-- of town furniture deals the tool's block damage for that material. Harvest drops pay out while the object is hit and
 -- Destroy drops when it breaks (Shared/Harvest). Everyone hitting the same object shares its damage,
 -- like a 7DTD block. Loose rocks can also be picked up with the interact key. What has no room in the
 -- inventory drops in a loot bag at the player's feet (7DTD drops it on the ground).
 --
 -- A felled tree stops colliding at once, frees the zombie navigation cells under it, and falls away
 -- from the player who felled it (clients animate the fall), then is removed. Nothing grows back:
--- 7DTD's natural trees and rocks do not respawn.
+-- 7DTD's natural trees and rocks do not respawn. Broken furniture frees its cells too, and a container
+-- spills what it holds into a loot bag.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -37,6 +38,7 @@ type Entry = {
 	id: string,
 	node: Config.HarvestNode,
 	tree: boolean,
+	furniture: boolean,
 	model: Model,
 	-- Cumulative damage, at most node.Health.
 	damage: number,
@@ -109,6 +111,10 @@ local function hit(entry: Entry, player: Player, damage: number, tool: Config.To
 		fell(entry.model, player)
 	else
 		release(entry.model)
+		-- After release, so the bag lands on the floor instead of on the furniture.
+		if entry.furniture then
+			LootService.spillContainer(entry.model)
+		end
 		entry.model:Destroy()
 	end
 end
@@ -175,6 +181,7 @@ function HarvestService.start()
 			id = harvestable.id,
 			node = node,
 			tree = TREES[harvestable.node] == true,
+			furniture = false,
 			model = harvestable.model,
 			damage = 0,
 		}
@@ -182,6 +189,23 @@ function HarvestService.start()
 		if harvestable.node == "LooseRock" then
 			addPickupPrompt(entry)
 		end
+	end
+	for _, model in MapService.getMap():GetDescendants() do
+		local furniture = model:GetAttribute("Furniture")
+		local nodeName = if typeof(furniture) == "string" then HC.Furniture[furniture] else nil
+		if nodeName == nil or not model:IsA("Model") then
+			continue
+		end
+		local node = HC.Nodes[nodeName]
+		assert(node, `unknown harvest node {nodeName}`)
+		entries[model] = {
+			id = `furniture:{model:GetAttribute("FurnitureCell")}`,
+			node = node,
+			tree = false,
+			furniture = true,
+			model = model,
+			damage = 0,
+		}
 	end
 	ToolService.onWorldHit(onWorldHit)
 end
