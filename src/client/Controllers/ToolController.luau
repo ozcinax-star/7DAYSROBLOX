@@ -231,8 +231,8 @@ local function trySwing(source: Source)
 		return
 	end
 	local held = InventoryController.getHeld()
-	if held and Config.Build.Blocks[held.id] then
-		-- A block in the hand is placed, not swung (BuildController shows where).
+	if held and (Config.Build.Blocks[held.id] or (Config.Items[held.id] and Config.Items[held.id].Fill)) then
+		-- A block or dirt in the hand is placed, not swung (BuildController shows where a block goes).
 		sendUse(now, Config.Build.PlaceCooldown)
 		return
 	end

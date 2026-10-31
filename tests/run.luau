@@ -766,6 +766,12 @@ test("a dug voxel pays 7DTD's yield and the shovel digs earth fastest", function
 	end
 	expectEq(Dig.Asphalt, nil, "roads cannot be dug")
 	expectEq(Dig.Water, nil, "water cannot be dug")
+	-- 7DTD: a dug dirt block gives 22 clay, crafting one back costs 16.
+	local dirt = Config.Recipes.Dirt
+	expectEq(#dirt.Ingredients, 1, "dirt takes one ingredient")
+	expectEq(dirt.Ingredients[1].Id, "Clay", "dirt is made of clay")
+	expectEq(dirt.Ingredients[1].Count, 16, "16 clay per dirt")
+	expectEq(Config.Items.Dirt.Fill, "Ground", "dirt fills holes with ground")
 end)
 
 print("Crafting")

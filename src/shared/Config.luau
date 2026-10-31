@@ -14,7 +14,8 @@ export type UseDef = { Food: number?, Water: number?, Heal: number?, HealRate: n
 
 -- An item. Stack: most per slot. Color: placeholder icon colour (0-1 RGB) until icons exist.
 -- Durability: tools only, uses when new; tools never stack. Repair: tools that can be repaired.
--- Raw: a raw resource (half of what is carried drops on death, PLAN). Use: a consumable.
+-- Raw: a raw resource (half of what is carried drops on death, PLAN). Use: a consumable. Fill: a
+-- terrain block that "use" puts back into dug ground, made of this Enum.Material.
 export type ItemDef = {
 	Stack: number,
 	Color: { number },
@@ -22,6 +23,7 @@ export type ItemDef = {
 	Repair: RepairDef?,
 	Raw: boolean?,
 	Use: UseDef?,
+	Fill: string?,
 }
 
 -- A hunger or thirst stage: reached at or below Enter (share of the max), left above Leave, and
@@ -516,6 +518,8 @@ Config.Items = {
 	ScrapIron = { Stack = 6000, Color = { 0.52, 0.36, 0.3 }, Raw = true }, -- resourceScrapIron
 	Clay = { Stack = 6000, Color = { 0.62, 0.45, 0.33 }, Raw = true }, -- resourceClayLump
 	CrushedSand = { Stack = 6000, Color = { 0.86, 0.78, 0.58 }, Raw = true }, -- resourceCrushedSand
+	-- terrDirt: fills one voxel of dug ground back in (ours: only where it was dug, PLAN).
+	Dirt = { Stack = 500, Color = { 0.45, 0.33, 0.22 }, Fill = "Ground" },
 	Cloth = { Stack = 250, Color = { 0.78, 0.72, 0.6 }, Raw = true }, -- resourceCloth
 	-- 7DTD 1.x-3.2 consumables. Food heals over time at 0.5 a second (buffHealHealth); canned food gives
 	-- no water since 1.0.
@@ -552,6 +556,8 @@ Config.Recipes = {
 		Count = 1,
 		Ingredients = costs({ SmallStone = 4, PlantFiber = 3, Wood = 3 }),
 	},
+	-- terrDirt: 16 Clay, 3 s.
+	Dirt = { Output = "Dirt", Count = 1, Ingredients = costs({ Clay = 16 }), Seconds = 3 },
 	-- Two wood per lumber keeps 7DTD's wood costs when building parts ask for lumber.
 	Lumber = { Output = "Lumber", Count = 1, Ingredients = costs({ Wood = 2 }) },
 	-- 7DTD: a frame is 2 Wood and a ladder 3 Wood; here building parts take Lumber (PLAN), same wood.
@@ -565,7 +571,7 @@ Config.Recipes = {
 } :: { [string]: Recipe }
 
 Config.Crafting = {
-	Order = { "StoneAxe", "StoneShovel", "StonePickaxe", "Lumber", "WoodFrame", "WoodLadder" },
+	Order = { "StoneAxe", "StoneShovel", "StonePickaxe", "Lumber", "WoodFrame", "WoodLadder", "Dirt" },
 	-- 7DTD: a 4-slot queue; only the first slot works at a time.
 	QueueSlots = 4,
 	-- Most crafts one queue slot may hold (7DTD's cap is unconfirmed).
