@@ -1075,6 +1075,46 @@ test("blocks that lose their way to the ground fall", function()
 	expectEq(falling[1], BuildGrid.key(9, 2, 9), "which block")
 end)
 
+test("containers roll their own picks and one more in a matching building", function()
+	local random = Random.new(7)
+	local function rand(): number
+		return random:NextNumber()
+	end
+	for furniture, kind in Config.Loot.ContainerFurniture do
+		expectEq(Config.Loot.Containers[kind] ~= nil, true, `{furniture} -> {kind}`)
+	end
+	local runs = 2000
+	local stacks, bonusStacks, food = 0, 0, 0
+	for _ = 1, runs do
+		local plain = Loot.rollContainer(rand, "Fridge", nil)
+		local bonus = Loot.rollContainer(rand, "Fridge", "Food")
+		stacks += #plain
+		bonusStacks += #bonus
+		for _, stack in plain do
+			expectEq(Config.Items[stack.id] ~= nil, true, "known item")
+			expectEq(stack.count >= 1, true, "at least one")
+			local use = Config.Items[stack.id].Use
+			if use and use.Food then
+				food += 1
+			end
+		end
+	end
+	local fridge = Config.Loot.Containers.Fridge
+	expectNear(stacks / runs, fridge.Rolls * (1 - fridge.EmptyChance), 0.05, "stacks per fridge")
+	expectNear(bonusStacks / runs, (fridge.Rolls + 1) * (1 - fridge.EmptyChance), 0.07, "with the bonus roll")
+	expectEq(food > 0, true, "fridges hold food")
+	for _ = 1, 200 do
+		for _, stack in Loot.rollContainer(rand, "Storage", "Metal") do
+			local max = Config.Items[stack.id].Durability
+			if max then
+				expectEq(stack.count, 1, "one tool")
+				expectEq((stack.durability or 0) >= 1 and (stack.durability or 0) <= max, true, "worn tool")
+			end
+		end
+	end
+	expectEq(#Loot.rollContainer(rand, "NoSuchKind", nil), 0, "unknown kind")
+end)
+
 local SC = Config.Survival
 local DAY = Config.DayNight.CycleSeconds
 

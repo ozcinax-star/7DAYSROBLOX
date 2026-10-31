@@ -81,6 +81,10 @@ export type Drop = { Id: string, Min: number, Max: number }
 -- One entry of a loot group: Weight against the group's other entries, Min-Max items when picked.
 export type LootPick = { Id: string, Min: number, Max: number, Weight: number }
 
+-- A searchable piece of furniture: Rolls picks, each of which comes up empty with EmptyChance; one more
+-- roll in a building whose Loot attribute is Bonus.
+export type ContainerDef = { Rolls: number, EmptyChance: number, Bonus: string?, Picks: { LootPick } }
+
 -- A harvestable world object (7DTD block). Harvest drops pay two thirds while it is hit, in proportion
 -- to damage, and one third on the killing hit; Destroy drops pay once when it breaks.
 export type HarvestNode = {
@@ -690,6 +694,95 @@ Config.Loot = {
 	-- Items with no room in the inventory drop in a bag at the player's feet; a bag within this many
 	-- studs is topped up instead of dropping another.
 	MergeDistance = 6,
+	-- Searchable furniture in town buildings (7DTD loot containers), by the BuildingKit "Furniture"
+	-- attribute. Ours: 7DTD cupboards and fridges are mostly spoiled food and trash and its zombies
+	-- rarely drop food; here searching a few houses feeds a player for a day (PLAN, Kararlar).
+	ContainerFurniture = {
+		Fridge = "Fridge",
+		KitchenCounter = "Cupboard",
+		Counter = "Cupboard",
+		StoreShelf = "Shelf",
+		Wardrobe = "Clothes",
+		Dresser = "Clothes",
+		MedicineCabinet = "Medicine",
+		Crates = "Storage",
+		StorageRack = "Storage",
+		Workbench = "Storage",
+		Lockers = "Storage",
+	} :: { [string]: string },
+	Containers = {
+		Fridge = {
+			Rolls = 1,
+			EmptyChance = 0.3,
+			Bonus = "Food",
+			Picks = {
+				{ Id = "CanChili", Min = 1, Max = 1, Weight = 3 },
+				{ Id = "CanDogFood", Min = 1, Max = 1, Weight = 2 },
+				{ Id = "BottledWater", Min = 1, Max = 2, Weight = 3 },
+				{ Id = "MurkyWater", Min = 1, Max = 1, Weight = 2 },
+			},
+		},
+		Cupboard = {
+			Rolls = 1,
+			EmptyChance = 0.35,
+			Bonus = "Food",
+			Picks = {
+				{ Id = "CanChili", Min = 1, Max = 1, Weight = 2 },
+				{ Id = "CanDogFood", Min = 1, Max = 1, Weight = 3 },
+				{ Id = "BottledWater", Min = 1, Max = 1, Weight = 1 },
+				{ Id = "MurkyWater", Min = 1, Max = 1, Weight = 1 },
+				{ Id = "Cloth", Min = 1, Max = 2, Weight = 1 },
+			},
+		},
+		Shelf = {
+			Rolls = 1,
+			EmptyChance = 0.3,
+			Bonus = "Food",
+			Picks = {
+				{ Id = "CanChili", Min = 1, Max = 2, Weight = 3 },
+				{ Id = "CanDogFood", Min = 1, Max = 1, Weight = 2 },
+				{ Id = "BottledWater", Min = 1, Max = 2, Weight = 3 },
+				{ Id = "Cloth", Min = 1, Max = 3, Weight = 1 },
+			},
+		},
+		Clothes = {
+			Rolls = 1,
+			EmptyChance = 0.35,
+			Bonus = "Fabric",
+			Picks = {
+				{ Id = "Cloth", Min = 2, Max = 6, Weight = 1 },
+			},
+		},
+		Medicine = {
+			Rolls = 1,
+			EmptyChance = 0.25,
+			Bonus = "Medical",
+			Picks = {
+				{ Id = "FirstAidBandage", Min = 1, Max = 1, Weight = 3 },
+				{ Id = "Cloth", Min = 1, Max = 3, Weight = 2 },
+				{ Id = "BottledWater", Min = 1, Max = 1, Weight = 1 },
+			},
+		},
+		Storage = {
+			Rolls = 1,
+			EmptyChance = 0.3,
+			Bonus = "Metal",
+			Picks = {
+				{ Id = "ScrapIron", Min = 2, Max = 8, Weight = 4 },
+				{ Id = "Cloth", Min = 1, Max = 4, Weight = 2 },
+				{ Id = "SmallStone", Min = 3, Max = 10, Weight = 2 },
+				{ Id = "StoneAxe", Min = 1, Max = 1, Weight = 0.5 },
+				{ Id = "StoneShovel", Min = 1, Max = 1, Weight = 0.5 },
+				{ Id = "StonePickaxe", Min = 1, Max = 1, Weight = 0.5 },
+			},
+		},
+	} :: { [string]: ContainerDef },
+	-- A container fills again this many in-game days after it was last filled (7DTD LootRespawnDays).
+	ContainerRespawnDays = 7,
+	-- A container's prompt floats this far (studs) in front of its furniture, at half its height but
+	-- no higher than ContainerPromptMaxHeight above the floor.
+	ContainerPromptGap = 0.4,
+	ContainerPromptMaxHeight = 3,
 }
 
 Config.Melee = {

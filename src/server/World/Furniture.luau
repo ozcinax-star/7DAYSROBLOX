@@ -441,6 +441,8 @@ function Furniture.build(
 	model.Name = NAMES[symbol]
 	model:SetAttribute("Furniture", NAMES[symbol])
 	builder({ model = model, base = base, back = back, solidBack = solidBack, key = key, cell = cell })
+	-- The pivot is the cell's floor centre facing the piece's front (searching puts its prompt there).
+	model.WorldPivot = base
 	model.Parent = parent
 	return model
 end

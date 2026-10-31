@@ -1,9 +1,12 @@
 --!strict
--- LootService: loot bags on the ground (7DTD loot bags). A dying zombie drops one now and then
--- (Shared/Loot), and other services drop items that have no room in an inventory in one. Holding the
--- interact key on a bag searches it: everything that fits goes into the inventory and the rest stays
--- in the bag. A bag vanishes when it is empty, after Config.Loot.BagSeconds, or when too many bags
--- exist (the oldest goes first). What a bag holds is known only to the server.
+-- LootService: loot bags on the ground (7DTD loot bags) and searchable furniture in town buildings
+-- (7DTD loot containers). A dying zombie drops a bag now and then (Shared/Loot), and other services
+-- drop items that have no room in an inventory in one. Holding the interact key on a bag or a
+-- container searches it: everything that fits goes into the inventory and the rest stays inside.
+-- A bag vanishes when it is empty, after Config.Loot.BagSeconds (or its own lifetime), or when too
+-- many bags exist (the oldest goes first; bags with their own lifetime, death bags, are kept).
+-- A container is filled on its first search and again Config.Loot.ContainerRespawnDays in-game days
+-- after it was last filled; all players share it. What bags and containers hold is server-only.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -16,6 +19,7 @@ local Localization = require(Shared.Localization)
 local Loot = require(Shared.Loot)
 
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
+local DayNightService = require(script.Parent.DayNightService)
 local InventoryService = require(script.Parent.InventoryService)
 local MapService = require(script.Parent.MapService)
 local ZombieService = require(script.Parent.ZombieService)
@@ -40,12 +44,27 @@ type Bag = {
 	inventory: Inventory.Inventory,
 	-- The despawn timer, cancelled when the bag goes earlier.
 	expiry: thread?,
+	-- Has its own lifetime and is never removed by the bag cap (death bags).
+	kept: boolean,
+}
+
+type Container = {
+	model: Model,
+	-- Where the prompt sits and searches are measured from (just above the furniture).
+	point: Attachment,
+	prompt: ProximityPrompt,
+	kind: string,
+	-- The Loot attribute of the building it stands in.
+	buildingLoot: string?,
+	inventory: Inventory.Inventory?,
+	filledDay: number,
 }
 
 local LootService = {}
 
 -- Oldest first.
 local bags: { Bag } = {}
+local containers: { Container } = {}
 local holdStarted: { [Player]: number } = {}
 local folder: Folder
 local groundParams: RaycastParams
@@ -69,8 +88,8 @@ local function remove(bag: Bag)
 	bag.model:Destroy()
 end
 
-local function isEmpty(bag: Bag): boolean
-	for _, slot in bag.inventory.slots do
+local function isEmpty(inventory: Inventory.Inventory): boolean
+	for _, slot in inventory.slots do
 		if slot then
 			return false
 		end
@@ -101,25 +120,29 @@ local function part(model: Model, name: string, shape: Enum.PartType, size: Vect
 	return p
 end
 
-local function onSearch(player: Player, bag: Bag)
+-- Whether a finished hold on a prompt at `position` is a valid search: the hold lasted, the player
+-- is alive, near and under the rate limit.
+local function canSearch(player: Player, position: Vector3): boolean
 	local started = holdStarted[player]
 	holdStarted[player] = nil
-	if not searchLimiter:allow(player) or table.find(bags, bag) == nil then
-		return
+	if not searchLimiter:allow(player) then
+		return false
 	end
 	if started == nil or os.clock() - started < LC.SearchSeconds * HOLD_TOLERANCE then
-		return
+		return false
 	end
 	local character = player.Character
 	local root = character and character.PrimaryPart
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	if root == nil or humanoid == nil or humanoid.Health <= 0 then
-		return
+		return false
 	end
-	if (root.Position - bag.sack.Position).Magnitude > LC.SearchDistance + SEARCH_TOLERANCE then
-		return
-	end
-	local slots = bag.inventory.slots
+	return (root.Position - position).Magnitude <= LC.SearchDistance + SEARCH_TOLERANCE
+end
+
+-- Moves everything that fits from `inventory` into the player's.
+local function takeAll(player: Player, inventory: Inventory.Inventory)
+	local slots = inventory.slots
 	for index, slot in slots do
 		if slot then
 			local left = InventoryService.give(player, slot.id, slot.count, slot.source, slot.durability)
@@ -130,28 +153,23 @@ local function onSearch(player: Player, bag: Bag)
 			end
 		end
 	end
-	if isEmpty(bag) then
+end
+
+local function onSearch(player: Player, bag: Bag)
+	if table.find(bags, bag) == nil or not canSearch(player, bag.sack.Position) then
+		return
+	end
+	takeAll(player, bag.inventory)
+	if isEmpty(bag.inventory) then
 		remove(bag)
 	end
 end
 
-local function newBag(ground: Vector3, seconds: number): Bag
-	local model = Instance.new("Model")
-	model.Name = "LootBag"
-	local center = ground + Vector3.new(0, SACK_SIZE * 0.42, 0)
-	local yaw = CFrame.Angles(0, random:NextNumber() * math.pi * 2, 0)
-	local sack = part(model, "Sack", Enum.PartType.Ball, Vector3.one * SACK_SIZE, SACK_COLOR)
-	sack.CFrame = CFrame.new(center) * yaw
-	local neck = part(model, "Neck", Enum.PartType.Cylinder, NECK_SIZE, SACK_COLOR)
-	neck.CFrame = CFrame.new(center + Vector3.new(0, SACK_SIZE * 0.5, 0)) * CFrame.Angles(0, 0, math.pi / 2)
-	local tie = part(model, "Tie", Enum.PartType.Cylinder, NECK_SIZE * Vector3.new(0.3, 1.15, 1.15), TIE_COLOR)
-	tie.CFrame = neck.CFrame * CFrame.new(-NECK_SIZE.X * 0.2, 0, 0)
-	model.PrimaryPart = sack
-
-	local bag: Bag = { model = model, sack = sack, inventory = Inventory.new(0, LC.BagSlots), expiry = nil }
+-- A hold-to-search prompt (the server re-checks the hold time and the distance).
+local function newPrompt(objectText: string, onTriggered: (Player) -> ()): ProximityPrompt
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = Localization.get("LootSearch")
-	prompt.ObjectText = Localization.get("LootBag")
+	prompt.ObjectText = objectText
 	prompt.HoldDuration = LC.SearchSeconds
 	prompt.MaxActivationDistance = LC.SearchDistance
 	prompt.RequiresLineOfSight = false
@@ -164,7 +182,26 @@ local function newBag(ground: Vector3, seconds: number): Bag
 			holdStarted[player] = nil
 		end)
 	end)
-	prompt.Triggered:Connect(function(player)
+	prompt.Triggered:Connect(onTriggered)
+	return prompt
+end
+
+local function newBag(ground: Vector3, seconds: number, kept: boolean): Bag
+	local model = Instance.new("Model")
+	model.Name = "LootBag"
+	local center = ground + Vector3.new(0, SACK_SIZE * 0.42, 0)
+	local yaw = CFrame.Angles(0, random:NextNumber() * math.pi * 2, 0)
+	local sack = part(model, "Sack", Enum.PartType.Ball, Vector3.one * SACK_SIZE, SACK_COLOR)
+	sack.CFrame = CFrame.new(center) * yaw
+	local neck = part(model, "Neck", Enum.PartType.Cylinder, NECK_SIZE, SACK_COLOR)
+	neck.CFrame = CFrame.new(center + Vector3.new(0, SACK_SIZE * 0.5, 0)) * CFrame.Angles(0, 0, math.pi / 2)
+	local tie = part(model, "Tie", Enum.PartType.Cylinder, NECK_SIZE * Vector3.new(0.3, 1.15, 1.15), TIE_COLOR)
+	tie.CFrame = neck.CFrame * CFrame.new(-NECK_SIZE.X * 0.2, 0, 0)
+	model.PrimaryPart = sack
+
+	local bag: Bag =
+		{ model = model, sack = sack, inventory = Inventory.new(0, LC.BagSlots), expiry = nil, kept = kept }
+	local prompt = newPrompt(Localization.get("LootBag"), function(player)
 		onSearch(player, bag)
 	end)
 	prompt.Parent = sack
@@ -172,8 +209,14 @@ local function newBag(ground: Vector3, seconds: number): Bag
 	model.Parent = folder
 	bag.expiry = task.delay(seconds, remove, bag)
 	table.insert(bags, bag)
-	while #bags > LC.MaxBags do
-		remove(bags[1])
+	-- Over the cap the oldest bag goes, unless it is kept.
+	local index = 1
+	while #bags > LC.MaxBags and index <= #bags do
+		if bags[index].kept then
+			index += 1
+		else
+			remove(bags[index])
+		end
 	end
 	return bag
 end
@@ -193,8 +236,8 @@ local function bagNear(position: Vector3, distance: number): Bag?
 end
 
 -- Puts `stacks` in a bag on the ground below `position`. With `merge`, a bag within
--- Config.Loot.MergeDistance is topped up first. A new bag lasts `seconds` (Config.Loot.BagSeconds by
--- default). Returns how many items did not fit in any bag.
+-- Config.Loot.MergeDistance is topped up first. A new bag lasts Config.Loot.BagSeconds; given its own
+-- `seconds`, it lasts that long and the bag cap never removes it. Returns how many items did not fit.
 function LootService.drop(position: Vector3, stacks: { Inventory.Stack }, merge: boolean, seconds: number?): number
 	local ground = groundAt(position)
 	local bag = if merge then bagNear(ground, LC.MergeDistance) else nil
@@ -205,7 +248,7 @@ function LootService.drop(position: Vector3, stacks: { Inventory.Stack }, merge:
 			left = Inventory.add(bag.inventory, stack.id, left, stack.source, stack.durability)
 		end
 		if left > 0 then
-			bag = newBag(ground, seconds or LC.BagSeconds)
+			bag = newBag(ground, seconds or LC.BagSeconds, seconds ~= nil)
 			left = Inventory.add(bag.inventory, stack.id, left, stack.source, stack.durability)
 		end
 		lost += left
@@ -216,6 +259,109 @@ end
 -- Number of bags on the ground (debug overlay, tests).
 function LootService.count(): number
 	return #bags
+end
+
+-- Number of searchable furniture pieces (tests).
+function LootService.containerCount(): number
+	return #containers
+end
+
+local function containerName(container: Container): string
+	local name = Localization.get(`Container{container.kind}`)
+	if container.inventory and isEmpty(container.inventory) then
+		return Localization.get("ContainerEmpty", { name = name })
+	end
+	return name
+end
+
+-- Whether nothing solid but the furniture itself stands between the player's head and the point a
+-- container is searched from (no searching through walls).
+local function inSight(player: Player, container: Container): boolean
+	local character = player.Character
+	local head = character and character:FindFirstChild("Head")
+	if character == nil or head == nil or not head:IsA("BasePart") then
+		return false
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { character, container.model }
+	params.RespectCanCollide = true
+	params.IgnoreWater = true
+	local offset = container.point.WorldPosition - head.Position
+	return Workspace:Raycast(head.Position, offset, params) == nil
+end
+
+local function onSearchContainer(player: Player, container: Container)
+	if not canSearch(player, container.point.WorldPosition) or not inSight(player, container) then
+		return
+	end
+	local day = DayNightService.getState().day
+	if container.inventory == nil or day - container.filledDay >= LC.ContainerRespawnDays then
+		local inventory = Inventory.new(0, LC.BagSlots)
+		for _, stack in Loot.rollContainer(rand, container.kind, container.buildingLoot) do
+			Inventory.add(inventory, stack.id, stack.count, stack.source, stack.durability)
+		end
+		container.inventory = inventory
+		container.filledDay = day
+	end
+	takeAll(player, container.inventory :: Inventory.Inventory)
+	container.prompt.ObjectText = containerName(container)
+end
+
+-- The Loot attribute of the building model `model` stands in.
+local function buildingLootOf(model: Model): string?
+	local parent = model.Parent
+	while parent and parent ~= Workspace do
+		local loot = parent:GetAttribute("Loot")
+		if typeof(loot) == "string" then
+			return loot
+		end
+		parent = parent.Parent
+	end
+	return nil
+end
+
+-- Gives every searchable piece of furniture on the map its prompt.
+local function addContainers(map: Instance)
+	for _, model in map:GetDescendants() do
+		local furniture = model:GetAttribute("Furniture")
+		local kind = if typeof(furniture) == "string" then LC.ContainerFurniture[furniture] else nil
+		if kind == nil or not model:IsA("Model") then
+			continue
+		end
+		local base = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true)
+		if base == nil then
+			continue
+		end
+		-- Furniture pivots face their front (-Z): the prompt floats just in front of it, where the head
+		-- of a player in the room sees it. Prompts skip the line-of-sight check (a third-person camera
+		-- behind a window would hide them); the server checks the head's view instead.
+		local box, size = model:GetBoundingBox()
+		local front = (box * CFrame.new(0, 0, -size.Z / 2 - LC.ContainerPromptGap)).Position
+		local floor = box.Position.Y - size.Y / 2
+		local point = Instance.new("Attachment")
+		point.Name = "SearchPoint"
+		point.Parent = base
+		point.WorldPosition =
+			Vector3.new(front.X, floor + math.min(size.Y / 2, LC.ContainerPromptMaxHeight), front.Z)
+		local container: Container? = nil
+		local prompt = newPrompt(Localization.get(`Container{kind}`), function(player)
+			if container then
+				onSearchContainer(player, container)
+			end
+		end)
+		container = {
+			model = model,
+			point = point,
+			prompt = prompt,
+			kind = kind,
+			buildingLoot = buildingLootOf(model),
+			inventory = nil,
+			filledDay = 0,
+		}
+		prompt.Parent = point
+		table.insert(containers, container :: Container)
+	end
 end
 
 function LootService.init()
@@ -234,6 +380,7 @@ function LootService.start()
 		Workspace:WaitForChild(Config.Build.FolderName),
 	}
 	groundParams.RespectCanCollide = true
+	addContainers(MapService.getMap())
 	ZombieService.onDied(function(x, y, z)
 		local stacks = Loot.rollZombie(rand)
 		if stacks then

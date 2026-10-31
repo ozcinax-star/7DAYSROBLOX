@@ -58,6 +58,13 @@ local Strings: { [string]: { [string]: string } } = {
 
 		-- Loot
 		LootBag = "Loot Bag",
+		ContainerFridge = "Fridge",
+		ContainerCupboard = "Cupboard",
+		ContainerShelf = "Shelf",
+		ContainerClothes = "Wardrobe",
+		ContainerMedicine = "Medicine Cabinet",
+		ContainerStorage = "Storage",
+		ContainerEmpty = "{name} (empty)",
 		LootSearch = "Search",
 
 		-- Crafting
