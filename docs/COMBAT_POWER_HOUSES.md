@@ -54,7 +54,8 @@ Kök neden: `WoodFrame` düz bir kutuydu ve `Transparency = 0.25` idi; cam gibi 
 - Yükseltmede süsler temizleniyor.
 
 Play'de çerçevede 16 kiriş ölçüldü. Taş baltayla 3 vuruşta 500 canlı, opak, süssüz ahşap bloğa döndü.
-Debug çantasına çerçeve ve kereste eklendi.
+Debug çantasına çerçeve, kereste, kablo aleti, iki taret ve dört çit direği eklendi. Çanta 55 yuvayı
+tam dolduruyor; röle tarifle yapılır.
 
 ## 3. Dövüş (`4884551`)
 
@@ -70,6 +71,9 @@ Debug çantasına çerçeve ve kereste eklendi.
   - 1,6× stamina harcar ve stamina yenilenmesini 1,5 sn durdurur.
   - Savruluş daha yavaş ve geriye çekişli; mızrak 3,6 m'ye ulaşır.
   - Taş baltada güçlü vuruş yok (tamir aleti).
+  - Serbest fare kamerasında (V) sağ tık kamerayı da döndürdüğü için yalnızca kısa (0,25 sn) ve
+    sürüklemesiz tık güçlü vuruştur. Play'de sürükleme stamina harcamadı (100); kısa tık 100 → 72,2.
+  - Dokunmatikte yakın dövüş aletiyle Aim düğmesi "Power" olur. Gamepad: L2. Telefonda denenmedi.
 - Can çubuğunun üstünde başlık çıkar: **Headshot**, **Knocked down**, **Crippled**, **Decapitated**.
 - Kazık tuzağı bacağı vurur (sakatlayabilir).
 - Duruş ve sakatlık snapshot'taki durum baytının boş bitlerinde taşınır; paket boyutu değişmedi.
@@ -155,7 +159,8 @@ parça sayısı yalnızca oyuncunun çalıştığı yerde artar.
 **Kırma:**
 - Aletler duvarı blok gibi hasarlar.
 - Kırılan dilim kırana malzeme bırakır: ahşap, küçük taş ya da hurda demir.
-- Zemin kattaysa altındaki hücreler zombi yollarına açılır.
+- Zemin kattaysa altındaki hücreler zombi yollarına açılır (`reopenArea`; zombinin delikten geçtiği
+  Play'de ölçülmedi).
 
 **Taş baltayla tamir ve güçlendirme:**
 - Hasarlı dilimi tamir eder.

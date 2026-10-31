@@ -2425,7 +2425,6 @@ Config.Debug = {
 		{ Id = "AutoTurret", Count = 1 },
 		{ Id = "ShotgunTurret", Count = 1 },
 		{ Id = "FencePost", Count = 4 },
-		{ Id = "PowerRelay", Count = 2 },
 		{ Id = "Charcoal", Count = 20 },
 		{ Id = "ScrapIron", Count = 60 },
 		{ Id = "ForgedIron", Count = 20 },

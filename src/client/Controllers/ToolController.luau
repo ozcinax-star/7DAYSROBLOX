@@ -25,6 +25,7 @@ local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local WeaponController = require(script.Parent.WeaponController)
 local EquipmentPoseController = require(script.Parent.EquipmentPoseController)
+local CameraController = require(script.Parent.CameraController)
 local Config = require(Shared.Config)
 local Localization = require(Shared.Localization)
 local Melee = require(Shared.Melee)
@@ -416,6 +417,10 @@ local function hasAmmo(weapon: Config.RangedDef): boolean
 end
 
 -- Sends a "use" that is not a swing (placing, eating, drinking, shooting), at most every `seconds`.
+-- A free-mouse right click counts as a power attack when this short and still (seconds, pixels).
+local POWER_CLICK_SECONDS = 0.25
+local POWER_CLICK_PIXELS = 6
+
 -- Ammo a turret takes: "use" with it in the hand loads the turret looked at (PowerService).
 local TURRET_AMMO: { [string]: boolean } = {}
 for _, turret in Config.Power.Turrets do
@@ -635,19 +640,36 @@ local function bindInput(parent: Instance, hitButton: TextButton)
 		binding.KeyCode = key
 		binding.Parent = aim
 	end
+	-- Guns aim; melee tools and the fist swing a power attack (7DTD right mouse button). In the free
+	-- mouse camera RMB also turns the view, so there only a short click without a drag swings.
+	local pressedAt, pressedMouse = 0, Vector2.zero
 	aim.Pressed:Connect(function()
-		-- Guns aim; melee tools and the fist swing a power attack (7DTD right mouse button).
 		if aimableHeld() then
 			setAiming(true)
+		elseif CameraController.getMode() == "Free" then
+			pressedAt, pressedMouse = os.clock(), UserInputService:GetMouseLocation()
 		elseif not InventoryController.isBackpackOpen() then
 			trySwing("Pointer", false, true)
 		end
 	end)
 	aim.Released:Connect(function()
 		setAiming(false)
+		if pressedAt > 0 and CameraController.getMode() == "Free" and not aimableHeld() then
+			local click = os.clock() - pressedAt <= POWER_CLICK_SECONDS
+				and (UserInputService:GetMouseLocation() - pressedMouse).Magnitude <= POWER_CLICK_PIXELS
+			if click and not InventoryController.isBackpackOpen() then
+				trySwing("Pointer", false, true)
+			end
+		end
+		pressedAt = 0
 	end)
 	aimButton.Activated:Connect(function()
-		setAiming(not aiming)
+		-- Touch: the same button aims a gun, or swings a power attack with a melee tool.
+		if aimableHeld() then
+			setAiming(not aiming)
+		else
+			trySwing("Touch", false, true)
+		end
 	end)
 	context.Parent = parent
 end
@@ -674,7 +696,15 @@ function ToolController.start()
 			nextPoseAt = os.clock() + Config.WeaponHandling.PoseInterval
 			aimRemote:FireServer(true, math.asin(workspace.CurrentCamera.CFrame.LookVector.Y))
 		end
-		aimButton.Visible = UserInputService.TouchEnabled and gun ~= nil
+		local held = InventoryController.getHeld()
+		-- An empty hand or a melee tool that has a power attack.
+		local meleeId = if held == nil then "Fist" elseif Config.Tools[held.id] then held.id else nil
+		local melee = gun == nil and meleeId ~= nil and Config.Combat.PowerMultiplier[meleeId] ~= nil
+		aimButton.Visible = UserInputService.TouchEnabled and (gun ~= nil or melee)
+		local label = Localization.get(if gun then "ToolAim" else "ToolPower")
+		if aimButton.Text ~= label then
+			aimButton.Text = label
+		end
 	end)
 	player.CharacterAdded:Connect(function()
 		setAiming(false)

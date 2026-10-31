@@ -62,6 +62,7 @@ local Strings: { [string]: { [string]: string } } = {
 
 		-- Tools
 		ToolAim = "Aim",
+		ToolPower = "Power",
 		ToolUse = "Hit",
 		WeaponReload = "Reload",
 		WeaponReloadHint = "R / B: Reload",
@@ -139,7 +140,7 @@ local Strings: { [string]: { [string]: string } } = {
 		HelpTitle = "Controls",
 		HelpBackpack = "Backpack and crafting",
 		HelpHit = "Hit, use, place",
-		HelpAim = "Aim a gun",
+		HelpAim = "Aim a gun / power attack",
 		HelpInteract = "Pick up, search, open (hold)",
 		HelpDrop = "Drop the held item",
 		HelpRun = "Run",
