@@ -22,6 +22,8 @@ local Strings: { [string]: { [string]: string } } = {
 		-- Camera
 		CameraShoulder = "Shoulder",
 		CameraFirstPerson = "First person",
+		CameraFree = "Free mouse",
+		CameraMode = "Camera: {mode}",
 
 		-- Debug overlay
 		DebugFps = "FPS: {value}",
@@ -119,6 +121,9 @@ local Strings: { [string]: { [string]: string } } = {
 		HelpRun = "Run",
 		HelpToolbelt = "Toolbelt slot",
 		HelpHide = "Hide or show this",
+		HelpCamera = "Change the camera",
+		HelpCursor = "Free the cursor (hold)",
+		KeyAlt = "Alt",
 		KeyTab = "Tab",
 		KeyLeftMouse = "LMB",
 		KeyRightMouse = "RMB",

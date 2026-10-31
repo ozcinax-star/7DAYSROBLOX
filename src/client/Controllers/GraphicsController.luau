@@ -204,6 +204,11 @@ function GraphicsController.getPreset(): string
 	return presetName()
 end
 
+-- True while the graphics panel is open (the camera frees the cursor for it).
+function GraphicsController.isOpen(): boolean
+	return panel ~= nil and panel.Visible
+end
+
 function GraphicsController.init() end
 
 function GraphicsController.start()

@@ -61,6 +61,8 @@ local function build(playerGui: PlayerGui): Frame
 		{ keyName(Enum.KeyCode.G), "HelpDrop" },
 		{ Localization.get("KeyShift"), "HelpRun" },
 		{ Localization.get("KeyDigits"), "HelpToolbelt" },
+		{ keyName(Enum.KeyCode.V), "HelpCamera" },
+		{ Localization.get("KeyAlt"), "HelpCursor" },
 		{ keyName(Enum.KeyCode.H), "HelpHide" },
 	}
 
