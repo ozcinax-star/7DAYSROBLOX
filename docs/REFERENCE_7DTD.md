@@ -41,6 +41,10 @@ Bu dosya PLAN.md'deki kapsam kuralının istediği referanstır: ana referans 7 
 | Blood moon | Büyüklük gamestage'e göre, oyuncu başına aynı anda sınırlı sayı (`BloodMoonEnemyCount`), 22:00–04:00; zombiler sprint | Oyuncu başına toplam 20, 4 dalga; 11 stud/sn ("jog") | PLAN: horde boyutu ve 120 tavanı; yürüyen oyuncu açık arazide kaçabilsin |
 | Biyom spawn'ı | Chunk başına biyom ve gamestage'e göre | Oyuncu başına gündüz 6, gece 10, kademeyle ×1,6'ya kadar | PLAN: tehdit kademesi spawn hızını artırır; sunucu bütçesi 80 |
 | Isı haritası | Eylemler chunk ısısını artırır, 100'de screamer | Gürültü ölçeri ve ses noktası; screamer yok | PLAN tehdit sistemi |
+| Bloğa vuruş ve yükseltme | Sol tık hasar, sağ tık (taş balta) tamir / yükseltme | Taş balta her zaman tamir / yükseltme yapar; diğer aletler hasar verir | Tek "use" düğmesi (mobil) |
+| Tamir maliyeti | Bloğun RepairItems'ı (ahşap 3 odun), hasara orantılı | Vuruş başına 100 can, payı yukarı yuvarlanır (çerçeve tam tamir 3, ahşap blok 5 odun) | Kesirli eşya yok |
+| Yapısal destek | Malzeme başına yapışkanlık / kütle; ahşap 8 blok yatay | Yalnızca yere bağlantı | Basit tutuldu |
+| Blok bina içinde | POI'lerin içine de konur | Kasaba binası tabanına konmaz | Üst kat yol bulma katmanı yapıyı bilmiyor |
 | Ot ve yerdeki taş | Biyoma göre her yerde blok | 26 stud'luk orman hücrelerinde şansla; kasabada ot var, taş ve kaya yok | Parça sayısı; PLAN: kasabada kaya yok |
 
 ---

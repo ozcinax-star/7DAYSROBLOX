@@ -23,7 +23,8 @@ Yol haritası notu ve Kararlar tablosu).
 | Zombi loot'u | Bitti: %20 torba, arama, sığmayan eşya ayağa düşer |
 | Gündüz-gece | Bitti: 11 dk döngü, gün sayacı, horde gecesi işareti, gece daha sık saldırı |
 | Tehdit ve horde | Bitti: Gürültü / İz / 5 kademe, ortam nüfusu, oyuncu başına 20 zombilik horde dalgaları |
-| İnşa, hayatta kalma, kazı, silahlar, tarım | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
+| İnşa (ahşap) | Bitti: çerçeve, ahşap blok, merdiven; yükseltme, tamir, çökme, zombiler duvar kırar |
+| Hayatta kalma, kazı, silahlar, tarım, kapı | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
 | Kapı 1: 80 zombiyle orta seviye telefonda 30 FPS | **Ölçülmedi**; kullanıcı erteledi |
 | Kapı 2: 3 kişilik test grubu "bir gece daha" diyor | Henüz yapılamaz |
 
@@ -122,13 +123,28 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Yığılma:** kovalama hâlinde hareketsiz kalan birkaç zombi görüldü (Chase, 0 stud/sn); duvar ya
   da merdiven kuyruğu olabilir, incelenmedi.
 
-### 8. Kazılabilir zemin
+### 8. İnşa (bitti, 31 Ekim)
+
+`c95e07a`, `7574e5f`, `123b9d8`. Kalanlar:
+- **Kapı:** 7DTD ahşap kapı 1000 can, 10 odun, 1×2 blok; aç/kapa ve kapalıyken zombi kırar.
+- **Taş kademesi:** ahşap blok → kırık taş (10 Cobblestone, 1500 can); taş ocağı / betonarme
+  zinciri gelince.
+- **Şekiller:** yalnızca küp. 7DTD'de rampa, yarım blok, merdiven basamağı ve plaka var.
+- **Yatay açıklık:** 7DTD'de ahşap 8 bloktan sonra çöker; bizde sınır yok.
+- **Bina içi:** kasaba binalarının tabanına blok konamaz (üst kat yol bulma katmanı yapıyı bilmiyor).
+- **Çerçeveyi geri alma:** 7DTD'de çerçeve toplanabilir; bizde yok.
+- **Kazık tuzağı:** 20 odun, 33 hasar, 3 aşınma kademesi.
+- **Zombinin üstteki oyuncuya ulaşması:** blok kulesinin tepesindeki oyuncuya zombi vuramaz; kule
+  sütununu yalnızca yol bulma oraya götürürse kırar. Ölçülmedi.
+- **Kayıt:** bloklar sunucu kapanınca kaybolur (kalıcılık adımı).
+
+### 9. Kazılabilir zemin
 
 - Malzeme sınıfına göre voxel canı. Kazınca eşya verir (kil, taş).
 - Yasak alanlar: bina çevresi, asfalt ve kaldırım, su kenarı, ana kaya sınırı.
 - MapService yükseklik ızgarası ve yol bulma güncellenir.
 
-### 9. Sonra
+### 10. Sonra
 
 - **Araç zinciri:** Kullanıcı `rokit install` ve `rojo plugin install` komutlarını kendisi çalıştırır.
   Sonra `stylua --check src tests`, `selene src`, `lune run tests/run`, `rojo build -o build.rbxl`
@@ -140,9 +156,6 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 
   Tutmazsa sırayla: bina süs parçalarını birleştir, `StreamingTargetRadius` düşür, orman yoğunluğunu
   azalt, istemci `RenderDistance` kıs.
-- **BuildService (tahta duvar):** `BuildRequest` (hücre, yön), tam doğrulama, 24 stud menzil, 2000
-  parça tavanı, parça canı 250, zombinin en zayıf parçaya saldırması, ızgara güncellemesi. Kereste
-  burada kullanılır.
 - **Kamera:** Omuz kamerası varsayılan, FPS geçişi (Input Action System), zoom 4–14.
   - Dokunmatik ve gamepad ekran ortasından nişan alır. Hesap: varsayılan kamera başın ~15° aşağısına
     bakarken yumruğun 5,6 stud'luk ışını yerden ~3 stud yukarıda biter. Yani ota (2,6 stud) ve
