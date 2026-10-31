@@ -33,6 +33,7 @@ Yol haritası notu ve Kararlar tablosu).
 | Boru tabanca | Bitti: 9 mm, şarjör 6, doldurma, sapma, atış gürültüsü; tutkal kamp ateşinde kemikten |
 | Boru tüfek, pompalı, makineli ve nişan | Bitti: 7DTD 3.2 sayıları, pompalıda 10 saçma, makinelide basılı tutunca otomatik atış; nişan sağ tık / L2 / dokunmatik "Aim" |
 | Tahta parmaklık | Bitti: 3 kereste, 300 can; zombiyi durdurur, mermi / ok / mızrak içinden geçer |
+| Tahta kazık tuzağı | Bitti: 20 odun; zombiye saniyede 33 hasar, hızını 0,18'e düşürür, 12 vuruşta kırılır |
 | Mobilya kırma | Bitti: 30 tür kasaba mobilyası 7DTD canı ve düşüşleriyle kırılır; kap içindekini döker; pencere camı tek vuruşta kırılır |
 | Tarım | Bitti: tarla, 3 ekin, büyüme, hasat, tohum geri |
 | Jeneratör ve lamba | Bitti: benzin, aç/kapa, 48 stud'da 50 W, gürültü ve İz |
@@ -319,6 +320,17 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Demir parmaklık:** PLAN'da sonraki aşama (dövme demir ve demirci ocağı ister).
 - **Pencere:** PLAN MVP'deki pencere yok; parmaklık şimdilik pencere boşluğunun yerini tutar.
 - **Loot torbası:** torba parmaklığın kutusunun üstüne düşer (diğer bloklar gibi).
+
+### 20b. Tahta kazık (bitti, 31 Ekim)
+
+`f7c47eb`. Kalanlar:
+- **Oyuncuya hasar:** 7DTD'de kazık oyuncuyu da yaralar ve yavaşlatır; bizde yalnızca zombi (ortak
+  oyunda kendi tuzağına basan oyuncu cezalanmasın diye; istenirse aynı kontrol karakterlere de uygulanır).
+- **Yol bulma:** 7DTD'de kazığın `Path` değeri "solid": zombi yolu varsa etrafından dolaşır, yoksa
+  üstünden geçer. Bizde her zaman üstünden geçer.
+- **Vuruş sıklığı:** 7DTD'nin değme başına hasar sıklığı XML'de yok; saniyede bir bizim.
+- **Kırılınca odun:** 7DTD kırılınca 2–6 odun düşürür; BuildService kırılan bloktan düşüş vermiyor.
+- **Demir kazık:** 4 dövme demirle yükseltme (dövme demir yok).
 
 ### 21. Mobilya kırma (bitti, 31 Ekim)
 

@@ -772,7 +772,8 @@ Config.Items = {
 	WoodLadder = { Stack = 500, Color = { 0.55, 0.4, 0.25 } }, -- ladderWood
 	WoodDoor = { Stack = 500, Color = { 0.5, 0.36, 0.22 } }, -- oldWoodDoor
 	WoodBars = { Stack = 500, Color = { 0.55, 0.4, 0.25 } },
-	WoodSpikes = { Stack = 50, Color = { 0.5, 0.38, 0.24 } },
+	-- No Stacknumber in the XML; 500 is the probable block default (docs/REFERENCE_7DTD.md).
+	WoodSpikes = { Stack = 500, Color = { 0.5, 0.38, 0.24 } },
 	-- meleeToolRepairT0StoneAxe
 	StoneAxe = { Stack = 1, Durability = 250, Repair = STONE_REPAIR, Color = { 0.45, 0.42, 0.38 } },
 	-- meleeToolShovelT0StoneShovel
