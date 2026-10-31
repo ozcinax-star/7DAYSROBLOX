@@ -2,7 +2,7 @@
 
 Bağlamı olmayan yeni bir oturum işe buradan başlar. Sıradaki işler [NEXT_STEPS.md](NEXT_STEPS.md)
 dosyasında, tasarım kararları [PLAN.md](PLAN.md) dosyasında, kod yapısı [../README.md](../README.md)
-dosyasında. Bu not 30–31 Ekim 2026'daki iki uzun çalışma oturumunu (birkaç kez sıkıştırılmış) özetler.
+dosyasında. Bu not 30 Ekim – 1 Kasım 2026'daki uzun çalışma oturumlarını (birkaç kez sıkıştırılmış) özetler.
 
 ## Proje ve roller
 
@@ -293,6 +293,27 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 | `77080f5` | Yatak rulosu (7DTD bedroll, SleepingBag): 10 bitki lifi, sırt çantasında 2 sn; 100 can, aletlere toprak, tamir 20 lif, vuruşlarda 5 lif, kırılınca 1–3 lif; zombi üstünden geçer. Kuran oyuncu ölünce üstünde doğar (`BuildService` `CharacterAdded` → `PivotTo`, kök 3 stud yukarıda); yenisi eskisinin yerini alır, kırılırsa harita doğuşuna döner. Kayıt yok (bloklar gibi). 1 test |
 | `ea7e10b` | Kasaba pencere camları (274) kırılır: her cam kendi `Window` modeli, `HarvestNode = "WindowGlass"`; HarvestService bu özelliği taşıyan harita modellerini de düğüm sayar. 7DTD Mglass canı 1: her vuruş kırar, düşüş yok (bizim). Pencere denizliği zombiyi yine durdurur, yol ızgarası değişmez. Mermi camı kırmaz (yalnızca alet vuruşu) |
 
+### 26. Bölüm: kullanıcı testinden sonra eleştiri ve düzeltmeler (1 Kasım)
+
+Kullanıcı Studio'da girdi: sırt çantasını açamadı, odun kıramadı, yalnızca yerden taş topladı ve evlerden
+loot aldı. Kök nedenler Play'de gerçek tuş ve tıklamayla ölçüldü:
+- Roblox oyuncu listesi Tab'ı yutuyordu.
+- Türkçe Q klavyede noktalı "i" tuşu `KeyCode.Quote` olarak geliyor; `I` bağlaması o tuşa basınca çalışmıyordu.
+- Toplanan her şey görünür bir düğmesi olmayan sırt çantasına giriyordu.
+- Yumruğun geri bildirimi yoktu: 600 canlı ağaçta 2 hasar ve vuruş başına ~0,23 odun, ama ekranda hiçbir
+  şey değişmiyordu.
+- Yönlendirme yoktu.
+
+| Commit | Ne yapıldı |
+| --- | --- |
+| `a6ebf3f` | Tab ve I (gamepad Y) sırt çantasını açar, Roblox oyuncu listesi kapalı; Bag düğmesi her cihazda, klavyede köşesinde "Tab". 7DTD başlangıç eşyaları (kaynamış su, chili, bandaj) alet kemerinin 8–0 yuvalarında. Vurulan şeyin kalan canı ekran ortasının altında çubukla (`HitInfo`, `TargetBarController`). Menzil dışı yakın dövüş vuruşunda "Too far away". Klavyede sağ altta kontrol listesi (`HelpController`, H gizler; harf tuşları oyuncunun klavye düzeninde) |
+| `3070c81` | Can çubuğunun yer tutucu metinde kalmaması için savunma düzeltmesi (yeniden üretilemedi) |
+| `3857b54` | 7DTD 3.2 `challenges.xml` görev zinciri, tutorial olarak: Basics of Survival (6), Homesteading (8), Advanced Survival (5). `ChallengeService` (sunucu sayar; toplama, crafting, yerleştirme, yükseltme, içme, öldürme) ve sağ üstte `ChallengeController`. Kayıt yok |
+| `81fb6f0` | Omuz kamerası (`CameraController`): V ile omuz → birinci şahıs → serbest fare. Omuzda fare ortaya kilitli, ortada nişangâh, karakter kameraya döner, kamera sağ omuzda. Sırt çantası, sandık, grafik paneli açıkken ya da Sol Alt basılıyken imleç serbest. Zoom 4–14 |
+| `8b21656` | Vuruş parçacıkları (`ImpactController`, `Shared/Surface`): dünyaya isabette yüzey renginde toz ve talaş, zombide kan; ok ve mermi de. `ToolSwing` artık isabet noktası, normal ve rengi taşır. Zombiye isabet eden yumrukta yanlış "Too far away" düzeldi: zombi parçaları ışın almaz, istemci sunucunun vuruş şekliyle (`Melee.pick`, `ZombieRenderController.bodiesNear`) bakar |
+| `f9610b6` | Ölüm ekranı (`DeathController`): "You died", yeniden doğma geri sayımı, torba düştüyse açıklama (`PlayerDied`). Torbanın üstünde ekranda "Your bag" ve mesafe (m); torba ekran dışındayken kenarda bekler, 6 stud yaklaşınca ya da süre bitince gider |
+| `23c4af2` | Otlu zemin önce biçilir (`DigService`): otlu sütuna ilk vuruş uzun ot tutamı kadar lif (2) verir ve sütunun otunu toprağa çevirir; sonraki vuruşlar toprağı kazar. Önceden yumruk 250 canlı toprağı kazıyor ve lifi bu cana yayıyordu |
+
 ## Mevcut durum
 
 | Alan | Durum |
@@ -307,7 +328,8 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 | Tehdit ve nüfus (`ThreatService` + `Shared/Threat`) | Çalışıyor. Gürültü saniyede %5 söner; İz kaynakların toplamına hemen çıkar, düşünce günde 3 puan iner (kaynak henüz yok; `setTraceSource` inşa adımını bekliyor). Tehdit = İz + Gürültü × 0,35; 5 kademe (0/20/40/60/80); ilk 3 günde en fazla 3. Ağaca ve kayaya vuruş 1,5 gürültü ve 35 stud'luk ses, devrilen ağaç 6 / 70 stud; aynı oyuncunun 8 stud ve 4 sn içindeki vuruşları aynı ses noktasını tazeler. Ortam nüfusu: canlı oyuncu başına gündüz 6, gece 10 zombi, kademe çarpanı 1–1,6, en fazla 80; 2 sn'de bir en fazla 3 kuyruğa alınır, her oyuncudan 270 stud'dan uzak boştaki zombiler 4'er silinir (istemci 260'ta çizmeyi bırakır). Horde gecesi: oyuncu başına 20 zombi, gecenin ilk %60'ına yayılan 4 dalga; ortam spawn'ı durur; şafakta kalanlar sıradan zombiye döner. Oyuncu tehdidi görmez; yalnızca debug paneli. API: `emit(tür, konum, oyuncu?)`, `setTraceSource`, `getTier`, `setDirectorEnabled`, `getStats`. |
 | Hayatta kalma (`SurvivalService` + `Shared/Vitals`) | Çalışıyor. Can (Humanoid), dayanıklılık, yemek, su; hepsi 100 ve sunucuda. Her 0,5 sn: yemek oyun günü başına 30, su 40 düşer; dayanıklılık saniyede 10 dolar (su bandı: su ≥%50 ×1, ≥%25 ×0,5, altı ×0,25, 0'da hiç), dolan her puan 0,00408 yemek ve 0,00453 su yer; doğal can günde 60 (×su bandı), iyileşen her can 0,06 su. Açlık / susuzluk kademeleri %50 / %25 / %2'de (çıkış %52 / %27 / %4), her biri dayanıklılığın %20 / %40 / %60'ını bloklar ve ikisi toplanır (taban 10). Son kademede 2,2 sn'de 0,25 can (ikisi toplanır, gerçek zaman), doğal iyileşme yok. Vuruş aletin dayanıklılığını ister ve harcar. Koşma: Shift basılı, gamepad L3 veya dokunmatikte Run düğmesi aç/kapa; sunucu WalkSpeed 24 yapar, hareket ederken saniyede 4,5 düşer, 0'da biter, ancak 25'te yeniden başlar; 2 sn'de bir Sprint gürültüsü. Zıplama 20 (sunucu kökün yükselişinden sayar). Elde yiyecek / içecek / ilaç "use" ile kullanılır (1 sn): yemek saniyede 1 girer, can 0,5/sn (bandaj 2/sn). Boş el göl suyuna "use": +10 su, −5 can. Ölünce taşınan her ham kaynağın (odun, küçük taş, lif, hurda demir, kumaş) yarısı 5 dk'lık torbaya düşer, istatistikler doğunca dolu. Oyuncu öznitelikleri: `Stamina`, `StaminaCap`, `Food`, `Water`, `Hunger`, `Thirst`. Debug: `SetFood`, `SetWater`. |
 | İnşa (`BuildService` + `Shared/BuildGrid`) | Çalışıyor. 4 stud'luk küp ızgara; sütunları yol bulma ızgarasıyla aynı. Elde Wood Frame, Wood Ladder veya Wood Door varken "use" (sol tık, R2, Hit) bloğu koyar: sunucu baştan nişan yönünde 24 stud ışın atar, vurduğu bloğun yanına ya da yüzeyin hemen üstündeki hücreye koyar (zeminde blok toprağa en fazla bir hücre gömülür, havada durmaz). Ret: dolu hücre, harita parçası (duvar, ağaç, tabela), karakter veya zombi içinde (blok, hücre ortasının altındaki döşemeye ya da bordüre 1,25 stud'a kadar gömülebilir), su, oynanmaz alan, kasaba binasının zemin katından yukarısı (kattan 2 hücre, yani kapı boşluğu yüksekliği), 2000 blok, zemin ya da komşu blok desteği yok. Taş balta bloğa vurunca hasar vermez: hasarlıysa vuruş başına 100 can tamir eder (7DTD'nin tam tamir için 3 odununun payı, yukarı yuvarlanmış), çerçeveyi 3 vuruşta 4 keresteyle ahşap bloğa, ahşap bloğu 3 vuruşta 10 kırık taşla 1500 canlı kırık taş bloğa çevirir (tamiri vuruş başına 1 kırık taş, tam tamir 15; aletlere taş). Vuruş başı payın yukarı yuvarlanması yüzünden tam tamir ahşap blokta 5 odun, kapıda 10 odun eder. Diğer aletler ahşap çarpanıyla hasar verir. Yere bağlantısı kopan bloklar düşer (7DTD yapısal destek, yatay açıklık sınırı yok). Zombiyi engelleyen sütun (zeminden 2 ile 6 stud arası) yol bulmada blok canına göre 2–8 maliyetli hücre olur; kovalayan ya da sese giden zombi önündeki en zayıf bloğa 7 hasar vurur (1,5 / gece 1,1 sn). Merdiven `TrussPart`: oyuncu tırmanır, zombiyi engellemez. Kapı (1000 can) iki hücre tutar (üst hücre boş olmalı), 0,35 stud kalınlığında bir panel: kuranın durduğu yüze asılır, `ProximityPrompt` (Open / Close) ile hücresinin içine 90° döner. Sunucu canlı karakteri, 8 + 4 stud mesafeyi ve saniyede 4 aç/kapa sınırını denetler; aralıkta karakter ya da zombi varken kapatmaz. Açık kapı yol bulmada boş hücre sayılır ve zombi vuruşu onu atlar; kapalı kapı 1000 canlı duvardır, bu yüzden zombi genellikle yanındaki daha zayıf bloğu kırar. Zombi kapı açmaz (7DTD). Kilit yok. Tahta kazık (`Trap`) çarpışmasız, zombiyi yavaşlatıp yaralar ve aşınır (yukarıdaki 25. bölüm). Tahta parmaklık (`Bars`) aynı yolla konur ve kırılır; kutusu "Bars" çarpışma grubunda olduğu için "Shots" grubuyla atılan mermi, ok, zombi görüşü ve yakın dövüş duvar kontrolü içinden geçer (dünya vuruşu, yani tamir / hasar için alet vuruşu, parmaklığa yine çarpar). Bloklar zombi görüşünü keser, loot torbası üstlerine düşer, her blok İz'e 0,04 ekler. Kayıt yok. API: `getCount`, `clear` (debug). |
-| Kamera (omuz/FPS) | **Yok.** Localization anahtarları (`CameraShoulder`, `CameraFirstPerson`) ve `Config.Camera` hazır. |
+| Kamera (`CameraController`) | Çalışıyor. V: omuz (varsayılan) → birinci şahıs → serbest fare. Omuzda Roblox shift lock mekanizması (her karede `MouseBehavior.LockCenter` + `RotationType.CameraRelative`), `Humanoid.CameraOffset` (2, 1,5, 0), ortada 6 px nişangâh. UI açıkken ve Sol Alt basılıyken imleç serbest. Fareyle bakış MCP ile ölçülemedi (MCP fare hareketi delta üretmiyor) |
+| Görev zinciri (`ChallengeService` + `Shared/Challenges`) | Çalışıyor. 19 görev, tek izlenen görev sayar, Gather hedefleri envanterden okunur. Kayıt yok |
 | Vuruş (`ToolService` + `Shared/Melee`) | Çalışıyor. İstemci yalnızca nişan yönünü yollar. Sunucu: birim vektör, hız sınırı (4/sn), aletin 7DTD aralığı (60/APM + 0,1 sn, %12 tolerans), hedefi kendi baş konumundan seçer: menzildeki en yakın zombi (silindir + baktığı yöne eğik kafa küresi), arada duvar varsa vurmaz. Hasar 7DTD: yumruk 5, taş balta 6, taş kürek 9, taş kazma 7, tahta sopa 12, taş mızrak 12; kafaya ×2. Mızrağın yalnızca hafif saldırısı var (güçlü saldırı ve fırlatma yok). Alet yalnızca isabette 1 aşınır; 0'da kullanılamaz. Dünyaya isabet `onWorldHit` dinleyicilerine gider (toplama). Oyunculara vuruş yok (PvP lobi seçeneği gelince). |
 | Depolama sandığı (`StorageService` + `StorageController`) | Çalışıyor. Blok `Size` 3,6 × 2,6 × 2,8, zombiyi durdurur, kırılır, taş baltayla 3 odunla tamir edilir. "Open" (0 sn, 8 stud): sunucu canlı karakteri ve 12 stud'u denetler, oyuncuyu izleyici yapar ve 36 yuvayı yollar (`StorageUpdate`). İstemci sırt çantasını açar, sandık panelini crafting panelinin yerine koyar (6 × 6). `StorageAction`: "Take" (sandık yuvası → envanterde sığan yere), "Put" (envanter yuvası → seçilen boş sandık yuvası ya da sığan yer; sığmayan yerinde kalır), "TakeAll", "Close"; oyuncu başına saniyede 12, açık sandık, menzil ve yuva aralığı denetlenir (NaN, 0, taşan sayı reddedilir). Sunucu 0,5 sn'de bir uzaklaşan ya da ölen izleyiciyi kapatır; çantayı kapatmak sandığı kapatır. Kırılan sandık içindekileri yerine bir torba olarak bırakır. Kayıt yok. |
 | Grafik ayarları (`GraphicsController` + `Shared/Graphics`) | Çalışıyor. `Config.Graphics.Presets`: Low (zombi 160 stud, ayrıntı 25, animasyon 45, ceset 3 sn, gölge / bloom / ışın kapalı, lamba ışığı ×0,6), Medium (260 / 45 / 70 / 6 sn, hepsi açık, ×1; eski görünüm), High (260 / 60 / 100 / 12 sn, hepsi açık, ×1,2). Zombi çizim mesafesi `ZombieVisual.RenderDistance`'ı (260) geçmez; sunucu despawn'ı ona göre. DepthOfField'e dokunulmaz (kapalı kalır; uzaktaki zombiyi bulanıklaştırırdı). Roblox kalite ayarı değişince Auto yeniden seçer. Seçim oturumluk, kayıt yok. `Terrain.Decoration` script'ten değişmiyor; partikül efekti yok. |
@@ -327,7 +349,8 @@ yazmayacağını söyledi. Referans PLAN ve 7DTD; çelişkide mantıklı olan se
 
 Ölçümler 30–31 Ekim 2026'da PC'de, Studio içinde alındı. Telefonda ölçüm yok.
 
-- **Testler:** 70/70 geçiyor (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
+- **Testler:** 78/78 geçiyor (1 Kasım; aşağıdaki döküm 70 testlik eski hâl, sonra başlangıç eşyası ve
+  görev zinciri testleri eklendi) (NavGrid 8, HeightField 3, Buildings 5, ZombieProtocol 3, ZombieLook 3,
   Inventory 7, Melee 5, Harvest 6, Ballistics 2, Farming 1, Power 1, Graphics 1, Crafting 7, Loot 3,
   DayClock 2, Threat 4, BuildGrid 5, Vitals 4).
   Testler yalnızca Studio düzeneğiyle çalıştırıldı; Lune ile hiç çalıştırılmadı.
@@ -747,7 +770,20 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
   - MCP üzerinden `Lighting.Technology` okunamıyor (yetki hatası).
 - **Python konsolu cp1254 kodlamasında.** Türkçe veya Unicode yazdıran betiklerde
   `PYTHONIOENCODING=utf-8` kullan.
-- **Tab tuşu:** Roblox oyuncu listesi Tab'ı oyundan önce alıyor (Play'de denendi); sırt çantası `I`.
+- **Tab tuşu:** Roblox oyuncu listesi Tab'ı oyundan önce alıyor; `InventoryController` listeyi kapatıyor
+  (`SetCoreGuiEnabled(PlayerList, false)`), o zaman IAS Tab'ı alır.
+- **Türkçe Q klavye:** noktalı "i" tuşu `KeyCode.Quote` olarak gelir (`GetStringForKeyCode`: I="I",
+  Quote="İ"). `KeyCode.I` noktasız ı tuşudur. Kontrol listesi harfleri `GetStringForKeyCode` ile yazar.
+- **Ekran görüntüsü BillboardGui çizmez.** Kafaya eklenen düz kırmızı BillboardGui bile görüntüde yoktu.
+  Dünyadaki işaretleri ScreenGui ile çiz (ölüm torbası işareti böyle) ya da görüntüyle doğrulayamazsın.
+- **Studio arka planda yavaşlar.** Studio penceresi öndeyken 60 FPS; arkadayken ~15 FPS ölçüldü (render
+  CPU 3,5 ms, GPU 19,5 ms, kare 67 ms: kalan süre bekleme). FPS ölçümünü Studio öndeyken yap.
+- **MCP fare hareketi delta üretmez.** Kilitli fareyle bakış (omuz kamerası) ölçülemez. Kamerayı
+  test için `BindToRenderStep("TestCam", Enum.RenderPriority.Last.Value, ...)` ile sabitle,
+  `WorldToViewportPoint` ile hedefi bul, `user_mouse_input` `mouseButtonClick` ile tıkla; sonra unbind.
+  `execute_luau` kamera tipini sıfırlar.
+- **Hızlı efekt doğrulama:** parçacık ve talaşlar 0,5 sn yaşar, ekran görüntüsü yetişmez. Testte
+  `ParticleEmitter.TimeScale = 0` ve talaşları sabitlenmiş kopyalarla dondur.
 - **Zombiler oyuncunun içine giriyor.** 80 zombilik kalabalıkta saldıran zombilerin bir kısmı oyuncunun
   gövdesine 0,1–1 stud kadar giriyor (sunucu konumları ölçüldü). Vuruşta "önde olma" şartı var, ama
   görsel ve oynanış sorunu; NEXT_STEPS'te.
@@ -774,6 +810,6 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
   görünüyordu ve `instance_path` ile tıklama yine çalıştığı için fark edilmedi. `UIListLayout`
   çocuğa boyut vermez; `UIGridLayout` hücreler alanı tam doldurursa yuvarlamayla son hücreyi alt
   satıra atar (crafting kuyruğunda görüldü, listeye çevrildi).
-- **Fare tekeri slot değiştirmiyor.** Tekerlek kamera zoom'unda; kamera adımında karar verilecek.
+- **Fare tekeri slot değiştirmiyor.** Karar (kamera adımı): tekerlek zoom'da kalır, slot 1–0 ile.
 - **Git yedeği yok.** Uzak depo tanımlı değil. GitHub'a göndermek dışarıya açık bir adım olduğu için
   kullanıcıya sorulmalı.

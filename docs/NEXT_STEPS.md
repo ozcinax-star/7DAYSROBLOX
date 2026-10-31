@@ -1,6 +1,6 @@
 # Sonraki aşama
 
-Durum 31 Ekim 2026 itibarıyla. Önce [HANDOFF.md](HANDOFF.md) dosyasını oku. Tasarım kararları
+Durum 1 Kasım 2026 itibarıyla. Önce [HANDOFF.md](HANDOFF.md) dosyasını oku. Tasarım kararları
 [PLAN.md](PLAN.md) dosyasında; çelişki olursa PLAN.md geçerli.
 
 ## Neredeyiz
@@ -43,6 +43,7 @@ Yol haritası notu ve Kararlar tablosu).
 | Depolama sandığı | Bitti: 36 yuva, ortak, kırılınca torba |
 | Evin içine inşaat | Bitti: zemin katta 2 hücre, kapı boşluğu barikatı |
 | Kamp ateşi ve pişirme | Bitti: fırında patates, közde mısır (ızgara), kaynamış su (tencere) |
+| İlk dakikalar (1 Kasım kullanıcı testi) | Bitti: Tab / I / Bag düğmesi, oyuncu listesi kapalı, 7DTD başlangıç eşyaları, vuruş can çubuğu ve "Too far away", kontrol listesi (H), görev zinciri (19 görev), omuz kamerası (V, Alt), vuruş parçacıkları, ölüm ekranı ve torba işareti, otlu zeminden lif |
 | UI cilası | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
 | Kapı 1: 80 zombiyle orta seviye telefonda 30 FPS | **Ölçülmedi**; kullanıcı erteledi |
 | Kapı 2: 3 kişilik test grubu "bir gece daha" diyor | Henüz yapılamaz |
@@ -84,7 +85,7 @@ tam test adımları yazılır.
 
 `ec74896`, `383297a`, `859c573`. 7DTD boyutları: 10 slot alet kemeri, 45 slot (5×9) sırt çantası; odun,
 küçük taş ve bitki lifi 6000'lik yığın. Kalanlar:
-- Fare tekeriyle slot değiştirme: tekerlek kamera zoom'unda; kamera adımında karar.
+- Fare tekeriyle slot değiştirme: karar verildi (1 Kasım), tekerlek zoom'da kalır, slot 1–0 ile.
 - 7DTD'nin taşıma yükü (fazla eşyada yavaşlama): sonra.
 - Eşya simgeleri: renkli karenin üstünde emoji (`Shared/ItemIcons`, `7748aed`); gerçek simge çizimi
   sonraki görsel adım.
@@ -376,11 +377,10 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 
   Tutmazsa sırayla: bina süs parçalarını birleştir, `StreamingTargetRadius` düşür, orman yoğunluğunu
   azalt, istemci `RenderDistance` kıs.
-- **Kamera:** Omuz kamerası varsayılan, FPS geçişi (Input Action System), zoom 4–14.
-  - Dokunmatik ve gamepad ekran ortasından nişan alır. Hesap: varsayılan kamera başın ~15° aşağısına
-    bakarken yumruğun 5,6 stud'luk ışını yerden ~3 stud yukarıda biter. Yani ota (2,6 stud) ve
-    yerdeki taşa vurmak için kamera ~40° aşağı eğilmeli. Omuz kamerasında yere bakmak kolay olmalı;
-    yerdeki taşta E prompt'u zaten çalışıyor.
+- **Kamera (yapıldı, 1 Kasım; kullanıcı doğrulaması bekliyor):** omuz / birinci şahıs / serbest fare,
+  V ile. Omuz modunda fareyle bakış MCP ile ölçülemedi; kullanıcı testinde fare kamerayı döndürmüyorsa
+  V ile serbest fareye geçilir ve `CameraController` düzeltilir. İnşa modunda yukarıdan görünüm yok.
+  - Yumruğun 5,6 stud'luk menzili: otlu zemine ve yerdeki taşa vurmak için kamera ~40° aşağı bakmalı.
 - **Prototip oyun testi:** 3 kişi, bir gece ve bir horde.
 
 ## 7DTD referans sayıları
