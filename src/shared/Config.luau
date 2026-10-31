@@ -360,10 +360,11 @@ Config.Horde = {
 Config.Population = {
 	-- Seconds between director passes.
 	Interval = 2,
-	-- PLAN budget is 60-80 zombies per server: 10 per player at night fills 60 with six players.
-	DayPerPlayer = 6,
-	NightPerPlayer = 10,
-	Max = 80,
+	-- User decision (31 Oct 2026): the town felt crowded, so the ambient count is half the first
+	-- numbers (6 / 10 a player, at most 80). The horde keeps its 20 a player.
+	DayPerPlayer = 3,
+	NightPerPlayer = 5,
+	Max = 40,
 	-- Multiplier on the per-player count for threat tiers 1-5.
 	TierMultipliers = { 1, 1.15, 1.3, 1.45, 1.6 },
 	-- Most zombies queued or removed in one pass, so the count changes gradually.
