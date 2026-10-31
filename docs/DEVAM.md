@@ -22,7 +22,19 @@ kullanıcı soruları), [PLAN.md](PLAN.md) (tasarım kararları; kodla çelişir
   - **Arayüz ve kamera:** omuz ve birinci şahıs kamera, vuruş animasyonları, görev zinciri
     (tutorial), eşya bilgi paneli.
 
-## Son oturumda yapılanlar (1 Kasım, iki kullanıcı testi)
+## Son oturum (31 Ekim, kullanıcı isteği: silah modelleri, daha az zombi)
+
+| Commit | İş |
+| --- | --- |
+| `ee72365` | Ortam nüfusu yarıya indi: oyuncu başına gündüz 3, gece 5; sunucu tavanı 40. Horde değişmedi |
+| sonraki | Her boru silaha ve yaya kendi el yapımı modeli (HeldItems `GUNS` ve `bow`) |
+
+**Karar:** Creator Store yerine parça tabanlı modeller (PLAN "Silah görünümü" satırı).
+**Doğrulanmadı:** Oturumda Studio bağlı değildi. Studio açılınca önce `H.sync()` + `H.test(false)`,
+sonra Play'de GiveKit ile dört silahı ve yayı birinci ve üçüncü şahısta ekran görüntüsüyle kontrol et
+(boyut, eldeki duruş, kameraya girme). Zombi sayısını Debug panelindeki ZombieCount ile ölç.
+
+## Önceki oturum (1 Kasım, iki kullanıcı testi)
 
 **1. test:** "Envanteri açamadım, odun kıramadım."
 - **Kök nedenler:**

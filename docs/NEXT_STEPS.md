@@ -83,6 +83,8 @@ Her sorunun ilk seçeneği benim önerim.
    Demirci ocağında odun / kumaş / tutkal, demir aletlerde kumaş / tutkal, demir kayasında hurda
    demir, tamirde dövme demir kullanılıyor (PLAN, Kararlar). Öneri: hayvan ve av (deri) ya da tezgâh
    (tamir kiti, koli bandı) gelene kadar böyle kalsın.
+9. **Horde boyutu:** Ortam nüfusu kullanıcı isteğiyle yarıya indi (3 / 5 / tavan 40). Horde gecesi
+   hâlâ oyuncu başına 20 zombi (PLAN). Horde da azaltılsın mı?
 
 Cevaplananlar: oyuncu zombiye aletle vuracak (bu planın 2. maddesi); zombiler üst kata çıkıyor
 (bitti); kapsam kuralı değişti, ana referans 7DTD ve karşılığında bir şey çıkmıyor (PLAN, Kapsam).
