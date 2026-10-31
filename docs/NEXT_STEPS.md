@@ -42,7 +42,9 @@ Yol haritası notu ve Kararlar tablosu).
 | Grafik ayarları | Bitti: Auto / Low / Medium / High, yalnızca istemci, gece görüşü sabit |
 | Depolama sandığı | Bitti: 36 yuva, ortak, kırılınca torba |
 | Evin içine inşaat | Bitti: zemin katta 2 hücre, kapı boşluğu barikatı |
-| Kamp ateşi ve pişirme | Bitti: fırında patates, közde mısır (ızgara), kaynamış su (tencere) |
+| Kamp ateşi ve pişirme | Bitti: fırında patates, közde mısır (ızgara), kaynamış su (tencere); odun / odun kömürü yakar, çakmak ya da lifle yanar |
+| Demirci ocağı ve demir | Bitti: odun kömürüyle yanan ocak, dövme demir, boru, tencere / ızgara; demir cevheri kayaları; demir balta, kazma, kürek |
+| Vuruş animasyonları | Bitti: birinci şahısta kollar ve eldeki eşya, üç vuruş hareketi; üçüncü şahısta aynı hareketler |
 | İlk dakikalar (1 Kasım kullanıcı testi) | Bitti: Tab / I / Bag düğmesi, oyuncu listesi kapalı, 7DTD başlangıç eşyaları, vuruş can çubuğu ve "Too far away", kontrol listesi (H), görev zinciri (19 görev), omuz kamerası (V, Alt), vuruş parçacıkları, ölüm ekranı ve torba işareti, otlu zeminden lif, eşya bilgi paneli (çanta ve crafting satırı) |
 | UI cilası | **Sıradaki iş** (kullanıcı 31 Ekim: her iş bitince sıradakini kapat) |
 | Kapı 1: 80 zombiyle orta seviye telefonda 30 FPS | **Ölçülmedi**; kullanıcı erteledi |
@@ -52,8 +54,8 @@ Yol haritası notu ve Kararlar tablosu).
 
 Her sorunun ilk seçeneği benim önerim.
 
-1. **Taş kazma ve kereste tarifleri:** 7DTD'de taş kazma yok (ilk kazma demirdir, demirci ocağı
-   ister) ve kereste diye bir eşya yok. Kullanıcı istediği için ikisi de eklendi: taş kazma 4 taş /
+1. **Taş kazma ve kereste tarifleri:** 7DTD'de taş kazma yok (ilk kazma demirdir; demir kazma artık
+   oyunda) ve kereste diye bir eşya yok. Kullanıcı istediği için ikisi de eklendi: taş kazma 4 taş /
    3 lif / 3 odun (2 sn), kayada en iyi alet; kereste 2 odun (0,4 sn). İtiraz yoksa böyle kalır.
 2. **Telefon testi:** Ertelendi. Bina parça sayısı hedefin üstünde, ölçüm hâlâ yok.
 3. **Edit modunda harita önizlemesi:** Play başlarken eski önizlemeyi kendiliğinden silen küçük bir
@@ -72,6 +74,15 @@ Her sorunun ilk seçeneği benim önerim.
    yüklemeleri; telif bildirimiyle silinebilirler. Roblox'un kendi yüklediği lisanslı ses kütüphanesi
    aramada çıkmadı. Öneri: sesleri sen dinleyip seç ya da kendi sesini yükle; kimliği
    (`rbxassetid://...`) ilgili alana yapıştırmak yeter. Ben tahmini bir ses seçmedim.
+
+7. **Ateş tasarımı (bizim):** 7DTD'de çakmak yok, istasyon düğmeyle yanar; odun kömürü yok, kömür
+   kazılır. Kullanıcının isteğiyle eklendi: yakmak için çakmak (50 kullanım, mutfak dolaplarında) ya da
+   2 bitki lifi; kamp ateşinde 3 odun → 1 odun kömürü; demirci ocağı yalnızca odun kömürü yakar.
+   Öneri: böyle kalsın; kömür kayası gelince odun kömürü ikinci kaynak olarak kalsın.
+8. **Eksik malzemelerin yerine geçenler:** deri, koli bandı, kütük, ham demir ve tamir kiti yok.
+   Demirci ocağında odun / kumaş / tutkal, demir aletlerde kumaş / tutkal, demir kayasında hurda
+   demir, tamirde dövme demir kullanılıyor (PLAN, Kararlar). Öneri: hayvan ve av (deri) ya da tezgâh
+   (tamir kiti, koli bandı) gelene kadar böyle kalsın.
 
 Cevaplananlar: oyuncu zombiye aletle vuracak (bu planın 2. maddesi); zombiler üst kata çıkıyor
 (bitti); kapsam kuralı değişti, ana referans 7DTD ve karşılığında bir şey çıkmıyor (PLAN, Kapsam).
@@ -114,8 +125,8 @@ küçük taş ve bitki lifi 6000'lik yığın. Kalanlar:
 kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalanlar:
 - **Kuyruk kaydı:** oyuncu çıkınca kuyruk ve içindeki malzeme kayboluyor (7DTD saklar). Kalıcılık
   adımında.
-- **İş istasyonları ve tarif kilitleri:** kamp ateşi, tezgah, demirci ocağı ve kitap / perk kilidi
-  yok; ihtiyaç doğunca.
+- **İş istasyonları ve tarif kilitleri:** kamp ateşi ve demirci ocağı var (23. madde); tezgâh,
+  kimya istasyonu ve kitap / perk kilidi yok.
 - **Tahta sopa:** istenirse eklenecek tarif.
 - **Dar ekran:** sırt çantası en küçük slotla 432 px, panel 340 px; 800 px'ten dar ekranda sığmaz.
   Telefon / kamera adımında mobil düzen.
@@ -364,6 +375,46 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Cam (`ea7e10b`):** mermi ve ok camı kırmaz (RangedService dünya vuruşunu toplama servisine
   iletmiyor); 7DTD'de kırar. Zombiler pencere kırıp girmez (denizlik duvar sayılır); 7DTD'de girer.
   Kırık camdan oyuncu atlayıp girebilir (denizlik 3 stud).
+
+### 23. Kullanıcı testi sonrası: ateş, ocak, demir, animasyon (bitti, 1 Kasım)
+
+Kullanıcının 1 Kasım bulguları: vuruş animasyonu yok, birinci şahıstan oynanmıyor, fare ortada
+kilitli ve soldaki panele ulaşılmıyor, zombiye hasar verilemiyor, demir ve ateş yok, inşa yok.
+
+- `08a1031`, `809479f`: nişangâhın altındaki zombiye isabet; vurulan zombinin canı çubukta. **Yalnızca
+  sabit test kamerasıyla ölçüldü**; gerçek fareyle zombi vurmayı kullanıcı doğrulamalı.
+- `64b7345`: debug panelinin üstünde "Tab ya da Alt basılı tut, tıkla" yazısı. Fare omuz modunda
+  ortada kilitli; Alt basılıyken ya da çanta açıkken serbest kalır.
+- `0617fa1`, `b7241b7`: birinci şahıs kollar ve vuruş animasyonları; üçüncü şahısta eklem
+  `Transform`'una bindirilen vuruşlar (avatar eklemleri AnimationConstraint).
+- `be63203`: crafting sekmeleri.
+- `eef8033`: kamp ateşi yakıtı (R), yakma / söndürme (F), çakmak, lif, odun kömürü.
+- `2549bc6`: demirci ocağı; dövme demir, metal boru, tencere, ızgara; jeneratör 15 dövme demir.
+- `68256dc`: demir cevheri kayaları ve demir balta / kazma / kürek.
+- İnşa zaten vardı: çantada Building sekmesi → çerçeve (Wood Frame) üret, toolbelt'e al, elde tutarken
+  hayalet önizleme çıkar, sol tık koyar; çantada kereste varken taş baltayla vurmak ahşap bloğa
+  yükseltir.
+
+Kalanlar:
+- **Ölüm:** kullanıcı denemedi.
+- **Ses:** kullanıcı kararı (6. soru).
+- **Ocak arayüzü:** 7DTD'de ocakta yakıt, girdi ve çıktı yuvaları var; bizde üç istem (E / R / F).
+  Telefonda üç istem üst üste; dokunmatikte denenmedi.
+
+### 24. Sıradaki 7DTD sistemleri
+
+Kullanıcı "7DTD'nin bütün özelliklerini kapsamlı ve oynanabilir" istedi. Önerilen sıra (her biri ayrı
+adım, PLAN'a karar satırıyla):
+1. **Tezgâh (workbench):** 7DTD'de jeneratör, demir kapı ve ileri tarifler burada; tamir kiti ve koli
+   bandı tarifleri.
+2. **Meşale:** elde ışık ve duvara konan meşale (odun + lif + kömür), gece görünürlüğü.
+3. **Kömür ve nitrat kayaları, yanık ağaç:** 7DTD'nin kömürü; barut ve cephane üretimine kapı.
+4. **Kimya istasyonu ve barut / cephane üretimi.**
+5. **Zırh ve giysi:** 7DTD'nin zırh kademeleri; yüzde hasar azaltma.
+6. **Perk / beceri puanı ve tarif kitapları:** şimdilik bütün tarifler açık.
+7. **Zombi türleri:** PLAN 2. aşama (Normal, Hızlı, Ses-duyarlı) ve 7DTD özel zombileri.
+8. **Tüccar ve para:** 7DTD trader; PLAN gelir modeliyle çakışmaması gerekir, kullanıcıya sorulacak.
+9. **Crafting araması** ve beton / demir inşa kademeleri.
 
 ### 22. Sonra
 
