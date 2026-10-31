@@ -32,7 +32,7 @@ Yol haritası notu ve Kararlar tablosu).
 | Yay ve ok | Bitti: ilkel yay, taş ok, sunucuda yerçekimli uçuş |
 | Boru tabanca | Bitti: 9 mm, şarjör 6, doldurma, sapma, atış gürültüsü; tutkal kamp ateşinde kemikten |
 | Tahta parmaklık | Bitti: 3 kereste, 300 can; zombiyi durdurur, mermi / ok / mızrak içinden geçer |
-| Mobilya kırma | Bitti: 30 tür kasaba mobilyası 7DTD canı ve düşüşleriyle kırılır; kap içindekini döker |
+| Mobilya kırma | Bitti: 30 tür kasaba mobilyası 7DTD canı ve düşüşleriyle kırılır; kap içindekini döker; pencere camı tek vuruşta kırılır |
 | Tarım | Bitti: tarla, 3 ekin, büyüme, hasat, tohum geri |
 | Jeneratör ve lamba | Bitti: benzin, aç/kapa, 48 stud'da 50 W, gürültü ve İz |
 | Grafik ayarları | Bitti: Auto / Low / Medium / High, yalnızca istemci, gece görüşü sabit |
@@ -327,6 +327,9 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
   zombi boş yeri dolanır, zararsız). Üst kat inşaatıyla birlikte çözülmeli.
 - **Kayıt:** kırılan mobilya kaydedilmez; `FurnitureCell` kimliği kayıt için hazır.
 - **Görsel:** vuruşta mobilyada sarsılma / kıymık efekti yok; düşen eşya sağdaki akışta görünür.
+- **Cam (`ea7e10b`):** mermi ve ok camı kırmaz (RangedService dünya vuruşunu toplama servisine
+  iletmiyor); 7DTD'de kırar. Zombiler pencere kırıp girmez (denizlik duvar sayılır); 7DTD'de girer.
+  Kırık camdan oyuncu atlayıp girebilir (denizlik 3 stud).
 
 ### 22. Sonra
 
