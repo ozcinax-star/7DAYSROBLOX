@@ -28,6 +28,9 @@ local Definitions: { [string]: "RemoteEvent" | "UnreliableRemoteEvent" } = {
 	UseTool = "RemoteEvent",
 	-- Server -> client: a swing happened (player, tool id or "Fist", hit zombie id or 0, head hit).
 	ToolSwing = "UnreliableRemoteEvent",
+	-- Server -> client: what the player's last swing hit in the world has this much health left
+	-- (remaining: number, maximum: number).
+	HitInfo = "UnreliableRemoteEvent",
 	-- Server -> client: items entered the player's inventory (item id, count added, count that did not fit).
 	InventoryGain = "RemoteEvent",
 	-- Server -> client: a tree was felled (tree model, trunk base Vector3, horizontal unit fall direction).

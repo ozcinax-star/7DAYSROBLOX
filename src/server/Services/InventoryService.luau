@@ -135,8 +135,11 @@ local function onPlayerAdded(player: Player)
 		heldId = nil,
 		heldModel = nil,
 	}
-	for _, entry in IC.StartingItems do
-		Inventory.add(state.inventory, entry.Id, entry.Count, "Loot")
+	-- The starting kit fills the last toolbelt slots, so the active first slot stays an empty hand.
+	local first = IC.ToolbeltSlots - #IC.StartingItems
+	for offset, entry in IC.StartingItems do
+		local stack = { id = entry.Id, count = entry.Count, source = "Loot" :: Types.ItemSource }
+		Inventory.putSlot(state.inventory, first + offset, stack)
 	end
 	states[player] = state
 	player.CharacterAdded:Connect(function()

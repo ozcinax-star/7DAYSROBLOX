@@ -442,6 +442,15 @@ end)
 
 print("Inventory")
 
+test("the 7DTD starting kit fits on the toolbelt and keeps the first slot free", function()
+	local kit = Config.Inventory.StartingItems
+	assert(#kit > 0 and #kit < Config.Inventory.ToolbeltSlots, "kit leaves the hand empty")
+	for _, entry in kit do
+		local def = Config.Items[entry.Id]
+		assert(def and def.Durability == nil and entry.Count <= def.Stack, `{entry.Id} is a stackable item`)
+	end
+end)
+
 test("items fill existing stacks, then empty slots, and report what did not fit", function()
 	local inv = Inventory.new(2, 2)
 	local stack = Inventory.stackSize("Wood")

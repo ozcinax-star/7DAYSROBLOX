@@ -1,7 +1,7 @@
 --!strict
--- InventoryController: toolbelt along the bottom of the screen and a backpack panel (I,
--- gamepad Y, or the Bag button on touch). The server owns the inventory; this controller only shows
--- the copy it receives and sends move / select requests.
+-- InventoryController: toolbelt along the bottom of the screen and a backpack panel (Tab like 7DTD, or
+-- I, gamepad Y, or the Bag button next to the toolbelt). The server owns the inventory; this
+-- controller only shows the copy it receives and sends move / select requests.
 --
 -- Moving items works the same with mouse, touch and gamepad cursor: pick a slot, then pick the slot
 -- to put it in (picking the same slot again cancels). Right-click, or the Split toggle on touch,
@@ -515,12 +515,21 @@ local function buildGui(playerGui: PlayerGui)
 		end)
 	end
 
-	-- Touch: a Bag button next to the toolbelt opens the backpack.
+	-- A Bag button next to the toolbelt opens the backpack on every device; with a keyboard it shows
+	-- the key in its corner like the toolbelt slots.
 	local bagButton = makeTextButton(gui, "Bag", Localization.get("InventoryBag"), function()
 		setBackpackOpen(not backpackOpen)
 	end)
 	bagButton.AnchorPoint = Vector2.new(0, 1)
-	bagButton.Visible = UserInputService.TouchEnabled
+	if UserInputService.KeyboardEnabled then
+		local key = makeLabel(bagButton, "Key")
+		key.Position = UDim2.new(0, 3, 0, 2)
+		key.Size = UDim2.new(0.6, 0, 0.24, 0)
+		key.TextScaled = true
+		key.TextXAlignment = Enum.TextXAlignment.Left
+		key.TextColor3 = Color3.fromRGB(200, 200, 205)
+		key.Text = Localization.get("KeyTab")
+	end
 
 	local function place()
 		layout()
@@ -581,8 +590,9 @@ local function bindInput()
 			end
 		end
 	end)
-	-- Not Tab (7DTD's key): the Roblox player list takes it before the game sees it (tested in Play).
-	action("ToggleBackpack", { Enum.KeyCode.I, Enum.KeyCode.ButtonY }, function()
+	-- Tab is 7DTD's key; it reaches the game only with the Roblox player list off (start). I stays: on a
+	-- Turkish Q keyboard it is the dotless-I key, and the dotted one is KeyCode.Quote.
+	action("ToggleBackpack", { Enum.KeyCode.Tab, Enum.KeyCode.I, Enum.KeyCode.ButtonY }, function()
 		setBackpackOpen(not backpackOpen)
 	end)
 	context.Parent = gui
@@ -681,6 +691,11 @@ function InventoryController.start()
 	-- The Roblox backpack would show its own hotbar; this inventory replaces it.
 	pcall(function()
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+	end)
+	-- The player list takes Tab before the game sees it (measured in Play); the Escape menu still
+	-- lists the players in the server.
+	pcall(function()
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
 	end)
 	local player = Players.LocalPlayer
 	buildGui(player:WaitForChild("PlayerGui") :: PlayerGui)

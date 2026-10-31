@@ -337,6 +337,7 @@ local function onWorldHit(player: Player, result: RaycastResult, _toolId: string
 	local before = column.damage
 	local after = math.min(def.Health, before + Harvest.blockDamage(tool.BlockDamage, tool.Materials[def.Material]))
 	column.damage = after
+	ToolService.reportHit(player, def.Health - after, def.Health)
 	for _, drop in def.Harvest do
 		local rolled = Harvest.toolCount(random:NextInteger(drop.Min, drop.Max), tool, drop.Id)
 		local count = Harvest.payout(rolled, def.Health, before, after)

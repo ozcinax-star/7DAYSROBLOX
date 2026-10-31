@@ -565,6 +565,7 @@ local function onWorldHit(player: Player, result: RaycastResult, toolId: string,
 	end
 	if toolId == BC.UpgradeTool then
 		work(player, block)
+		ToolService.reportHit(player, block.health, BC.Blocks[block.kind].Health)
 		return
 	end
 	local def = BC.Blocks[block.kind]
@@ -576,6 +577,7 @@ local function onWorldHit(player: Player, result: RaycastResult, toolId: string,
 		LootService.giveOrDrop(player, drop.Id, Harvest.payout(count, def.Health, before, after), "Loot")
 	end
 	damageBlock(block, damage)
+	ToolService.reportHit(player, def.Health - after, def.Health)
 	if after >= def.Health then
 		for _, drop in def.Destroy or {} do
 			LootService.giveOrDrop(player, drop.Id, random:NextInteger(drop.Min, drop.Max), "Loot")

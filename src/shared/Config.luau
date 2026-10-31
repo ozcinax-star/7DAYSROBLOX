@@ -1709,6 +1709,12 @@ Config.Melee = {
 	AimDistance = 300,
 	-- Seconds the "broken tool" message stays on screen.
 	MessageSeconds = 1.6,
+	-- Seconds the health bar of the last thing a swing hit stays on screen.
+	HitInfoSeconds = 2,
+	-- A swing that reaches nothing says "too far" when the cursor is on something within this distance
+	-- of the head (studs) and further than the tool's reach plus TooFarMargin.
+	TooFarDistance = 40,
+	TooFarMargin = 1,
 }
 
 -- Player survival stats (7DTD playerMale, buffStatusHungry01-03 and buffStatusThirsty01-03 in 1.0-3.2;
@@ -1788,8 +1794,14 @@ Config.Inventory = {
 	-- New items fill the backpack before empty toolbelt slots, so the toolbelt keeps what the player
 	-- put there.
 	FillToolbeltFirst = false,
-	-- PLAN: the player starts empty-handed (punches a tree, picks up stones).
-	StartingItems = {} :: { ItemCount },
+	-- 7DTD 3.2 ItemsOnEnterGame (SurvivalSP / SurvivalMP): a jar of boiled water, a can of chili and a
+	-- first aid bandage (the torch is not in the game yet). They go to the end of the toolbelt, so the
+	-- hand stays empty and the first click punches (PLAN: no tools at the start).
+	StartingItems = {
+		{ Id = "BottledWater", Count = 1 },
+		{ Id = "CanChili", Count = 1 },
+		{ Id = "FirstAidBandage", Count = 1 },
+	} :: { ItemCount },
 	-- Pickup feed: seconds a "+N item" line stays up, and the most lines shown at once.
 	FeedSeconds = 3,
 	FeedLines = 5,

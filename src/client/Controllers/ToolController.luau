@@ -231,6 +231,26 @@ function ToolController.waterInReach(aim: Vector3): boolean
 	return result ~= nil and result.Instance == workspace.Terrain and result.Material == Enum.Material.Water
 end
 
+-- True when a melee swing along `aim` reaches nothing but the cursor is on something a little
+-- further away (a tree clicked from too far with the free mouse).
+local function outOfReach(aim: Vector3, tool: Config.ToolDef): boolean
+	local character = player.Character
+	local head = character and character:FindFirstChild("Head")
+	if character == nil or head == nil or not head:IsA("BasePart") then
+		return false
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { character }
+	params.IgnoreWater = true
+	params.RespectCanCollide = false
+	local reach = tool.Range * MC.StudsPerMeter
+	if workspace:Raycast(head.Position, aim * (reach + MC.TooFarMargin), params) then
+		return false
+	end
+	return workspace:Raycast(head.Position, aim * MC.TooFarDistance, params) ~= nil
+end
+
 -- True when the inventory holds ammo the weapon takes.
 local function hasAmmo(weapon: Config.RangedDef): boolean
 	for _, slot in InventoryController.getSlots() do
@@ -321,6 +341,9 @@ local function trySwing(source: Source)
 	nextSwingAt = now + Melee.interval(Config.Tools[toolId].AttacksPerMinute, MC.SwingDelay)
 	playSwing(player.Character, toolId)
 	useRemote:FireServer(aim)
+	if outOfReach(aim, Config.Tools[toolId]) then
+		showMessage(Localization.get("ToolTooFar"))
+	end
 end
 
 local function buildGui(): TextButton

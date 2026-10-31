@@ -53,6 +53,25 @@ local Strings: { [string]: { [string]: string } } = {
 		ToolAim = "Aim",
 		ToolUse = "Hit",
 		ToolBroken = "{item} is broken",
+		ToolTooFar = "Too far away",
+		HitHealth = "{remaining} / {maximum}",
+
+		-- Controls panel (keyboard)
+		HelpTitle = "Controls",
+		HelpBackpack = "Backpack and crafting",
+		HelpHit = "Hit, use, place",
+		HelpAim = "Aim a gun",
+		HelpInteract = "Pick up, search, open (hold)",
+		HelpDrop = "Drop the held item",
+		HelpRun = "Run",
+		HelpToolbelt = "Toolbelt slot",
+		HelpHide = "Hide or show this",
+		KeyTab = "Tab",
+		KeyLeftMouse = "LMB",
+		KeyRightMouse = "RMB",
+		KeyShift = "Shift",
+		KeyDigits = "1-0",
+		KeyEither = "{first} / {second}",
 
 		-- Gathering
 		HarvestPickUp = "Pick up",

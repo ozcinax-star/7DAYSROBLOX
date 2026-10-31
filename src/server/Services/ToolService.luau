@@ -5,7 +5,8 @@
 -- swing so they can animate it and stagger the zombie.
 --
 -- A swing hits the nearest zombie in reach that no wall hides, otherwise the first world surface in
--- reach, grass and bushes included; world hits go to `onWorldHit` listeners (gathering). Tools wear
+-- reach, grass and bushes included; world hits go to `onWorldHit` listeners (gathering), which report
+-- what is left of the thing they damaged to the swinging player (`reportHit`). Tools wear
 -- by one per hit, never on a miss (7DTD). A tool at 0 durability cannot swing until it is repaired.
 -- Every swing costs the tool's stamina and needs that much (the stamina gate, SurvivalService).
 --
@@ -49,6 +50,7 @@ local ToolService = {}
 
 local limiter: RateLimiter.RateLimiter
 local swingRemote: UnreliableRemoteEvent
+local hitRemote: UnreliableRemoteEvent
 -- Earliest os.clock() of each player's next swing, set by the tool that swung last.
 local nextSwingAt: { [Player]: number } = {}
 local worldHitCallbacks: { WorldHitCallback } = {}
@@ -173,6 +175,7 @@ end
 function ToolService.init()
 	limiter = RateLimiter.new(Config.Remotes.UseToolRequestsPerSecond)
 	swingRemote = Net.unreliable("ToolSwing")
+	hitRemote = Net.unreliable("HitInfo")
 	Net.event("UseTool")
 end
 
@@ -197,6 +200,13 @@ end
 -- Sets the check every swing passes before it happens (one gate).
 function ToolService.setStaminaGate(gate: StaminaGate)
 	staminaGate = gate
+end
+
+-- Shows `player` the health left on what their swing just hit (a health bar under the crosshair).
+function ToolService.reportHit(player: Player, remaining: number, maximum: number)
+	if maximum > 0 then
+		hitRemote:FireClient(player, math.max(0, remaining), maximum)
+	end
 end
 
 -- Registers a listener for swings that hit the world (terrain or a part) instead of a zombie.

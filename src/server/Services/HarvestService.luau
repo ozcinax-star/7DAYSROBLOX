@@ -97,6 +97,7 @@ local function hit(entry: Entry, player: Player, damage: number, tool: Config.To
 	local before = entry.damage
 	local after = math.min(node.Health, before + damage)
 	entry.damage = after
+	ToolService.reportHit(player, node.Health - after, node.Health)
 	for _, drop in node.Harvest do
 		local count = Harvest.toolCount(roll(drop), tool, drop.Id)
 		give(player, drop.Id, Harvest.payout(count, node.Health, before, after))
