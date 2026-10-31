@@ -24,6 +24,8 @@ local BuildGrid = require("../src/shared/BuildGrid")
 local ItemIcons = require("../src/shared/ItemIcons")
 local Vitals = require("../src/shared/Vitals")
 local Challenges = require("../src/shared/Challenges")
+local ItemInfo = require("../src/shared/ItemInfo")
+local Localization = require("../src/shared/Localization")
 
 local passed, failed = 0, 0
 
@@ -1647,6 +1649,32 @@ test("starving hurts and stops healing; food and medicine heal over time", funct
 	run(stats, 30, { health = 50, maxHealth = 100, sprinting = false, daySeconds = 1e9 })
 	expectNear(stats.food, 75, 1e-4, "all 15 food in")
 	expectEq(stats.healPending, 0, "healing done")
+end)
+
+test("item info shows each item's numbers and every item has a name and a description", function()
+	local function find(lines: { ItemInfo.Line }, key: string): string?
+		for _, line in lines do
+			if line.key == key then
+				return line.value
+			end
+		end
+		return nil
+	end
+	local axe = ItemInfo.lines("StoneAxe")
+	expectEq(find(axe, "InfoDamage"), tostring(Config.Tools.StoneAxe.EntityDamage), "axe damage")
+	expectEq(find(axe, "InfoDurability"), tostring(Config.Items.StoneAxe.Durability), "axe durability")
+	local murky = ItemInfo.lines("MurkyWater")
+	expectEq(find(murky, "InfoWater"), "+10", "murky water quenches")
+	expectEq(find(murky, "InfoHeal"), "-5", "murky water hurts")
+	expectEq(find(ItemInfo.lines("BakedPotato"), "InfoWater"), "-5", "baked potato dries")
+	local frame = tostring(Config.Build.Blocks.WoodFrame.Health)
+	expectEq(find(ItemInfo.lines("WoodFrame"), "InfoHitPoints"), frame, "frame hit points")
+	expectEq(find(ItemInfo.lines("PipePistol"), "InfoAmmo"), "Ammo9mm", "pistol ammo")
+	expectEq(#ItemInfo.lines("Wood"), 0, "raw wood has no numbers")
+	for id in Config.Items do
+		assert(Localization.has(`Item{id}`), `{id} has no name`)
+		assert(Localization.has(`ItemDesc{id}`), `{id} has no description`)
+	end
 end)
 
 print(`\n{passed} passed, {failed} failed`)

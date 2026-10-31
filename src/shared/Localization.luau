@@ -242,6 +242,76 @@ local Strings: { [string]: { [string]: string } } = {
 		ItemCookingGrill = "Cooking Grill",
 		ItemBakedPotato = "Baked Potato",
 		ItemCornOnTheCob = "Corn on the Cob",
+
+		-- Item descriptions (the backpack's info panel)
+		ItemDescWood = "Building material. Chop trees or punch bushes. Makes tools, frames and lumber.",
+		ItemDescSmallStone = "Picked up with E or mined from rocks. Makes stone tools and repairs them.",
+		ItemDescPlantFiber = "Cut from grass. Binds stone tools and makes bedrolls.",
+		ItemDescLumber = "Planks cut from wood. Makes doors and wood bars.",
+		ItemDescCobblestoneRocks = "Upgrades a wood block to cobblestone with a stone axe.",
+		ItemDescScrapIron = "Salvaged metal from zombies and town furniture.",
+		ItemDescClay = "Dug from the ground. Mixed with stone into cobblestone rocks.",
+		ItemDescCrushedSand = "Dug from sand and gravel.",
+		ItemDescDirt = "Fills a dug hole back in.",
+		ItemDescCloth = "Salvaged from beds, sofas and zombie bags.",
+		ItemDescWoodFrame = "The first building block. Hit it with a stone axe while carrying wood to upgrade it.",
+		ItemDescWoodLadder = "Climb it to reach higher floors.",
+		ItemDescWoodDoor = "Open and close it with E. Zombies can break it.",
+		ItemDescCanChili = "Canned food. Restores food and some health.",
+		ItemDescCanDogFood = "Canned food. Better than nothing.",
+		ItemDescBottledWater = "Clean water. Boil murky water in a cooking pot to make more.",
+		ItemDescMurkyWater = "Quenches thirst but hurts you. Boil it first.",
+		ItemDescFirstAidBandage = "Heals you over a few seconds.",
+		ItemDescPipePistol = "A crude pistol. Zombies hear every shot.",
+		ItemDescPipeRifle = "A crude single-shot rifle with long range.",
+		ItemDescPipeShotgun = "Fires a spread of pellets. Strong up close.",
+		ItemDescPipeMachineGun = "Keeps firing while you hold the button.",
+		ItemDescAmmo762mm = "Rounds for the pipe rifle and the pipe machine gun.",
+		ItemDescAmmoShotgunShell = "Shells for the pipe shotgun.",
+		ItemDescWoodBars = "Stops zombies but lets bullets, arrows and spears through.",
+		ItemDescWoodSpikes = "Hurts and slows zombies that walk over it.",
+		ItemDescBedroll = "Place it and you respawn on it when you die.",
+		ItemDescAmmo9mm = "Rounds for the pipe pistol.",
+		ItemDescMetalPipe = "The barrel of a pipe gun.",
+		ItemDescGlue = "Boiled from bones at a campfire. Holds pipe guns together.",
+		ItemDescBone = "Found on zombies. Boil it into glue.",
+		ItemDescStoneAxe = "Your first tool: chops trees, and upgrades and repairs blocks.",
+		ItemDescStoneShovel = "Digs the ground faster than other tools.",
+		ItemDescStonePickaxe = "Mines rocks and boulders faster than other tools.",
+		ItemDescWoodenClub = "A simple melee weapon.",
+		ItemDescStoneSpear = "A melee weapon with a long reach.",
+		ItemDescPrimitiveBow = "Shoots stone arrows. Quieter than guns.",
+		ItemDescStoneArrow = "Ammo for the primitive bow.",
+		ItemDescCorn = "Raw corn. Grill it at a campfire for more food.",
+		ItemDescPotato = "Raw potato. Bake it at a campfire for more food.",
+		ItemDescBlueberries = "A handful of berries.",
+		ItemDescCornSeed = "Plant it on a farm plot.",
+		ItemDescPotatoSeed = "Plant it on a farm plot.",
+		ItemDescBlueberrySeed = "Plant it on a farm plot.",
+		ItemDescFarmPlot = "Place it, then plant seeds on it.",
+		ItemDescGasCan = "Fuel for the generator.",
+		ItemDescMechanicalParts = "Salvaged parts. Used to build generators.",
+		ItemDescElectricalParts = "Salvaged parts. Used to build generators and lamps.",
+		ItemDescGenerator = "Powers lamps nearby while it has gas. Zombies hear it.",
+		ItemDescStorageCrate = "Stores items for your whole group.",
+		ItemDescElectricLamp = "Lights the area while a generator powers it.",
+		ItemDescCampfire = "Cooks food. A cooking pot boils water and a grill grills corn.",
+		ItemDescCookingPot = "Carry it to boil water at a campfire.",
+		ItemDescCookingGrill = "Carry it to grill corn at a campfire.",
+		ItemDescBakedPotato = "Cooked food. More filling than a raw potato.",
+		ItemDescCornOnTheCob = "Cooked food. More filling than raw corn.",
+
+		-- Item info lines (Shared/ItemInfo)
+		InfoDamage = "Damage {value}",
+		InfoBlockDamage = "Block damage {value}",
+		InfoDurability = "Durability {value}",
+		InfoFood = "Food {value}",
+		InfoWater = "Water {value}",
+		InfoHeal = "Health {value}",
+		InfoHitPoints = "Hit points {value}",
+		InfoAmmo = "Ammo: {value}",
+		InfoSeparator = "   ",
+
 		GraphicsButton = "Graphics: {preset}",
 		GraphicsTitle = "Graphics",
 		GraphicsAuto = "Auto ({preset})",
@@ -277,6 +347,11 @@ function Localization.setLocale(locale: string)
 	if Strings[locale] then
 		currentLocale = locale
 	end
+end
+
+-- Whether `key` has a string in the current or the fallback language.
+function Localization.has(key: Key): boolean
+	return Strings[currentLocale][key] ~= nil or Strings[FALLBACK_LOCALE][key] ~= nil
 end
 
 -- Returns the localized string for `key`, replacing {name} placeholders from `args`.

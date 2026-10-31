@@ -10,7 +10,9 @@
 -- (or G) puts the picked stack, or with nothing picked the held one, on the ground in a bag.
 --
 -- Another panel (crafting) can be attached to the right of the backpack; the backpack then moves left
--- and its slots shrink so both fit on the screen.
+-- and its slots shrink so both fit on the screen. Over the open backpack an info panel describes the
+-- item under the cursor, or else the picked one: its name, numbers (Shared/ItemInfo) and what it is
+-- for (7DTD's item info).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -22,6 +24,7 @@ local Config = require(Shared.Config)
 local Crafting = require(Shared.Crafting)
 local Inventory = require(Shared.Inventory)
 local ItemIcons = require(Shared.ItemIcons)
+local ItemInfo = require(Shared.ItemInfo)
 local Localization = require(Shared.Localization)
 local Net = require(Shared.Net)
 
@@ -42,6 +45,7 @@ local BUTTON_TEXT_MAX = 18
 local NAME_HEIGHT = 24
 local DURABILITY_HEIGHT = 4
 local NAME_SHOW_SECONDS = 1.6
+local INFO_PADDING = 8
 
 local SLOT_COLOR = Color3.fromRGB(28, 28, 30)
 local SLOT_STROKE = Color3.fromRGB(90, 90, 96)
@@ -52,6 +56,8 @@ local PANEL_COLOR = Color3.fromRGB(18, 18, 20)
 local DURABILITY_GOOD = Color3.fromRGB(110, 200, 90)
 local DURABILITY_BAD = Color3.fromRGB(210, 70, 60)
 local DISABLED_TRANSPARENCY = 0.6
+local INFO_STATS_COLOR = Color3.fromRGB(235, 220, 160)
+local INFO_TEXT_COLOR = Color3.fromRGB(200, 200, 205)
 
 local SLOT_KEYS = {
 	Enum.KeyCode.One,
@@ -82,6 +88,8 @@ local slots: { Inventory.Slot } = {}
 local selected = 1
 local views: { [number]: SlotView } = {}
 local picked: number? = nil
+-- The slot under the mouse, for the info panel.
+local hovered: number? = nil
 local pickHalf = false
 local backpackOpen = false
 
@@ -90,6 +98,10 @@ local toolbelt: Frame
 local backpack: Frame
 local backpackGrid: UIGridLayout
 local nameLabel: TextLabel
+local infoPanel: Frame
+local infoTitle: TextLabel
+local infoStats: TextLabel
+local infoText: TextLabel
 local splitButton: TextButton
 local repairButton: TextButton
 local dropButton: TextButton
@@ -251,6 +263,33 @@ local function ammoText(itemId: string, weapon: Config.RangedDef): string
 	return `{math.min(loaded[itemId] or magazine, carried)}/{carried}`
 end
 
+-- The info panel: the hovered item, or else the picked one (none: hidden).
+local function showInfo()
+	local index = hovered or picked
+	local slot = if index then slots[index] else nil
+	if slot == nil then
+		infoPanel.Visible = false
+		return
+	end
+	infoTitle.Text = itemName(slot.id)
+	local parts: { string } = {}
+	for _, line in ItemInfo.lines(slot.id) do
+		local value = line.value
+		if line.key == "InfoAmmo" then
+			local names: { string } = {}
+			for id in string.gmatch(value, "[^,]+") do
+				table.insert(names, itemName(id))
+			end
+			value = table.concat(names, ", ")
+		end
+		table.insert(parts, Localization.get(line.key, { value = value }))
+	end
+	infoStats.Text = table.concat(parts, Localization.get("InfoSeparator"))
+	infoStats.Visible = #parts > 0
+	infoText.Text = Localization.get(`ItemDesc{slot.id}`)
+	infoPanel.Visible = true
+end
+
 local function render()
 	for index, view in views do
 		local slot = slots[index]
@@ -294,6 +333,7 @@ local function render()
 		end
 	end
 	splitButton.BackgroundColor3 = if pickHalf then PICKED_STROKE else SLOT_COLOR
+	showInfo()
 	repairButton.TextTransparency = if canRepair(picked) then 0 else DISABLED_TRANSPARENCY
 	dropButton.TextTransparency = if picked then 0 else DISABLED_TRANSPARENCY
 end
@@ -404,6 +444,62 @@ local function makeTextButton(parent: Instance, name: string, text: string, onCl
 	return button
 end
 
+-- Shows the info of the slot under the mouse while it is there.
+local function watchHover(button: TextButton, index: number)
+	button.MouseEnter:Connect(function()
+		hovered = index
+		showInfo()
+	end)
+	button.MouseLeave:Connect(function()
+		if hovered == index then
+			hovered = nil
+			showInfo()
+		end
+	end)
+end
+
+-- The info panel sits over the backpack, as wide as it.
+local function buildInfoPanel()
+	infoPanel = Instance.new("Frame")
+	infoPanel.Name = "Info"
+	infoPanel.AnchorPoint = Vector2.new(0, 1)
+	infoPanel.Position = UDim2.new(0, 0, 0, -SLOT_GAP)
+	infoPanel.Size = UDim2.fromScale(1, 0)
+	infoPanel.AutomaticSize = Enum.AutomaticSize.Y
+	infoPanel.BackgroundColor3 = PANEL_COLOR
+	infoPanel.BackgroundTransparency = 0.1
+	infoPanel.Visible = false
+	infoPanel.Parent = backpack
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = infoPanel
+	local padding = Instance.new("UIPadding")
+	padding.PaddingLeft = UDim.new(0, INFO_PADDING)
+	padding.PaddingRight = UDim.new(0, INFO_PADDING)
+	padding.PaddingTop = UDim.new(0, INFO_PADDING)
+	padding.PaddingBottom = UDim.new(0, INFO_PADDING)
+	padding.Parent = infoPanel
+	local list = Instance.new("UIListLayout")
+	list.SortOrder = Enum.SortOrder.LayoutOrder
+	list.Padding = UDim.new(0, 2)
+	list.Parent = infoPanel
+	local function line(name: string, order: number, size: number, color: Color3): TextLabel
+		local label = makeLabel(infoPanel, name)
+		label.LayoutOrder = order
+		label.Size = UDim2.fromScale(1, 0)
+		label.AutomaticSize = Enum.AutomaticSize.Y
+		label.TextSize = size
+		label.TextColor3 = color
+		label.TextWrapped = true
+		label.TextXAlignment = Enum.TextXAlignment.Left
+		return label
+	end
+	infoTitle = line("Title", 1, 18, TEXT_COLOR)
+	infoStats = line("Stats", 2, 14, INFO_STATS_COLOR)
+	infoText = line("Text", 3, 14, INFO_TEXT_COLOR)
+	infoText.Font = Enum.Font.GothamMedium
+end
+
 local function buildGui(playerGui: PlayerGui)
 	gui = Instance.new("ScreenGui")
 	gui.Name = "Inventory"
@@ -438,6 +534,7 @@ local function buildGui(playerGui: PlayerGui)
 	local panelCorner = Instance.new("UICorner")
 	panelCorner.CornerRadius = UDim.new(0, 8)
 	panelCorner.Parent = backpack
+	buildInfoPanel()
 
 	local title = makeLabel(backpack, "Title")
 	title.Position = UDim2.fromOffset(PANEL_PADDING, PANEL_PADDING)
@@ -497,6 +594,7 @@ local function buildGui(playerGui: PlayerGui)
 		local keyText = if index == 10 then "0" elseif index < 10 then tostring(index) else nil
 		local view = makeSlot(toolbelt, index, index, keyText)
 		views[index] = view
+		watchHover(view.button, index)
 		view.button.Activated:Connect(function()
 			onSlotActivated(index, false)
 		end)
@@ -507,6 +605,7 @@ local function buildGui(playerGui: PlayerGui)
 	for index = IC.ToolbeltSlots + 1, IC.ToolbeltSlots + IC.BackpackSlots do
 		local view = makeSlot(gridHolder, index, index, nil)
 		views[index] = view
+		watchHover(view.button, index)
 		view.button.Activated:Connect(function()
 			onSlotActivated(index, false)
 		end)
