@@ -88,8 +88,10 @@ local slots: { Inventory.Slot } = {}
 local selected = 1
 local views: { [number]: SlotView } = {}
 local picked: number? = nil
--- The slot under the mouse, for the info panel.
+-- The slot under the mouse, and an item another panel points at (a crafting recipe), for the info
+-- panel.
 local hovered: number? = nil
+local hoveredItem: string? = nil
 local pickHalf = false
 local backpackOpen = false
 
@@ -263,17 +265,24 @@ local function ammoText(itemId: string, weapon: Config.RangedDef): string
 	return `{math.min(loaded[itemId] or magazine, carried)}/{carried}`
 end
 
--- The info panel: the hovered item, or else the picked one (none: hidden).
+-- The info panel: the hovered slot's item, the item another panel points at, or else the picked
+-- slot's item (none: hidden).
 local function showInfo()
-	local index = hovered or picked
-	local slot = if index then slots[index] else nil
-	if slot == nil then
+	local hoveredSlot = if hovered then slots[hovered] else nil
+	local pickedSlot = if picked then slots[picked] else nil
+	local id = hoveredItem
+	if hoveredSlot then
+		id = hoveredSlot.id
+	elseif id == nil and pickedSlot then
+		id = pickedSlot.id
+	end
+	if id == nil then
 		infoPanel.Visible = false
 		return
 	end
-	infoTitle.Text = itemName(slot.id)
+	infoTitle.Text = itemName(id)
 	local parts: { string } = {}
-	for _, line in ItemInfo.lines(slot.id) do
+	for _, line in ItemInfo.lines(id) do
 		local value = line.value
 		if line.key == "InfoAmmo" then
 			local names: { string } = {}
@@ -286,7 +295,7 @@ local function showInfo()
 	end
 	infoStats.Text = table.concat(parts, Localization.get("InfoSeparator"))
 	infoStats.Visible = #parts > 0
-	infoText.Text = Localization.get(`ItemDesc{slot.id}`)
+	infoText.Text = Localization.get(`ItemDesc{id}`)
 	infoPanel.Visible = true
 end
 
@@ -695,6 +704,12 @@ local function bindInput()
 		setBackpackOpen(not backpackOpen)
 	end)
 	context.Parent = gui
+end
+
+-- Describes item `id` in the info panel while another panel points at it (nil: stops).
+function InventoryController.hoverItem(id: string?)
+	hoveredItem = id
+	showInfo()
 end
 
 -- True while the backpack panel is open; gameplay input (swinging) is ignored then.

@@ -241,6 +241,13 @@ local function buildRow(parent: Instance, id: string, order: number)
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 6)
 	corner.Parent = frame
+	-- The backpack's info panel describes what the recipe makes while the mouse is on it.
+	frame.MouseEnter:Connect(function()
+		InventoryController.hoverItem(recipe.Output)
+	end)
+	frame.MouseLeave:Connect(function()
+		InventoryController.hoverItem(nil)
+	end)
 
 	local swatch = Instance.new("Frame")
 	swatch.Name = "Swatch"
