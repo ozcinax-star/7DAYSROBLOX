@@ -2,8 +2,9 @@
 -- ArrowController: draws the arrows and bullets RangedService flies. Each launch comes with its origin,
 -- velocity, gravity, server time and ammo; the client runs the same arc (Shared/Ballistics) every
 -- frame, pins an arrow where the server says it stopped and removes it a few seconds later. Bullets
--- are bright tracers with a muzzle flash and vanish where they stop. A zombie hit flinches. The
--- weapon's shot sound plays at the muzzle when it has one.
+-- are bright tracers with a muzzle flash and vanish where they stop. A zombie hit flinches and
+-- bleeds, a world hit raises dust (ImpactController). The weapon's shot sound plays at the muzzle
+-- when it has one.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -14,6 +15,7 @@ local Ballistics = require(Shared.Ballistics)
 local Config = require(Shared.Config)
 local Net = require(Shared.Net)
 
+local ImpactController = require(script.Parent.ImpactController)
 local ZombieRenderController = require(script.Parent.ZombieRenderController)
 
 local RC = Config.Ranged
@@ -168,6 +170,12 @@ local function onStopped(id: unknown, where: unknown, zombieId: unknown)
 		return
 	end
 	flight.stopped = true
+	local heading = pose(flight, math.max(0, Workspace:GetServerTimeNow() - flight.launchedAt)).LookVector
+	if zombieId ~= 0 then
+		ImpactController.blood(where, flight.origin)
+	else
+		ImpactController.shot(where, heading)
+	end
 	if flight.tracer then
 		if zombieId ~= 0 then
 			ZombieRenderController.flinch(zombieId)
@@ -176,7 +184,6 @@ local function onStopped(id: unknown, where: unknown, zombieId: unknown)
 		return
 	end
 	-- Pinned with its tip at the stop point, pointing the way it flew.
-	local heading = pose(flight, math.max(0, Workspace:GetServerTimeNow() - flight.launchedAt)).LookVector
 	flight.part.CFrame = CFrame.lookAt(where - heading * (RC.ArrowLength / 2), where + heading)
 	if zombieId ~= 0 then
 		ZombieRenderController.flinch(zombieId)

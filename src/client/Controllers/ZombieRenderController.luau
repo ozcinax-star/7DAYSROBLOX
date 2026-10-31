@@ -16,6 +16,7 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Melee = require(Shared.Melee)
 local Net = require(Shared.Net)
 local ZombieProtocol = require(Shared.ZombieProtocol)
 
@@ -375,7 +376,6 @@ function ZombieRenderController.start()
 	RunService.PreRender:Connect(onRender)
 end
 
--- Plays the hit flinch on a zombie (local feedback for the attacking player).
 -- Graphics preset: draw, detail and animation distances (studs) and how long corpses lie (seconds).
 -- The draw distance never goes past Config.ZombieVisual.RenderDistance, which despawns rely on.
 function ZombieRenderController.setQuality(render: number, detail: number, animate: number, corpse: number)
@@ -385,6 +385,7 @@ function ZombieRenderController.setQuality(render: number, detail: number, anima
 	corpseSeconds = corpse
 end
 
+-- Plays the hit flinch on a zombie.
 function ZombieRenderController.flinch(id: number)
 	local view = views[id]
 	if view then
@@ -399,6 +400,18 @@ function ZombieRenderController.getPosition(id: number): Vector3?
 		return nil
 	end
 	return Vector3.new(view.x, view.y, view.z)
+end
+
+-- Living zombies within `radius` of `position` as currently drawn, as melee bodies (facing unknown).
+function ZombieRenderController.bodiesNear(position: Vector3, radius: number): { Melee.Body }
+	local bodies: { Melee.Body } = {}
+	for id, view in views do
+		local dx, dy, dz = view.x - position.X, view.y - position.Y, view.z - position.Z
+		if dx * dx + dy * dy + dz * dz <= radius * radius then
+			table.insert(bodies, { id = id, x = view.x, y = view.y, z = view.z, fx = 0, fz = 0 })
+		end
+	end
+	return bodies
 end
 
 function ZombieRenderController.getRenderedCount(): number

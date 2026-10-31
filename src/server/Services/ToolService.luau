@@ -2,7 +2,8 @@
 -- ToolService: melee swings with the item in the active toolbelt slot (or the fist). The client
 -- sends only its aim direction; the server checks the swing rate, picks the target from the head of
 -- the character it simulates, applies the tool's damage and wear, and tells every client about the
--- swing so they can animate it and stagger the zombie.
+-- swing so they can animate it, stagger the zombie and draw the impact (where a world hit landed and
+-- the struck surface's colour).
 --
 -- A swing hits the nearest zombie in reach that no wall hides, otherwise the first world surface in
 -- reach, grass and bushes included; world hits go to `onWorldHit` listeners (gathering), which report
@@ -20,6 +21,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Melee = require(Shared.Melee)
 local Net = require(Shared.Net)
+local Surface = require(Shared.Surface)
 
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local InventoryService = require(script.Parent.InventoryService)
@@ -151,6 +153,9 @@ local function onUseTool(player: Player, aim: unknown)
 
 	local zombieId = 0
 	local headHit = false
+	local point: Vector3? = nil
+	local normal: Vector3? = nil
+	local color: Color3? = nil
 	if hit then
 		local damage = tool.EntityDamage * (if hit.head then MC.HeadshotMultiplier else 1)
 		ZombieService.damage(hit.id, damage, player)
@@ -162,6 +167,8 @@ local function onUseTool(player: Player, aim: unknown)
 			swingRemote:FireAllClients(player, toolId, 0, false)
 			return
 		end
+		-- Read before the listeners run: a hit may remove what it struck.
+		point, normal, color = result.Position, result.Normal, Surface.color(result)
 		for _, callback in worldHitCallbacks do
 			task.spawn(callback, player, result, toolId, tool)
 		end
@@ -169,7 +176,7 @@ local function onUseTool(player: Player, aim: unknown)
 	if toolId ~= FIST then
 		InventoryService.wearHeld(player, 1)
 	end
-	swingRemote:FireAllClients(player, toolId, zombieId, headHit)
+	swingRemote:FireAllClients(player, toolId, zombieId, headHit, point, normal, color)
 end
 
 function ToolService.init()

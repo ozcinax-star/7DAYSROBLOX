@@ -3,10 +3,10 @@
 -- it (BuildService), with food, a drink or medicine it uses it, and a bare hand aimed at water drinks
 -- (SurvivalService). Left mouse, gamepad R2, or the Hit button on touch; holding keeps swinging at
 -- the tool's rate. A swing needs the tool's stamina. The server decides what is hit; this client
--- only sends its aim and animates. Its own swing plays at once, other players' swings and the
--- zombie stagger come from the server's ToolSwing broadcast. A gun in the hand is aimed with the
--- right mouse button, gamepad L2 or the Aim toggle on touch: the camera zooms in and the server
--- tightens the spread (AimIntent).
+-- only sends its aim and animates. Its own swing plays at once, other players' swings, the zombie
+-- stagger and the impact (ImpactController) come from the server's ToolSwing broadcast. A gun in
+-- the hand is aimed with the right mouse button, gamepad L2 or the Aim toggle on touch: the camera
+-- zooms in and the server tightens the spread (AimIntent).
 --
 -- The swing is a procedural rotation of the right shoulder joint (R15 RightShoulder or R6
 -- "Right Shoulder") layered on the walk animation through Motor6D.C0, restored when it ends.
@@ -25,12 +25,22 @@ local Localization = require(Shared.Localization)
 local Melee = require(Shared.Melee)
 local Net = require(Shared.Net)
 
+local ImpactController = require(script.Parent.ImpactController)
 local InventoryController = require(script.Parent.InventoryController)
 local ZombieRenderController = require(script.Parent.ZombieRenderController)
 
 local MC = Config.Melee
 local SC = Config.Survival
 local FIST = "Fist"
+-- The server's melee hit shape (ToolService), for the "too far" check.
+local SHAPE: Melee.Shape = {
+	bottom = MC.HitBottom,
+	top = MC.HitTop,
+	radius = MC.HitRadius,
+	headHeight = MC.HeadHeight,
+	headRadius = MC.HeadRadius,
+	headLean = MC.HeadLean,
+}
 -- After an "out of stamina" refusal, the next try waits this long (stamina comes back meanwhile).
 local OUT_OF_STAMINA_RETRY = 0.3
 
@@ -232,11 +242,29 @@ function ToolController.waterInReach(aim: Vector3): boolean
 end
 
 -- True when a melee swing along `aim` reaches nothing but the cursor is on something a little
--- further away (a tree clicked from too far with the free mouse).
+-- further away (a tree clicked from too far with the free mouse). Zombie bodies take no rays, so
+-- they are tested with the server's melee shape.
 local function outOfReach(aim: Vector3, tool: Config.ToolDef): boolean
 	local character = player.Character
 	local head = character and character:FindFirstChild("Head")
 	if character == nil or head == nil or not head:IsA("BasePart") then
+		return false
+	end
+	local origin = head.Position
+	local reach = tool.Range * MC.StudsPerMeter
+	local ray: Melee.Ray = {
+		ox = origin.X,
+		oy = origin.Y,
+		oz = origin.Z,
+		dx = aim.X,
+		dy = aim.Y,
+		dz = aim.Z,
+		range = reach + MC.TooFarMargin,
+	}
+	local bodies = ZombieRenderController.bodiesNear(origin, ray.range + MC.HitRadius - MC.HitBottom)
+	if Melee.pick(ray, bodies, SHAPE, function()
+		return false
+	end) then
 		return false
 	end
 	local params = RaycastParams.new()
@@ -244,11 +272,10 @@ local function outOfReach(aim: Vector3, tool: Config.ToolDef): boolean
 	params.FilterDescendantsInstances = { character }
 	params.IgnoreWater = true
 	params.RespectCanCollide = false
-	local reach = tool.Range * MC.StudsPerMeter
-	if workspace:Raycast(head.Position, aim * (reach + MC.TooFarMargin), params) then
+	if workspace:Raycast(origin, aim * ray.range, params) then
 		return false
 	end
-	return workspace:Raycast(head.Position, aim * MC.TooFarDistance, params) ~= nil
+	return workspace:Raycast(origin, aim * MC.TooFarDistance, params) ~= nil
 end
 
 -- True when the inventory holds ammo the weapon takes.
@@ -509,12 +536,25 @@ function ToolController.start()
 		setAiming(false)
 	end)
 	Net.unreliable("ToolSwing").OnClientEvent:Connect(
-		function(attacker: Player?, toolId: string, zombieId: number, _head: boolean)
-			if typeof(attacker) == "Instance" and attacker ~= player then
-				playSwing(attacker.Character, toolId)
+		function(
+			attacker: Player?,
+			toolId: string,
+			zombieId: number,
+			head: boolean,
+			point: unknown,
+			normal: unknown,
+			color: unknown
+		)
+			local character = if typeof(attacker) == "Instance" then attacker.Character else nil
+			if character and attacker ~= player then
+				playSwing(character, toolId)
 			end
+			local from = if character then character:GetPivot().Position else nil
 			if zombieId ~= 0 then
 				ZombieRenderController.flinch(zombieId)
+				ImpactController.zombie(zombieId, head == true, from)
+			elseif typeof(point) == "Vector3" and typeof(normal) == "Vector3" and typeof(color) == "Color3" then
+				ImpactController.surface(point, normal, color)
 			end
 		end
 	)
