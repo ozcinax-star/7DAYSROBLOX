@@ -872,6 +872,35 @@ test("the pipe pistol reloads after six rounds and spreads inside its cone", fun
 	end
 end)
 
+test("pipe guns: rifle and shotgun reload every shot, shells fire 10 pellets, aiming tightens", function()
+	local weapons, ammo = Config.Ranged.Weapons, Config.Ranged.Ammo
+	expectEq(Ballistics.damage(weapons.PipeRifle, ammo.Ammo762mm), 44, "47 less 3")
+	expectEq(Ballistics.damage(weapons.PipeMachineGun, ammo.Ammo762mm), 30, "47 less 17")
+	expectEq(math.abs(Ballistics.damage(weapons.PipeShotgun, ammo.AmmoShotgunShell) - 8.1) < 1e-9, true, "pellet")
+	expectEq(ammo.AmmoShotgunShell.Pellets, 10, "ten pellets")
+	for _, id in { "PipeRifle", "PipeShotgun" } do
+		local wait, kept = Ballistics.afterShot(weapons[id], 1)
+		expectEq(wait, weapons[id].ReloadSeconds, `{id} reloads after one round`)
+		expectEq(kept, 0, `{id} empty`)
+	end
+	local fired, wait = 0, 0
+	for _ = 1, 14 do
+		wait, fired = Ballistics.afterShot(weapons.PipeMachineGun, fired + 1)
+	end
+	expectEq(wait, weapons.PipeMachineGun.ShotSeconds, "fourteenth round")
+	wait = Ballistics.afterShot(weapons.PipeMachineGun, fired + 1)
+	expectEq(wait, weapons.PipeMachineGun.ReloadSeconds, "fifteenth round reloads")
+	expectEq(Ballistics.spreadDegrees(weapons.PipeRifle, false), 5.7, "rifle from the hip")
+	expectEq(math.abs(Ballistics.spreadDegrees(weapons.PipeRifle, true) - 5.7 * 0.09) < 1e-9, true, "rifle aimed")
+	expectEq(Ballistics.spreadDegrees(weapons.PrimitiveBow, true), 0, "bows have no spread")
+	for id, weapon in weapons do
+		for _, ammoId in weapon.Ammo do
+			assert(ammo[ammoId] and Config.Items[ammoId], `{id} ammo {ammoId}`)
+		end
+	end
+	assert(Config.Remotes.UseToolRequestsPerSecond >= 1 / weapons.PipeMachineGun.ShotSeconds, "rate limit fits")
+end)
+
 print("Farming")
 
 test("crops ripen in two 7DTD stages and pay 2-3 produce and their seed back", function()

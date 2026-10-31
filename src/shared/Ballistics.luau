@@ -45,6 +45,16 @@ function Ballistics.afterShot(weapon: Config.RangedDef, fired: number): (number,
 	return weapon.ShotSeconds, fired
 end
 
+-- Spread cone of `weapon` in degrees, tightened to its AimSpread share while `aiming` (7DTD
+-- SpreadMultiplierAiming); 0 for a weapon without spread.
+function Ballistics.spreadDegrees(weapon: Config.RangedDef, aiming: boolean): number
+	local degrees = weapon.SpreadDegrees or 0
+	if aiming and weapon.AimSpread then
+		degrees *= weapon.AimSpread
+	end
+	return degrees
+end
+
 -- Unit direction (dx, dy, dz) turned by a random angle inside a cone of `degrees`: `r1` and `r2` in
 -- [0, 1) pick the angle (spread evenly over the cone's disc) and its side.
 function Ballistics.spread(

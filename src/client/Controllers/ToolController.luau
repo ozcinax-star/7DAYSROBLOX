@@ -4,7 +4,9 @@
 -- (SurvivalService). Left mouse, gamepad R2, or the Hit button on touch; holding keeps swinging at
 -- the tool's rate. A swing needs the tool's stamina. The server decides what is hit; this client
 -- only sends its aim and animates. Its own swing plays at once, other players' swings and the
--- zombie stagger come from the server's ToolSwing broadcast.
+-- zombie stagger come from the server's ToolSwing broadcast. A gun in the hand is aimed with the
+-- right mouse button, gamepad L2 or the Aim toggle on touch: the camera zooms in and the server
+-- tightens the spread (AimIntent).
 --
 -- The swing is a procedural rotation of the right shoulder joint (R15 RightShoulder or R6
 -- "Right Shoulder") layered on the walk animation through Motor6D.C0, restored when it ends.
@@ -13,6 +15,7 @@ local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -42,6 +45,10 @@ local SWING_SHARE = 0.9
 
 local HIT_BUTTON_SIZE = 84
 local HIT_BUTTON_OFFSET = Vector2.new(-24, -190)
+local AIM_BUTTON_SIZE = 64
+local AIM_BUTTON_GAP = 12
+local BUTTON_COLOR = Color3.fromRGB(28, 28, 30)
+local AIM_ON_COLOR = Color3.fromRGB(70, 110, 150)
 local MESSAGE_OFFSET = 120
 
 local MOUSE_INPUTS = {
@@ -60,6 +67,11 @@ local ToolController = {}
 
 local player = Players.LocalPlayer
 local useRemote: RemoteEvent
+local aimRemote: RemoteEvent
+local aimButton: TextButton
+local aiming = false
+-- The camera's field of view before the first zoom.
+local defaultFieldOfView: number? = nil
 local swings: { [Motor6D]: Swing } = {}
 -- Each shoulder's C0 before any swing touched it (weak: characters come and go).
 local baseC0: { [Motor6D]: CFrame } = setmetatable({}, { __mode = "k" }) :: any
@@ -335,8 +347,55 @@ local function buildGui(): TextButton
 	corner.CornerRadius = UDim.new(0.5, 0)
 	corner.Parent = hitButton
 
+	-- Touch: an Aim toggle above the Hit button while a gun is in the hand.
+	aimButton = Instance.new("TextButton")
+	aimButton.Name = "Aim"
+	aimButton.AnchorPoint = Vector2.new(1, 1)
+	aimButton.Position = UDim2.new(1, HIT_BUTTON_OFFSET.X, 1, HIT_BUTTON_OFFSET.Y - HIT_BUTTON_SIZE - AIM_BUTTON_GAP)
+	aimButton.Size = UDim2.fromOffset(AIM_BUTTON_SIZE, AIM_BUTTON_SIZE)
+	aimButton.BackgroundColor3 = BUTTON_COLOR
+	aimButton.BackgroundTransparency = 0.25
+	aimButton.Font = Enum.Font.GothamBold
+	aimButton.TextScaled = true
+	aimButton.TextColor3 = Color3.new(1, 1, 1)
+	aimButton.Text = Localization.get("ToolAim")
+	aimButton.Visible = false
+	aimButton.Parent = gui
+	local aimCorner = Instance.new("UICorner")
+	aimCorner.CornerRadius = UDim.new(0.5, 0)
+	aimCorner.Parent = aimButton
+
 	gui.Parent = player:WaitForChild("PlayerGui")
 	return hitButton
+end
+
+-- The gun in the hand when it can be aimed, else nil.
+local function aimableHeld(): Config.RangedDef?
+	local held = InventoryController.getHeld()
+	local weapon = held and Config.Ranged.Weapons[held.id]
+	return if weapon and weapon.AimSpread then weapon else nil
+end
+
+-- Starts or stops aiming: the server tightens the spread, the camera zooms in or back out.
+local function setAiming(on: boolean)
+	if on and (aimableHeld() == nil or InventoryController.isBackpackOpen()) then
+		return
+	end
+	if on == aiming then
+		return
+	end
+	aiming = on
+	aimRemote:FireServer(on)
+	aimButton.BackgroundColor3 = if on then AIM_ON_COLOR else BUTTON_COLOR
+	local camera = workspace.CurrentCamera
+	if camera == nil then
+		return
+	end
+	if defaultFieldOfView == nil then
+		defaultFieldOfView = camera.FieldOfView
+	end
+	local goal = if on then Config.Ranged.AimFieldOfView else defaultFieldOfView :: number
+	TweenService:Create(camera, TweenInfo.new(Config.Ranged.AimZoomSeconds), { FieldOfView = goal }):Play()
 end
 
 -- Input Action System: one action for mouse / gamepad, one for the touch button.
@@ -372,11 +431,29 @@ local function bindInput(parent: Instance, hitButton: TextButton)
 	action("UseToolTouch", "Touch", function(binding)
 		binding.UIButton = hitButton
 	end)
+	local aim = Instance.new("InputAction")
+	aim.Name = "Aim"
+	aim.Parent = context
+	for _, key in { Enum.KeyCode.MouseRightButton, Enum.KeyCode.ButtonL2 } do
+		local binding = Instance.new("InputBinding")
+		binding.KeyCode = key
+		binding.Parent = aim
+	end
+	aim.Pressed:Connect(function()
+		setAiming(true)
+	end)
+	aim.Released:Connect(function()
+		setAiming(false)
+	end)
+	aimButton.Activated:Connect(function()
+		setAiming(not aiming)
+	end)
 	context.Parent = parent
 end
 
 function ToolController.init()
 	useRemote = Net.event("UseTool")
+	aimRemote = Net.event("AimIntent")
 end
 
 function ToolController.start()
@@ -387,6 +464,15 @@ function ToolController.start()
 		if holding then
 			trySwing(holding)
 		end
+		-- Putting the gun away (or opening the backpack) ends aiming.
+		local gun = aimableHeld()
+		if aiming and (gun == nil or InventoryController.isBackpackOpen()) then
+			setAiming(false)
+		end
+		aimButton.Visible = UserInputService.TouchEnabled and gun ~= nil
+	end)
+	player.CharacterAdded:Connect(function()
+		setAiming(false)
 	end)
 	Net.unreliable("ToolSwing").OnClientEvent:Connect(
 		function(attacker: Player?, toolId: string, zombieId: number, _head: boolean)

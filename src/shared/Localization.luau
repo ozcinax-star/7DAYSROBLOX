@@ -50,6 +50,7 @@ local Strings: { [string]: { [string]: string } } = {
 		InventoryBag = "Bag",
 
 		-- Tools
+		ToolAim = "Aim",
 		ToolUse = "Hit",
 		ToolBroken = "{item} is broken",
 
@@ -113,6 +114,11 @@ local Strings: { [string]: { [string]: string } } = {
 		NoBullets = "No ammo",
 		Reloading = "Reloading...",
 		ItemPipePistol = "Pipe Pistol",
+		ItemPipeRifle = "Pipe Rifle",
+		ItemPipeShotgun = "Pipe Shotgun",
+		ItemPipeMachineGun = "Pipe Machine Gun",
+		ItemAmmo762mm = "7.62mm Ammo",
+		ItemAmmoShotgunShell = "Shotgun Shell",
 		ItemWoodBars = "Wood Bars",
 		ItemAmmo9mm = "9mm Ammo",
 		ItemMetalPipe = "Metal Pipe",

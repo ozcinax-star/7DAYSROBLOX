@@ -119,6 +119,8 @@ export type RangedDef = {
 	Magazine: number?,
 	ReloadSeconds: number?,
 	SpreadDegrees: number?,
+	-- Share of the spread left while aiming (7DTD SpreadMultiplierAiming); nil: cannot be aimed.
+	AimSpread: number?,
 	Noise: Types.NoiseKind?,
 	-- Shot sound asset ("rbxassetid://..."), played at the muzzle by every client; "" is silent until
 	-- an asset is chosen (NEXT_STEPS).
@@ -126,8 +128,9 @@ export type RangedDef = {
 }
 
 -- Ammo: entity damage, launch speed (m/s) and gravity (m/s^2) of its projectile. Tracer: clients
--- draw a bright streak (a bullet) instead of an arrow.
-export type AmmoDef = { EntityDamage: number, Speed: number, Gravity: number, Tracer: boolean? }
+-- draw a bright streak (a bullet) instead of an arrow. Pellets: projectiles one round fires, each with
+-- its own spread (7DTD RoundRayCount; 1 when nil).
+export type AmmoDef = { EntityDamage: number, Speed: number, Gravity: number, Tracer: boolean?, Pellets: number? }
 
 -- A crop (7DTD plantedX1-3): its seed and produce items, the produce a ripe player crop pays (Count,
 -- and one more at BonusChance), seeds given back on harvest, its ripe height (studs) and produce
@@ -706,9 +709,16 @@ Config.Items = {
 	Glue = { Stack = 500, Color = { 0.9, 0.85, 0.6 } },
 	Bone = { Stack = 1200, Color = { 0.92, 0.9, 0.82 } },
 	Ammo9mm = { Stack = 300, Color = { 0.8, 0.65, 0.3 } },
+	-- ammo762mmBulletBall and ammoShotgunShell; their stacks are ours.
+	Ammo762mm = { Stack = 300, Color = { 0.75, 0.55, 0.25 } },
+	AmmoShotgunShell = { Stack = 150, Color = { 0.7, 0.2, 0.15 } },
 	-- gunHandgunT0PipePistol: one durability per shot (DegradationPerUse 1). Its 300 uses are ours
 	-- (7DTD's base DegradationMax is unconfirmed); it is not repairable yet.
 	PipePistol = { Stack = 1, Durability = 300, Color = { 0.35, 0.33, 0.3 } },
+	-- gunRifleT0PipeRifle, gunShotgunT0PipeShotgun, gunMGT0PipeMachineGun: same 300 uses (ours).
+	PipeRifle = { Stack = 1, Durability = 300, Color = { 0.4, 0.33, 0.25 } },
+	PipeShotgun = { Stack = 1, Durability = 300, Color = { 0.3, 0.3, 0.32 } },
+	PipeMachineGun = { Stack = 1, Durability = 300, Color = { 0.28, 0.3, 0.28 } },
 	-- foodBakedPotato and foodCornOnTheCob (7DTD 3.2): 10 food, 5 health over time, 5 water lost.
 	-- Their +10 max stamina bonus is not in yet.
 	BakedPotato = {
@@ -842,6 +852,14 @@ Config.Recipes = {
 		Count = 1,
 		Ingredients = costs({ MetalPipe = 4, Glue = 2, Wood = 6 }),
 	},
+	-- The other pipe guns take the same parts (7DTD 3.2 recipes.xml).
+	PipeRifle = { Output = "PipeRifle", Count = 1, Ingredients = costs({ MetalPipe = 4, Glue = 2, Wood = 6 }) },
+	PipeShotgun = { Output = "PipeShotgun", Count = 1, Ingredients = costs({ MetalPipe = 4, Glue = 2, Wood = 6 }) },
+	PipeMachineGun = {
+		Output = "PipeMachineGun",
+		Count = 1,
+		Ingredients = costs({ MetalPipe = 4, Glue = 2, Wood = 6 }),
+	},
 	-- resourceGlue: 7 bones and a boiled water in the cooking pot at a campfire.
 	Glue = {
 		Output = "Glue",
@@ -902,6 +920,9 @@ Config.Crafting = {
 		"PrimitiveBow",
 		"StoneArrow",
 		"PipePistol",
+		"PipeRifle",
+		"PipeShotgun",
+		"PipeMachineGun",
 		"Lumber",
 		"WoodFrame",
 		"WoodLadder",
@@ -1066,6 +1087,52 @@ Config.Ranged = {
 			Magazine = 6,
 			ReloadSeconds = 2,
 			SpreadDegrees = 1.5,
+			AimSpread = 0.4,
+			Noise = "Gunshot",
+			SoundId = "",
+		},
+		-- gunRifleT0PipeRifle: one round, then about 2.66 s to reload; -3 damage, 150 m, a 5.7 degree hip
+		-- spread that aiming cuts to 0.09 of it. Its +25 % head damage and falloff past 50 m are not in.
+		PipeRifle = {
+			Ammo = { "Ammo762mm" },
+			ShotSeconds = 60 / 120,
+			DamageOffset = -3,
+			SpeedShare = 1,
+			MaxRange = 150,
+			Magazine = 1,
+			ReloadSeconds = 2.66,
+			SpreadDegrees = 5.7,
+			AimSpread = 0.09,
+			Noise = "Gunshot",
+			SoundId = "",
+		},
+		-- gunShotgunT0PipeShotgun: one shell, about 2.3 s to reload, -2 damage a pellet. The shell's
+		-- 10 m range and 4.5 degree spread (the gun adds 7 %: 4.8) and aiming 13 % tighter.
+		PipeShotgun = {
+			Ammo = { "AmmoShotgunShell" },
+			ShotSeconds = 60 / 120,
+			DamageOffset = -2,
+			SpeedShare = 1,
+			MaxRange = 10,
+			Magazine = 1,
+			ReloadSeconds = 2.3,
+			SpreadDegrees = 4.8,
+			AimSpread = 0.87,
+			Noise = "Gunshot",
+			SoundId = "",
+		},
+		-- gunMGT0PipeMachineGun: 335 rounds a minute while fire is held, 15-round magazine, -17 damage,
+		-- 90 m, 3 degree spread, aiming 0.22 of it. The XML gives no reload time; 3 s is ours.
+		PipeMachineGun = {
+			Ammo = { "Ammo762mm" },
+			ShotSeconds = 60 / 335,
+			DamageOffset = -17,
+			SpeedShare = 1,
+			MaxRange = 90,
+			Magazine = 15,
+			ReloadSeconds = 3,
+			SpreadDegrees = 3,
+			AimSpread = 0.22,
 			Noise = "Gunshot",
 			SoundId = "",
 		},
@@ -1075,8 +1142,13 @@ Config.Ranged = {
 		StoneArrow = { EntityDamage = 35, Speed = 45, Gravity = 4 },
 		-- ammo9mmBulletBall: 32 damage. 7DTD bullets are hitscan; ours fly at 250 m/s without drop.
 		Ammo9mm = { EntityDamage = 32, Speed = 250, Gravity = 0, Tracer = true },
+		-- ammo762mmBulletBall: 47 damage.
+		Ammo762mm = { EntityDamage = 47, Speed = 250, Gravity = 0, Tracer = true },
+		-- ammoShotgunShell: 10 pellets of 10.1 damage.
+		AmmoShotgunShell = { EntityDamage = 10.1, Speed = 250, Gravity = 0, Tracer = true, Pellets = 10 },
 	} :: { [string]: AmmoDef },
-	-- Arrows one player may have in the air at once.
+	-- Projectiles one player may have in the air before the next shot is refused (a shell's pellets
+	-- all fly; they land within a few hundredths of a second).
 	MaxArrowsPerPlayer = 6,
 	-- Client look: arrow length (studs) and how long a stopped arrow stays before it is removed.
 	ArrowLength = 2.4,
@@ -1088,6 +1160,10 @@ Config.Ranged = {
 	SoundVolume = 1,
 	SoundRange = 180,
 	SoundSeconds = 4,
+	-- Aiming a gun (right mouse, gamepad L2, the Aim button on touch): camera field of view and how
+	-- long the zoom takes (seconds). Ours; 7DTD zooms per weapon.
+	AimFieldOfView = 50,
+	AimZoomSeconds = 0.15,
 }
 
 local function drop(id: string, min: number, max: number?): Drop
@@ -1375,6 +1451,8 @@ Config.Loot = {
 		-- 7DTD gets bones from corpses; here zombie bags carry them (glue for gun parts).
 		{ Id = "Bone", Min = 2, Max = 6, Weight = 2 },
 		{ Id = "Ammo9mm", Min = 2, Max = 6, Weight = 1 },
+		{ Id = "Ammo762mm", Min = 2, Max = 4, Weight = 0.5 },
+		{ Id = "AmmoShotgunShell", Min = 1, Max = 3, Weight = 0.5 },
 	} :: { LootPick },
 	ZombieToolChance = 0.15,
 	ZombieTools = { "StoneAxe", "StoneShovel", "StonePickaxe", "WoodenClub", "StoneSpear" },
@@ -1494,6 +1572,8 @@ Config.Loot = {
 				{ Id = "MetalPipe", Min = 1, Max = 2, Weight = 1.5 },
 				{ Id = "Glue", Min = 1, Max = 2, Weight = 1 },
 				{ Id = "Ammo9mm", Min = 4, Max = 12, Weight = 1 },
+				{ Id = "Ammo762mm", Min = 3, Max = 8, Weight = 0.7 },
+				{ Id = "AmmoShotgunShell", Min = 2, Max = 6, Weight = 0.7 },
 			},
 		},
 	} :: { [string]: ContainerDef },
@@ -1628,8 +1708,11 @@ Config.Remotes = {
 	DebugRequestsPerSecond = 2,
 	-- Moves while sorting the backpack and slot changes from number keys come in quick bursts.
 	InventoryRequestsPerSecond = 20,
-	-- The fastest tool swings under 2 times a second; the cooldown is checked separately.
-	UseToolRequestsPerSecond = 4,
+	-- The pipe machine gun fires 5.6 times a second (tool swings stay under 2); the cooldown is checked
+	-- separately.
+	UseToolRequestsPerSecond = 6,
+	-- Starting and stopping to aim a gun.
+	AimRequestsPerSecond = 8,
 	-- Queueing, cancelling and repairing.
 	CraftRequestsPerSecond = 6,
 	-- Sprint on / off.
@@ -1683,6 +1766,11 @@ Config.Debug = {
 		{ Id = "PipePistol", Count = 1 },
 		{ Id = "WoodBars", Count = 10 },
 		{ Id = "Ammo9mm", Count = 30 },
+		{ Id = "PipeRifle", Count = 1 },
+		{ Id = "PipeShotgun", Count = 1 },
+		{ Id = "PipeMachineGun", Count = 1 },
+		{ Id = "Ammo762mm", Count = 60 },
+		{ Id = "AmmoShotgunShell", Count = 20 },
 		{ Id = "ElectricLamp", Count = 4 },
 		{ Id = "GasCan", Count = 300 },
 		{ Id = "Wood", Count = 50 },

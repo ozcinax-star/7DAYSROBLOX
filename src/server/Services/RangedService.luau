@@ -5,8 +5,9 @@
 -- wears the weapon by one and flies the shot itself from the head of the character it simulates,
 -- turned inside the gun's spread cone: one Heartbeat loop moves every shot along its arc and tests
 -- each step against zombies (the melee hit volumes, head shots double) and the world (walls, blocks,
--- terrain, water). A gunshot is a Gunshot noise (ThreatService). Clients only draw the arc they are
--- told about (ArrowController).
+-- terrain, water). A gunshot is a Gunshot noise (ThreatService). A shotgun shell flies several pellets,
+-- each turned on its own. Aiming (AimIntent) tightens a gun's spread to its AimSpread share. Clients
+-- only draw the arc they are told about (ArrowController).
 --
 -- An arrow hits the first zombie or surface on its path. It damages zombies only: blocks and world
 -- objects stop it (7DTD stone arrows do 1 block damage; ignored). A hit zombie chases the shooter,
@@ -23,6 +24,7 @@ local Config = require(Shared.Config)
 local Melee = require(Shared.Melee)
 local Net = require(Shared.Net)
 
+local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local InventoryService = require(script.Parent.InventoryService)
 local ThreatService = require(script.Parent.ThreatService)
 local ToolService = require(script.Parent.ToolService)
@@ -56,6 +58,8 @@ type Arrow = {
 
 local RangedService = {}
 
+local aiming: { [Player]: boolean } = {}
+local aimLimiter: RateLimiter.RateLimiter
 local firedRemote: UnreliableRemoteEvent
 local stoppedRemote: UnreliableRemoteEvent
 local arrows: { [number]: Arrow } = {}
@@ -154,6 +158,34 @@ local function ammoFor(player: Player, weapon: Config.RangedDef): string?
 	return nil
 end
 
+-- Flies one projectile of `ammoId` from `weapon` along the unit `direction` and tells every client.
+local function launch(
+	player: Player,
+	origin: Vector3,
+	direction: Vector3,
+	weapon: Config.RangedDef,
+	ammoId: string,
+	itemId: string
+)
+	local ammo = RC.Ammo[ammoId]
+	local velocity = direction * Ballistics.speed(weapon, ammo)
+	local gravity = Ballistics.gravity(ammo)
+	local id = nextArrowId
+	nextArrowId = if id >= 65535 then 1 else id + 1
+	arrows[id] = {
+		id = id,
+		owner = player,
+		position = origin,
+		velocity = velocity,
+		gravity = gravity,
+		damage = Ballistics.damage(weapon, ammo),
+		travelled = 0,
+		range = weapon.MaxRange * MC.StudsPerMeter,
+	}
+	inFlight[player] = (inFlight[player] or 0) + 1
+	firedRemote:FireAllClients(id, origin, velocity, gravity, Workspace:GetServerTimeNow(), ammoId, itemId)
+end
+
 -- ToolService use handler: `origin` is the server's head position, `direction` a checked unit aim.
 local function onShoot(player: Player, origin: Vector3, direction: Vector3, itemId: string)
 	local weapon = RC.Weapons[itemId]
@@ -175,35 +207,31 @@ local function onShoot(player: Player, origin: Vector3, direction: Vector3, item
 	rounds[itemId] = kept
 	nextShotAt[player] = now + wait * (1 - MC.CooldownTolerance)
 	InventoryService.wearHeld(player, 1)
-	if weapon.SpreadDegrees then
-		local x, y, z =
-			Ballistics.spread(direction.X, direction.Y, direction.Z, weapon.SpreadDegrees, math.random(), math.random())
-		direction = Vector3.new(x, y, z).Unit
-	end
 	if weapon.Noise then
 		ThreatService.emit(weapon.Noise, origin, player)
 	end
+	local degrees = Ballistics.spreadDegrees(weapon, aiming[player] == true)
+	for _ = 1, RC.Ammo[ammoId].Pellets or 1 do
+		local shot = direction
+		if degrees > 0 then
+			local x, y, z =
+				Ballistics.spread(direction.X, direction.Y, direction.Z, degrees, math.random(), math.random())
+			shot = Vector3.new(x, y, z).Unit
+		end
+		launch(player, origin, shot, weapon, ammoId, itemId)
+	end
+end
 
-	local ammo = RC.Ammo[ammoId]
-	local velocity = direction * Ballistics.speed(weapon, ammo)
-	local gravity = Ballistics.gravity(ammo)
-	local id = nextArrowId
-	nextArrowId = if id >= 65535 then 1 else id + 1
-	arrows[id] = {
-		id = id,
-		owner = player,
-		position = origin,
-		velocity = velocity,
-		gravity = gravity,
-		damage = Ballistics.damage(weapon, ammo),
-		travelled = 0,
-		range = weapon.MaxRange * MC.StudsPerMeter,
-	}
-	inFlight[player] = (inFlight[player] or 0) + 1
-	firedRemote:FireAllClients(id, origin, velocity, gravity, Workspace:GetServerTimeNow(), ammoId, itemId)
+local function onAimIntent(player: Player, wants: unknown)
+	if typeof(wants) ~= "boolean" or not aimLimiter:allow(player) then
+		return
+	end
+	aiming[player] = if wants then true else nil
 end
 
 function RangedService.init()
+	aimLimiter = RateLimiter.new(Config.Remotes.AimRequestsPerSecond)
+	Net.event("AimIntent")
 	firedRemote = Net.unreliable("ArrowFired")
 	stoppedRemote = Net.unreliable("ArrowStopped")
 end
@@ -212,8 +240,10 @@ function RangedService.start()
 	for itemId in RC.Weapons do
 		ToolService.onUse(itemId, onShoot)
 	end
+	Net.event("AimIntent").OnServerEvent:Connect(onAimIntent)
 	RunService.Heartbeat:Connect(onHeartbeat)
 	Players.PlayerRemoving:Connect(function(player)
+		aiming[player] = nil
 		nextShotAt[player] = nil
 		fired[player] = nil
 		for _, arrow in arrows do
