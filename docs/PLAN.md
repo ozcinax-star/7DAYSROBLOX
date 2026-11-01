@@ -283,6 +283,7 @@ Lobi, PvP ve hikâye için verilmiş kararlar.
 | Meşale | 7DTD: 1 hayvan yağı + 5 kumaş + 1 odun (16,2 sn), yığın 50. Hayvan yağı yerine odun kömürü (bizim). Elde ışık (menzil 26 × 0,8), konunca sonsuza dek yanan ince direk (50 can, bizim); ışık grafik ön ayarıyla ölçeklenir | NEXT_STEPS 2. sıradaki iş; gece görünürlüğü |
 | Kömür ve nitrat | 7DTD cevher kayaları: 600 can, 50 kömür ya da 50 nitrat + 14 küçük taş. Orman kayalarının %15'i kömür, %12'si nitrat (bizim; 7DTD biyomlara dağıtır). Kömür 100 sn yanar (7DTD FuelValue), kamp ateşi ve ocak alır | NEXT_STEPS 3. iş; barut ve merminin kapısı |
 | Barut ve mermi | Barut: 1 kömür + 1 nitrat, sırt çantası (V3.3 sırt çantası ya da kimya istasyonu diyor; oran doğrulanmadı). Mermi tezgâhta 10'luk: 9mm 10 barut + 5 hurda, 7.62 10 barut + 10 hurda, fişek 10 barut + 10 hurda + 5 lif. Kurşun ve pirinç yok; hurda demir uç ve kovan yerine (bizim) | Silahların loot dışında cephane kaynağı yoktu |
+| Deneyim ve perkler (MVP) | Öldürme 100, toplanan eşya başına 2, crafting 10, blok koyma 5, yükseltme 10 deneyim. Seviye L→L+1: 500 × 1,15^(L−1). Her seviye 1 perk puanı. Perkler 3 kademe, seviye 1/4/8'de açılır: Combat +%10 hasar, Scavenger ilk aranan konteynerde +%15 eşya, Builder yükseltme ve tamirde −%20 malzeme. Profilde kayıtlı (dünyalar arası). Sayılar bizim | PLAN MVP perk satırı. Ölçüm: Combat 1 ile yumruk 5,50 (5 × 1,10) |
 
 ## Silah kullanımı güncellemesi — 1 Kasım 2026
 

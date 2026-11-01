@@ -19,6 +19,17 @@ Debug GiveKit artık demir balta ve demir kürek de verir. Ayrıntı ve test ad�
 birinci şahıs kopyaları Play'de denetlendi; makineliyle 3 atış sunucudan doğrulandı. Mobil FPS ölçülmedi.
 Önceki oturumların oynanış doğrulamaları ve aşağıdaki yol haritası devam ediyor.
 
+## Güncel ek: otonom sistem turu (2 Kasım 2026, Claude)
+
+Kullanıcı "sormadan geliştirmeye devam et" dedi. Kayıttan sonra şunlar eklendi (ayrı commit'ler):
+- **Tezgâh:** koli bandı, çivi, tamir kiti; jeneratör ve lamba tezgâhta.
+- **Meşale:** elde ışık; konan meşale sürekli yanar; başlangıçta bir tane.
+- **Kömür ve nitrat kayaları.**
+- **Barut ve mermi:** barut sırt çantasında (oran doğrulanmadı), mermi tezgâhta.
+- **Deneyim, seviye ve 3 perk:** K ile açılır; profilde kayıtlı.
+
+97 test geçiyor. Görsel işler (zırh, modeller) Studio görüntüsü düzelene kadar bekliyor.
+
 ## Güncel ek: kayıt sistemi (2 Kasım 2026, Claude)
 
 Kullanıcı onayıyla kayıt eklendi (ProfileStore, oturum kilitli):
@@ -144,7 +155,7 @@ serbest kalır; V ile serbest fare moduna geçilir.
 3. Edit modunda harita önizlemesi silinsin mi?
 4. GitHub özel deposu açılsın mı? Dışarıya açık adım; onay şart.
 5. Kaynaklar yeniden çıksın mı?
-6. Sesler: kullanıcı seçecek; kimlikler Config'deki kancalara yazılır.
+6. Sesler: eklendi ([SOUND.md](SOUND.md)); kulakla son ayar kullanıcıda.
 7. Ateş tasarımı (bizim): çakmak, lif, odun kömürü, ocağın yalnızca kömür yakması.
 8. Eksik malzemelerin yerine geçenler: deri ve koli bandı yerine kumaş ve tutkal; ham demir yerine
    hurda demir; tamir kiti yerine dövme demir.
@@ -159,7 +170,7 @@ bitince sıradaki eksik sistemi sormadan başlat, sonunda raporla. Ayrıntı: NE
 3. ~~Kömür ve nitrat kayaları~~: yapıldı (2 Kasım). Yanık ağaçlar henüz yok.
 4. Kimya istasyonu: barut (sırt çantasında, oranı doğrulanmadı) ve mermi (tezgâhta) yapıldı (2 Kasım); istasyonun kendisi henüz yok.
 5. **Zırh ve giysi.**
-6. **Perk ve tarif kitapları:** şimdilik bütün tarifler açık.
+6. Perkler yapıldı (2 Kasım): deneyim, seviye, Scavenger / Builder / Combat (3 kademe, K). Tarif kitapları henüz yok; bütün tarifler açık.
 7. **Zombi türleri:** Normal, Hızlı, Ses-duyarlı ve 7DTD özel zombileri.
 8. **Tüccar ve para:** önce kullanıcıya sor (gelir modeliyle çakışabilir).
 9. **Crafting araması;** beton ve demir inşa kademeleri.

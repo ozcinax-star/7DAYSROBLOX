@@ -117,13 +117,7 @@ Her sorunun ilk seçeneği benim önerim.
    Öneri: kalıcılık adımına kadar böyle kalsın; o adımda kesilen nesneler id'leriyle kaydedilsin ve
    ot, çalı ve yerdeki taş birkaç oyun gününde geri gelsin. Ağaç ve kaya 7DTD gibi gelmesin; bunun
    yerine tohum dikimiyle ağaç yetiştirilsin.
-6. **Sesler:** Oyunda hiç ses yok. Kancalar hazır: `Config.Ranged.Weapons.<silah>.SoundId` (atış:
-   `PrimitiveBow`, `PipePistol`, `PipeRifle`, `PipeShotgun`, `PipeMachineGun`),
-   `Config.ZombieVisual.GroanSoundId` (inleme). Creator Store'daki
-   ücretsiz seslerin çoğu başka oyunlardan (COD, PvZ, CS:GO, Half-Life) koparılmış kullanıcı
-   yüklemeleri; telif bildirimiyle silinebilirler. Roblox'un kendi yüklediği lisanslı ses kütüphanesi
-   aramada çıkmadı. Öneri: sesleri sen dinleyip seç ya da kendi sesini yükle; kimliği
-   (`rbxassetid://...`) ilgili alana yapıştırmak yeter. Ben tahmini bir ses seçmedim.
+6. **Sesler:** 1 Kasım'da eklendi (Pro Sound Effects, [SOUND.md](SOUND.md)). Kullanıcı kulakla ayarlar; kimlikler `Config.Sounds.Events` içinde.
 
 7. **Ateş tasarımı (bizim):** 7DTD'de çakmak yok, istasyon düğmeyle yanar; odun kömürü yok, kömür
    kazılır. Kullanıcının isteğiyle eklendi: yakmak için çakmak (50 kullanım, mutfak dolaplarında) ya da
@@ -460,7 +454,7 @@ adım, PLAN'a karar satırıyla):
 3. ~~Kömür ve nitrat kayaları~~: yapıldı (2 Kasım). Yanık ağaçlar henüz yok.
 4. Kimya istasyonu: barut (sırt çantasında, oranı doğrulanmadı) ve mermi (tezgâhta) yapıldı (2 Kasım); istasyonun kendisi henüz yok.
 5. **Zırh ve giysi:** 7DTD'nin zırh kademeleri; yüzde hasar azaltma.
-6. **Perk / beceri puanı ve tarif kitapları:** şimdilik bütün tarifler açık.
+6. Perkler yapıldı (2 Kasım): deneyim, seviye, Scavenger / Builder / Combat (3 kademe, K). Tarif kitapları henüz yok; bütün tarifler açık.
 7. **Zombi türleri:** PLAN 2. aşama (Normal, Hızlı, Ses-duyarlı) ve 7DTD özel zombileri.
 8. **Tüccar ve para:** 7DTD trader; PLAN gelir modeliyle çakışmaması gerekir, kullanıcıya sorulacak.
 9. **Crafting araması** ve beton / demir inşa kademeleri.
