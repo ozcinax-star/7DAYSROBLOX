@@ -29,6 +29,22 @@ local DUSK_SUN_Y = 0.15
 local NIGHT_SUN_Y = -0.1
 local HORDE_TINT = Color3.fromRGB(255, 170, 160)
 local HORDE_SATURATION = -0.15
+-- Base grade for a worn, post-collapse look: drained colour, a little contrast, a dusty warm tint.
+local BASE_TINT = Color3.fromRGB(255, 246, 232)
+local BASE_SATURATION = -0.22
+local BASE_CONTRAST = 0.08
+-- Atmosphere by day and by night (dusty haze by day, a cold thick dark at night). The same for every
+-- graphics preset, so no preset sees further than another.
+local DAY_DENSITY = 0.32
+local NIGHT_DENSITY = 0.42
+local DAY_HAZE = 1.7
+local NIGHT_HAZE = 0.4
+local DAY_AIR = Color3.fromRGB(199, 189, 168)
+local NIGHT_AIR = Color3.fromRGB(52, 60, 78)
+local DAY_DECAY = Color3.fromRGB(112, 108, 100)
+local NIGHT_DECAY = Color3.fromRGB(22, 25, 34)
+local ATMOSPHERE_OFFSET = 0.25
+local DAY_GLARE = 0.15
 -- Clock label.
 local LABEL_WIDTH = 200
 local LABEL_HEIGHT = 24
@@ -39,6 +55,7 @@ local HORDE_COLOR = Color3.fromRGB(235, 70, 60)
 local DayNightController = {}
 
 local tint: ColorCorrectionEffect
+local atmosphere: Atmosphere
 local clockLabel: TextLabel
 local hordeLabel: TextLabel
 -- Whether the last frame was a horde night, so its start is announced once.
@@ -97,8 +114,15 @@ local function update()
 	local hordeDay = DayClock.isHordeDay(state.day, every)
 	local hordeNight = hordeDay and state.phase == "Night"
 	local redness = if hordeNight then 1 - light else 0
-	tint.TintColor = Color3.new(1, 1, 1):Lerp(HORDE_TINT, redness)
-	tint.Saturation = HORDE_SATURATION * redness
+	tint.TintColor = BASE_TINT:Lerp(HORDE_TINT, redness)
+	tint.Saturation = BASE_SATURATION + HORDE_SATURATION * redness
+	tint.Contrast = BASE_CONTRAST
+
+	atmosphere.Density = NIGHT_DENSITY + (DAY_DENSITY - NIGHT_DENSITY) * light
+	atmosphere.Haze = NIGHT_HAZE + (DAY_HAZE - NIGHT_HAZE) * light
+	atmosphere.Color = NIGHT_AIR:Lerp(DAY_AIR, light)
+	atmosphere.Decay = NIGHT_DECAY:Lerp(DAY_DECAY, light)
+	atmosphere.Glare = DAY_GLARE * light
 
 	clockLabel.Text = Localization.get("HudClock", { day = state.day, time = formatTime(state.clockTime) })
 	clockLabel.TextColor3 = if hordeDay then HORDE_COLOR else TEXT_COLOR
@@ -115,6 +139,10 @@ function DayNightController.start()
 	tint = Instance.new("ColorCorrectionEffect")
 	tint.Name = "DayNightTint"
 	tint.Parent = Lighting
+	local existing = Lighting:FindFirstChildOfClass("Atmosphere")
+	atmosphere = existing or Instance.new("Atmosphere")
+	atmosphere.Offset = ATMOSPHERE_OFFSET
+	atmosphere.Parent = Lighting
 	buildGui(Players.LocalPlayer:WaitForChild("PlayerGui") :: PlayerGui)
 	RunService.PreRender:Connect(update)
 end
