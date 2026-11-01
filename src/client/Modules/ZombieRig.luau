@@ -20,6 +20,8 @@ local Noise = require(Shared.World.Noise)
 local ZombieAssets = require(Shared.ZombieAssets)
 local ZombieLook = require(Shared.ZombieLook)
 
+local ZombieMeshes = require(script.Parent.ZombieMeshes)
+
 local VC = Config.ZombieVisual
 local ZC = Config.Zombie
 
@@ -41,8 +43,6 @@ local WAIST_UP = 0.45
 local TORSO = V(1.5, 1.5, 0.66)
 local SHOULDER_UP = 1.32
 local SHOULDER_X = 0.88
--- The textured shirt is narrower at the shoulders than the block torso.
-local MESH_SHOULDER_X = 0.68
 -- Every limb reaches this far past its joint into the part above, so bent elbows, knees, hips
 -- and shoulders never show a gap (studs at scale 1).
 local JOINT_OVERLAP = 0.2
@@ -59,6 +59,8 @@ local LIMB_TURN = CFrame.Angles(0, 0, math.pi / 2)
 -- reaches the neck, the shirt the shoulders and hips.
 local HEAD_MESH_SCALE = V(1.12, 1.12, 1.12)
 local TORSO_MESH_SCALE = V(1.22, 1.06, 1.4)
+-- A cut-off sleeve turns at a shoulder this far (native mesh units) below the top of its cap.
+local SLEEVE_PIVOT_INSET = 0.08
 -- How much of the head texture's own colour survives the skin tint (1 = untinted).
 local HEAD_TINT_KEEP = 0.2
 -- Face and wound details, relative to the head / torso centre.
@@ -104,6 +106,11 @@ export type Rig = {
 	-- Textured head / torso: their own face and wounds replace the block details.
 	meshHead: boolean,
 	meshTorso: boolean,
+	-- Textured shirt only: its centre relative to the block torso's centre, each shoulder (left,
+	-- right) relative to that centre, and each sleeve's centre relative to its shoulder (studs).
+	torsoOffset: Vector3,
+	shoulders: { Vector3 }?,
+	sleeveOffsets: { Vector3 }?,
 }
 
 -- Per-frame pose input. The render controller keeps one per zombie and updates it in place.
@@ -187,6 +194,20 @@ local function makePart(model: Model, name: string, size: Vector3, tint: { numbe
 	return makeShape(model, name, size, tint, material, Enum.PartType.Block)
 end
 
+-- A copy of a cut shirt piece, drawn like the other body parts.
+local function makePiece(model: Model, name: string, template: MeshPart, size: Vector3): MeshPart
+	local part = template:Clone()
+	part.Name = name
+	part.Size = size
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CastShadow = false
+	part.Parent = model
+	return part
+end
+
 -- A rounded limb: a cylinder whose length (`size.Y`) runs along its X axis (see LIMB_TURN).
 local function makeLimb(model: Model, name: string, size: Vector3, tint: { number }, material: Enum.Material,
 	scale: number): Part
@@ -204,13 +225,44 @@ function ZombieRig.build(id: number): Rig
 	local armMaterial = if look.bareArms then skin else cloth
 	local shinTint = if look.bareShins then look.extremity else look.pants
 	local shinMaterial = if look.bareShins then skin else cloth
-	local core = {
-		makePart(model, "Pelvis", (if look.torsoMesh ~= 0 then MESH_PELVIS else PELVIS) * s, look.pants, cloth),
-		makePart(model, "Torso", TORSO * s, look.shirt, cloth),
+	-- A textured shirt is drawn only once it has been cut into body and sleeves; until then (or
+	-- without mesh API access) the zombie wears a block shirt.
+	local shirt = ZombieAssets.Torsos[look.torsoMesh]
+	local split = if shirt then ZombieMeshes.torso(look.torsoMesh) else nil
+	local torsoOffset = Vector3.zero
+	local shoulders: { Vector3 }? = nil
+	local sleeveOffsets: { Vector3 }? = nil
+	local torsoPart: BasePart, leftUpper: BasePart, rightUpper: BasePart
+	if shirt and split then
+		-- Native mesh units to studs, as the whole shirt was drawn on the block torso.
+		local fit = TORSO * s / V(shirt.size[1], shirt.size[2], shirt.size[3]) * TORSO_MESH_SCALE
+		local body = split.body
+		torsoPart = makePiece(model, "Torso", body.part, body.size * fit)
+		torsoOffset = body.center * fit
+		local pieces: { BasePart } = {}
+		local pivots: { Vector3 } = {}
+		local offsets: { Vector3 } = {}
+		for index, sleeve in split.sleeves do
+			local name = if index == 1 then "LeftUpperArm" else "RightUpperArm"
+			pieces[index] = makePiece(model, name, sleeve.part, sleeve.size * fit)
+			local drop = sleeve.size.Y / 2 - SLEEVE_PIVOT_INSET
+			pivots[index] = (sleeve.center + V(0, drop, 0)) * fit
+			offsets[index] = V(0, -drop, 0) * fit
+		end
+		leftUpper, rightUpper = pieces[1], pieces[2]
+		shoulders, sleeveOffsets = pivots, offsets
+	else
+		torsoPart = makePart(model, "Torso", TORSO * s, look.shirt, cloth)
+		leftUpper = makeLimb(model, "LeftUpperArm", UPPER_ARM * s, armTint, armMaterial, s)
+		rightUpper = makeLimb(model, "RightUpperArm", UPPER_ARM * s, armTint, armMaterial, s)
+	end
+	local core: { BasePart } = {
+		makePart(model, "Pelvis", (if split then MESH_PELVIS else PELVIS) * s, look.pants, cloth),
+		torsoPart,
 		makePart(model, "Head", HEAD * s, look.face, skin),
-		makeLimb(model, "LeftUpperArm", UPPER_ARM * s, armTint, armMaterial, s),
+		leftUpper,
 		makeLimb(model, "LeftForearm", FOREARM * s, look.extremity, skin, s),
-		makeLimb(model, "RightUpperArm", UPPER_ARM * s, armTint, armMaterial, s),
+		rightUpper,
 		makeLimb(model, "RightForearm", FOREARM * s, look.extremity, skin, s),
 		makeLimb(model, "LeftThigh", THIGH * s, look.pants, cloth, s),
 		makeLimb(model, "LeftShin", SHIN * s, shinTint, shinMaterial, s),
@@ -235,10 +287,6 @@ function ZombieRig.build(id: number): Rig
 		local mesh = core[3]:FindFirstChildOfClass("SpecialMesh") :: SpecialMesh
 		mesh.VertexColor = V(face[1] * k, face[2] * k, face[3] * k):Lerp(Vector3.one, HEAD_TINT_KEEP)
 	end
-	local torso = ZombieAssets.Torsos[look.torsoMesh]
-	if torso then
-		dress(core[2], torso, TORSO_MESH_SCALE)
-	end
 	local rig: Rig = {
 		model = model,
 		core = core,
@@ -248,7 +296,10 @@ function ZombieRig.build(id: number): Rig
 		scale = s,
 		headless = false,
 		meshHead = head ~= nil,
-		meshTorso = torso ~= nil,
+		meshTorso = split ~= nil,
+		torsoOffset = torsoOffset,
+		shoulders = shoulders,
+		sleeveOffsets = sleeveOffsets,
 	}
 	for index, part in detail do
 		if detailHidden(rig, index) then
@@ -415,8 +466,9 @@ function ZombieRig.pose(rig: Rig, p: Pose, parts: { BasePart }, cframes: { CFram
 	local n = #parts
 	parts[n + 1] = core[1]
 	cframes[n + 1] = pelvisPivot * CF(0, PELVIS_UP * s, 0)
+	local torsoCentre = waist * CF(0, TORSO.Y / 2 * s, 0)
 	parts[n + 2] = core[2]
-	cframes[n + 2] = waist * CF(0, TORSO.Y / 2 * s, 0)
+	cframes[n + 2] = torsoCentre * CF(rig.torsoOffset)
 	parts[n + 3] = core[3]
 	cframes[n + 3] = head
 	n += 3
@@ -454,11 +506,16 @@ function ZombieRig.pose(rig: Rig, p: Pose, parts: { BasePart }, cframes: { CFram
 			pitch = torsoLean + 0.12 + VC.ArmHangSwingRadians * legSwing * gait
 			elbow, spread = ELBOW_REST, ARM_SPREAD
 		end
-		local shoulderX = if rig.meshTorso then MESH_SHOULDER_X else SHOULDER_X
-		local shoulder = waist * CF(side * shoulderX * s, SHOULDER_UP * s, 0) * ANG(pitch, 0, side * spread)
+		-- A textured shirt's sleeve turns with the arm at the shoulder inside its cap.
+		local shoulders, sleeveOffsets = rig.shoulders, rig.sleeveOffsets
+		local shoulder = if shoulders
+			then torsoCentre * CF(shoulders[index]) * ANG(pitch, 0, side * spread)
+			else waist * CF(side * SHOULDER_X * s, SHOULDER_UP * s, 0) * ANG(pitch, 0, side * spread)
 		local elbowJoint = shoulder * CF(0, -UPPER_ARM.Y * s, 0) * ANG(elbow, 0, 0)
 		parts[n + 1] = core[2 + index * 2]
-		cframes[n + 1] = shoulder * CF(0, (JOINT_OVERLAP - UPPER_ARM.Y) / 2 * s, 0) * LIMB_TURN
+		cframes[n + 1] = if sleeveOffsets
+			then shoulder * CF(sleeveOffsets[index])
+			else shoulder * CF(0, (JOINT_OVERLAP - UPPER_ARM.Y) / 2 * s, 0) * LIMB_TURN
 		parts[n + 2] = core[3 + index * 2]
 		cframes[n + 2] = elbowJoint * CF(0, (JOINT_OVERLAP - FOREARM.Y) / 2 * s, 0) * LIMB_TURN
 		n += 2

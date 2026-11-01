@@ -20,6 +20,7 @@ local Melee = require(Shared.Melee)
 local Net = require(Shared.Net)
 local ZombieProtocol = require(Shared.ZombieProtocol)
 
+local ZombieMeshes = require(script.Parent.Parent.Modules.ZombieMeshes)
 local ZombieRig = require(script.Parent.Parent.Modules.ZombieRig)
 
 local VC = Config.ZombieVisual
@@ -371,6 +372,7 @@ function ZombieRenderController.init()
 	container = Instance.new("Folder")
 	container.Name = "ClientZombies"
 	container.Parent = Workspace
+	ZombieMeshes.prepare()
 end
 
 function ZombieRenderController.start()
