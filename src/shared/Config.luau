@@ -1974,6 +1974,8 @@ Config.Melee = {
 	StudsPerMeter = 2.8,
 	-- 7DTD: player hits to the head deal double damage (HeadshotDamageModifier +100%).
 	HeadshotMultiplier = 2,
+	-- A click this soon before the tool or gun is ready is kept and fires the moment it is (seconds).
+	InputBufferSeconds = 0.12,
 	-- Zombie hit volume around its root (torso centre): an upright cylinder from the feet to the top
 	-- of the hunched head. The radius is wider than the body because clients draw zombies slightly
 	-- behind the server.

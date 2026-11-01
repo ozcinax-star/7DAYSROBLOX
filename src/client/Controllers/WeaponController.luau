@@ -194,6 +194,9 @@ local function render(dt: number)
 	if camera then
 		if baseFov == nil then baseFov = camera.FieldOfView end
 		camera.FieldOfView = (baseFov :: number) + (Config.Ranged.AimFieldOfView - (baseFov :: number)) * aimBlend
+		-- The view turns as many screen widths per mouse move when zoomed in as when not.
+		local zoomed = math.tan(math.rad(camera.FieldOfView / 2)) / math.tan(math.rad((baseFov :: number) / 2))
+		UserInputService.MouseDeltaSensitivity = if aimBlend > 0.001 then zoomed else 1
 		local motion = if GuiService.ReducedMotionEnabled then HC.ReducedMotionShare else 1
 		local wantPitch = (pitchSpring.x * HC.CameraRecoilShare + punchSpring.x) * motion
 		local wantYaw = yawSpring.x * HC.CameraRecoilShare * motion

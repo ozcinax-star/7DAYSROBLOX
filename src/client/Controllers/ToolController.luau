@@ -117,6 +117,9 @@ local layered: { [Instance]: { base: CFrame, written: CFrame } } = setmetatable(
 local punchLeft: { [Model]: boolean } = setmetatable({}, { __mode = "k" }) :: any
 local holding: Source? = nil
 local nextSwingAt = 0
+-- A press that came a little before the tool was ready, fired as soon as it is (Config.Melee.InputBufferSeconds).
+local bufferedSource: Source? = nil
+local bufferedUntil = 0
 -- Throttles the replicated aim pitch for other players' equipment poses.
 local nextPoseAt = 0
 local messageLabel: TextLabel
@@ -448,20 +451,35 @@ local function hasAmmo(weapon: Config.RangedDef): boolean
 	return false
 end
 
+-- Next ready time after a use at `now`. Back-to-back uses keep the exact interval instead of each
+-- waiting for the next frame (an automatic gun would fire ~10% slow at 30 FPS); a use after a pause
+-- counts from now.
+local function scheduleNext(now: number, seconds: number)
+	local base = if now - nextSwingAt < seconds * 0.5 then nextSwingAt else now
+	nextSwingAt = base + seconds
+end
+
 -- Sends a "use" that is not a swing (placing, eating, drinking, shooting), at most every `seconds`.
 local function sendUse(now: number, seconds: number)
 	local aim = ToolController.aimDirection()
 	if aim then
-		nextSwingAt = now + seconds
+		scheduleNext(now, seconds)
 		useRemote:FireServer(aim)
 	end
 end
 
 local function trySwing(source: Source, repeated: boolean?)
 	local now = os.clock()
-	if now < nextSwingAt or not canSwing(source) then
+	if not canSwing(source) then
 		return
 	end
+	if now < nextSwingAt then
+		if not repeated and nextSwingAt - now <= MC.InputBufferSeconds then
+			bufferedSource, bufferedUntil = source, nextSwingAt + MC.InputBufferSeconds
+		end
+		return
+	end
+	bufferedSource = nil
 	local held = InventoryController.getHeld()
 	local item = held and Config.Items[held.id]
 	if held and (Config.Build.Blocks[held.id] or (item and (item.Fill or item.Seed or item.Fuel))) then
@@ -525,7 +543,7 @@ local function trySwing(source: Source, repeated: boolean?)
 		nextSwingAt = now + OUT_OF_STAMINA_RETRY
 		return
 	end
-	nextSwingAt = now + Melee.interval(Config.Tools[toolId].AttacksPerMinute, MC.SwingDelay)
+	scheduleNext(now, Melee.interval(Config.Tools[toolId].AttacksPerMinute, MC.SwingDelay))
 	playSwing(player.Character, toolId)
 	ViewmodelController.swing(toolId)
 	useRemote:FireServer(aim)
@@ -677,6 +695,13 @@ function ToolController.start()
 	RunService.Heartbeat:Connect(function()
 		if holding then
 			trySwing(holding, true)
+		end
+		local buffered = bufferedSource
+		if buffered and os.clock() >= nextSwingAt then
+			bufferedSource = nil
+			if os.clock() <= bufferedUntil then
+				trySwing(buffered)
+			end
 		end
 		-- Putting the gun away (or opening the backpack) ends aiming.
 		local gun = aimableHeld()

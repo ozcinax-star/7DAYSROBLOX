@@ -263,9 +263,12 @@ local function posed(rest: CFrame, current: Motion, now: number): CFrame
 		keys = { { at = 0.3, pose = peak } }
 	end
 	local from, fromAt = rest, 0
-	for _, key in keys :: { Key } do
+	for index, key in keys :: { Key } do
 		if progress < key.at then
-			return from:Lerp(key.pose, ease((progress - fromAt) / (key.at - fromAt)))
+			local a = (progress - fromAt) / (key.at - fromAt)
+			-- The wind-up eases in and out; later keys (the strike) accelerate into contact instead of
+			-- slowing to a stop right where the hit lands.
+			return from:Lerp(key.pose, if index == 1 then ease(a) else a * a)
 		end
 		from, fromAt = key.pose, key.at
 	end
