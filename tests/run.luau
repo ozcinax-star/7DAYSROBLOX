@@ -1402,7 +1402,7 @@ test("iron ore boulders pay scrap iron, and forged iron makes 7DTD's iron tools"
 	for _, id in { "IronFireaxe", "IronPickaxe", "IronShovel" } do
 		local item = Config.Items[id]
 		expectEq(item.Durability, 500, `{id} lasts 500 uses`)
-		expectEq(item.Repair and item.Repair.Id, "ForgedIron", `{id} is repaired with forged iron`)
+		expectEq(item.Repair and item.Repair.Id, "RepairKit", `{id} is repaired with a repair kit`)
 		expectEq(Recipes[id].Station, nil, `{id} is backpack crafting`)
 		expectEq(Config.Crafting.Category[id], "Tools", `{id} is filed under tools`)
 		assert(table.find(Config.Crafting.Order, id), `{id} is in the crafting list`)
@@ -1813,6 +1813,20 @@ test("starving hurts and stops healing; food and medicine heal over time", funct
 	run(stats, 30, { health = 50, maxHealth = 100, sprinting = false, daySeconds = 1e9 })
 	expectNear(stats.food, 75, 1e-4, "all 15 food in")
 	expectEq(stats.healPending, 0, "healing done")
+end)
+
+test("the workbench follows 7DTD and gates the generator", function()
+	local Recipes = Config.Recipes
+	local costs = Crafting.costs(Recipes.Workbench, 1)
+	expectEq(costs.ForgedIron, 25, "forged iron")
+	expectEq(costs.MechanicalParts, 20, "mechanical parts")
+	expectEq(costs.DuctTape, 5, "duct tape")
+	expectEq(costs.Nails, 100, "nails")
+	expectEq(costs.Wood, 100, "wood")
+	expectEq(Recipes.Workbench.Seconds, 379, "379 s")
+	expectEq(Recipes.Generator.Station, "Workbench", "generator at the workbench")
+	expectEq(Crafting.costs(Recipes.RepairKit, 1).DuctTape, 1, "a repair kit takes a duct tape")
+	assert(Config.Build.Blocks.Workbench.Station, "the workbench is a station block")
 end)
 
 test("item info shows each item's numbers and every item has a name and a description", function()

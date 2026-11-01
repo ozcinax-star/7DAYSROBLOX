@@ -779,6 +779,18 @@ Config.Build = {
 			Material = "Brick",
 			Color = { 0.45, 0.3, 0.25 },
 		},
+		-- 7DTD workbench (workstationWorkbench): crafts the advanced recipes (generator, lamps). Its hit
+		-- points are not on the wiki; ours are the forge's, repaired with forged iron.
+		Workbench = {
+			Health = 500,
+			Placeable = true,
+			Repair = { Id = "ForgedIron", Count = 2 },
+			Destroy = { { Id = "ForgedIron", Min = 5, Max = 10 } },
+			Size = { 3.2, 2.4, 2.2 },
+			Station = true,
+			Material = "WoodPlanks",
+			Color = { 0.5, 0.36, 0.22 },
+		},
 	} :: { [string]: BlockDef },
 	-- Height of a farm plot slab (studs); crops stand on it.
 	PlotHeight = 0.8,
@@ -811,9 +823,8 @@ Config.Camera = {
 
 -- 7DTD: stone tools are repaired with small stones, 300 durability and 0.5 s per stone.
 local STONE_REPAIR: RepairDef = { Id = "SmallStone", Amount = 300, Seconds = 0.5 }
--- 7DTD repairs iron tools with a repair kit (one kit, 3 s, always a full repair). There is no repair
--- kit yet: one forged iron does the same (PLAN, Kararlar).
-local IRON_REPAIR: RepairDef = { Id = "ForgedIron", Amount = 500, Seconds = 3 }
+-- 7DTD repairs iron tools with a repair kit (one kit, 3 s, always a full repair).
+local IRON_REPAIR: RepairDef = { Id = "RepairKit", Amount = 500, Seconds = 3 }
 
 -- Recipe ingredients from an { [id] = count } table, in a stable order (by id) for display.
 local function costs(counts: { [string]: number }): { ItemCount }
@@ -943,6 +954,12 @@ Config.Items = {
 	-- resourceForgedIron; its stack is ours.
 	ForgedIron = { Stack = 500, Color = { 0.4, 0.42, 0.46 } },
 	ElectricLamp = { Stack = 100, Color = { 0.95, 0.85, 0.5 } },
+	-- Workbench parts (7DTD stacks: duct tape 500, nails 1000, repair kit 25; the workbench is ours, 10
+	-- like the other stations).
+	DuctTape = { Stack = 500, Color = { 0.62, 0.64, 0.66 } }, -- resourceDuctTape
+	Nails = { Stack = 1000, Color = { 0.55, 0.55, 0.58 } }, -- resourceNail
+	RepairKit = { Stack = 25, Color = { 0.75, 0.3, 0.2 } }, -- resourceRepairKit
+	Workbench = { Stack = 10, Color = { 0.5, 0.36, 0.22 } }, -- workbench
 } :: { [string]: ItemDef }
 
 -- Backpack crafting (7DTD 1.0-3.2 recipes.xml). Recipes are keyed by id; Order lists them for the UI.
@@ -960,24 +977,24 @@ Config.Recipes = {
 		Ingredients = costs({ SmallStone = 4, PlantFiber = 3, Wood = 3 }),
 	},
 	-- 7DTD iron tools: 20 Forged Iron (16 for the shovel), 10 Wood, 2 Leather and 2 Duct Tape
-	-- (204.4 s, the shovel 164.4 s), unlocked by Harvesting Tools 11. We have no perks, leather or duct
-	-- tape: anyone may craft them, with cloth and glue standing in (PLAN, Kararlar).
+	-- (204.4 s, the shovel 164.4 s), unlocked by Harvesting Tools 11. We have no perks or leather:
+	-- anyone may craft them, with cloth standing in for leather (PLAN, Kararlar).
 	IronFireaxe = {
 		Output = "IronFireaxe",
 		Count = 1,
-		Ingredients = costs({ ForgedIron = 20, Wood = 10, Cloth = 2, Glue = 2 }),
+		Ingredients = costs({ ForgedIron = 20, Wood = 10, Cloth = 2, DuctTape = 2 }),
 		Seconds = 204.4,
 	},
 	IronPickaxe = {
 		Output = "IronPickaxe",
 		Count = 1,
-		Ingredients = costs({ ForgedIron = 20, Wood = 10, Cloth = 2, Glue = 2 }),
+		Ingredients = costs({ ForgedIron = 20, Wood = 10, Cloth = 2, DuctTape = 2 }),
 		Seconds = 204.4,
 	},
 	IronShovel = {
 		Output = "IronShovel",
 		Count = 1,
-		Ingredients = costs({ ForgedIron = 16, Wood = 10, Cloth = 2, Glue = 2 }),
+		Ingredients = costs({ ForgedIron = 16, Wood = 10, Cloth = 2, DuctTape = 2 }),
 		Seconds = 164.4,
 	},
 	-- 7DTD: 5 Wood (1 s); 5 Small Stone, 3 Plant Fibers, 3 Wood (2.2 s). The times follow from the
@@ -1090,12 +1107,12 @@ Config.Recipes = {
 		Station = "Campfire",
 	},
 	-- 7DTD forge: 50 Cobblestone Rocks, 1 Wood Log, 10 Leather, 3 Duct Tape and 3 Short Iron Pipes in
-	-- the backpack (81 s). We have no logs, leather or duct tape: 10 Wood, 10 Cloth and 3 Glue stand in
-	-- (PLAN, Kararlar). Pipes and glue are found in storage loot and toilets.
+	-- the backpack (81 s). We have no logs or leather: 10 Wood and 10 Cloth stand in (PLAN, Kararlar).
+	-- Pipes and glue (for the duct tape) are found in storage loot and toilets.
 	Forge = {
 		Output = "Forge",
 		Count = 1,
-		Ingredients = costs({ CobblestoneRocks = 50, Wood = 10, Cloth = 10, Glue = 3, MetalPipe = 3 }),
+		Ingredients = costs({ CobblestoneRocks = 50, Wood = 10, Cloth = 10, DuctTape = 3, MetalPipe = 3 }),
 		Seconds = 81,
 	},
 	-- Forge recipes. 7DTD smelts scrap iron and clay into the forge's material pool and casts from it;
@@ -1139,12 +1156,35 @@ Config.Recipes = {
 		Count = 1,
 		Ingredients = costs({ ForgedIron = 15, MechanicalParts = 6, ElectricalParts = 8 }),
 		Seconds = 105,
+		-- 7DTD crafts the generator bank at a workbench.
+		Station = "Workbench",
 	},
 	ElectricLamp = {
 		Output = "ElectricLamp",
 		Count = 1,
 		Ingredients = costs({ ScrapIron = 4, ElectricalParts = 2 }),
 		Seconds = 10,
+		Station = "Workbench",
+	},
+	-- 7DTD duct tape: 1 Glue and 7 Cloth Fragments (2.4 s) in the backpack; cloth stands in.
+	DuctTape = { Output = "DuctTape", Count = 1, Ingredients = costs({ Glue = 1, Cloth = 7 }), Seconds = 2.4 },
+	-- 7DTD nails: 1 iron and 1 clay unit of the forge pool each (1 s); here ten at a time from the items.
+	Nails = {
+		Output = "Nails",
+		Count = 10,
+		Ingredients = costs({ ScrapIron = 10, Clay = 10 }),
+		Seconds = 10,
+		Station = "Forge",
+	},
+	-- 7DTD repair kit: 1 Forged Iron and 1 Duct Tape (11 s), backpack.
+	RepairKit = { Output = "RepairKit", Count = 1, Ingredients = costs({ ForgedIron = 1, DuctTape = 1 }), Seconds = 11 },
+	-- 7DTD workbench: 25 Forged Iron, 20 Mechanical Parts, 5 Duct Tape, 100 Nails and 100 Wood (379 s),
+	-- backpack.
+	Workbench = {
+		Output = "Workbench",
+		Count = 1,
+		Ingredients = costs({ ForgedIron = 25, MechanicalParts = 20, DuctTape = 5, Nails = 100, Wood = 100 }),
+		Seconds = 379,
 	},
 } :: { [string]: Recipe }
 
@@ -1190,6 +1230,10 @@ Config.Crafting = {
 		"MetalPipe",
 		"CookingPot",
 		"CookingGrill",
+		"DuctTape",
+		"Nails",
+		"RepairKit",
+		"Workbench",
 		"Generator",
 		"ElectricLamp",
 	},
@@ -1232,6 +1276,10 @@ Config.Crafting = {
 		Campfire = "Building",
 		Generator = "Building",
 		ElectricLamp = "Building",
+		DuctTape = "Resources",
+		Nails = "Resources",
+		RepairKit = "Tools",
+		Workbench = "Building",
 		CornSeed = "Food",
 		PotatoSeed = "Food",
 		BlueberrySeed = "Food",
@@ -1986,6 +2034,10 @@ Config.Loot = {
 				-- Guns: a storage sweep gives about 4 pipes, 3 glue and 14 rounds of 9mm.
 				{ Id = "MetalPipe", Min = 1, Max = 2, Weight = 1.5 },
 				{ Id = "Glue", Min = 1, Max = 2, Weight = 1 },
+				-- Workbench parts (7DTD finds duct tape and nails in garages and toolboxes): a sweep gives
+				-- about 3 tapes and 40 nails, so the 100 nails of a workbench still need the forge.
+				{ Id = "DuctTape", Min = 1, Max = 2, Weight = 1 },
+				{ Id = "Nails", Min = 5, Max = 15, Weight = 1 },
 				{ Id = "Ammo9mm", Min = 4, Max = 12, Weight = 1 },
 				{ Id = "Ammo762mm", Min = 3, Max = 8, Weight = 0.7 },
 				{ Id = "AmmoShotgunShell", Min = 2, Max = 6, Weight = 0.7 },
@@ -2337,6 +2389,11 @@ Config.Debug = {
 		{ Id = "Potato", Count = 3 },
 		{ Id = "Corn", Count = 3 },
 		{ Id = "PipePistol", Count = 1 },
+		-- The workbench and a generator's parts, to test station crafting.
+		{ Id = "Workbench", Count = 1 },
+		{ Id = "ForgedIron", Count = 15 },
+		{ Id = "MechanicalParts", Count = 6 },
+		{ Id = "ElectricalParts", Count = 8 },
 		{ Id = "WoodBars", Count = 10 },
 		{ Id = "WoodSpikes", Count = 5 },
 		{ Id = "Bedroll", Count = 1 },

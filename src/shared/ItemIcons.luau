@@ -70,6 +70,10 @@ ItemIcons.Glyphs = {
 	Forge = "🏭",
 	ForgedIron = "⛓",
 	ElectricLamp = "💡",
+	DuctTape = "🩹",
+	Nails = "📌",
+	RepairKit = "🧰",
+	Workbench = "🛠",
 } :: { [string]: string }
 
 -- Shows item `id`'s glyph on the colour square `icon`, adding the glyph label the first time.
