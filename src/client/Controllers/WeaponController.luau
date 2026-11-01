@@ -15,19 +15,25 @@ local InventoryController = require(script.Parent.InventoryController)
 
 type State = { id: string | boolean, slot: number, loaded: number, capacity: number, reserve: number, ammo: string?,
 	reloadStarted: number, reloadEnds: number, readyAt: number, revision: number, shot: boolean }
+-- Critically damped spring: an impulse rises to a peak after 1/RecoilFrequency seconds and settles at 0.
+type Spring = { x: number, v: number }
 local WeaponController = {}
 local player = Players.LocalPlayer
 local HC = Config.WeaponHandling
 local state: State? = nil
 local aimWanted, aimBlend = false, 0
-local recoilPitch, recoilYaw, recoilBack = 0, 0, 0
+local pitchSpring: Spring = { x = 0, v = 0 }
+local yawSpring: Spring = { x = 0, v = 0 }
+local backSpring: Spring = { x = 0, v = 0 }
+local punchSpring: Spring = { x = 0, v = 0 }
+-- The default camera reads its look direction back from camera.CFrame every frame, so only the change
+-- since the last frame is written; the applied offset returns to zero with the springs.
+local appliedPitch, appliedYaw = 0, 0
 local lastPrediction = -math.huge
 local lastHeld: string? = nil
 local lastSlot = 0
 local equippedAt = 0
 local baseFov: number? = nil
-local lastWritten: CFrame? = nil
-local lastRotation = CFrame.identity
 local hitUntil = 0
 local ownProjectiles: { [number]: number } = {}
 local reloadRemote: RemoteEvent
@@ -50,7 +56,28 @@ end
 function WeaponController.setAiming(on: boolean) aimWanted = on end
 function WeaponController.aimAlpha(): number return aimBlend end
 function WeaponController.isAiming(): boolean return aimWanted end
-function WeaponController.kick(): (number, number, number) return recoilPitch, recoilYaw, recoilBack end
+function WeaponController.kick(): (number, number, number) return pitchSpring.x, yawSpring.x, backSpring.x end
+
+local function impulse(spring: Spring, peak: number)
+	spring.v += peak * HC.RecoilFrequency * math.exp(1)
+end
+
+local function step(spring: Spring, dt: number)
+	local w = HC.RecoilFrequency
+	local decay = math.exp(-w * dt)
+	local c = spring.v + w * spring.x
+	spring.x = (spring.x + c * dt) * decay
+	spring.v = (spring.v - w * c * dt) * decay
+end
+
+local function settle()
+	for _, spring in { pitchSpring, yawSpring, backSpring, punchSpring } do spring.x, spring.v = 0, 0 end
+end
+
+-- Camera-only jolt in degrees (taking damage); a random sign keeps repeated hits from drifting one way.
+function WeaponController.punch(degrees: number)
+	impulse(punchSpring, if math.random() < 0.5 then -degrees else degrees)
+end
 function WeaponController.equipAlpha(): number
 	return math.clamp((os.clock() - equippedAt) / Config.Ranged.EquipSeconds, 0, 1)
 end
@@ -68,9 +95,9 @@ function WeaponController.predictShot()
 	local h = held and HC.Items[held.id]
 	if h == nil then return end
 	lastPrediction = os.clock()
-	recoilPitch = math.min(8, recoilPitch + h.Recoil[1])
-	recoilYaw += (math.random() * 2 - 1) * h.Recoil[2]
-	recoilBack = math.min(0.35, recoilBack + h.Recoil[3])
+	impulse(pitchSpring, h.Recoil[1])
+	impulse(yawSpring, (math.random() * 2 - 1) * h.Recoil[2])
+	impulse(backSpring, h.Recoil[3])
 end
 
 function WeaponController.reload()
@@ -146,7 +173,7 @@ local function render(dt: number)
 	local id = if held then held.id else nil
 	local slot = InventoryController.getSelectedSlot()
 	if id ~= lastHeld or slot ~= lastSlot then
-		lastHeld, lastSlot = id, slot; equippedAt = os.clock(); aimWanted = false; recoilPitch, recoilYaw, recoilBack = 0, 0, 0
+		lastHeld, lastSlot = id, slot; equippedAt = os.clock(); aimWanted = false; settle()
 	end
 	local weapon = id and Config.Ranged.Weapons[id]
 	local s = WeaponController.getState()
@@ -157,15 +184,16 @@ local function render(dt: number)
 	if not active or reloading then aimWanted = false end
 	local target = if aimWanted and active then 1 else 0
 	aimBlend += (target - aimBlend) * (1 - math.exp(-HC.AimResponse * dt))
-	local decay = math.exp(-HC.RecoilReturn * dt)
-	recoilPitch, recoilYaw, recoilBack = recoilPitch * decay, recoilYaw * decay, recoilBack * decay
+	for _, spring in { pitchSpring, yawSpring, backSpring, punchSpring } do step(spring, dt) end
 	local camera = workspace.CurrentCamera
 	if camera then
 		if baseFov == nil then baseFov = camera.FieldOfView end
 		camera.FieldOfView = (baseFov :: number) + (Config.Ranged.AimFieldOfView - (baseFov :: number)) * aimBlend
-		local base = if lastWritten and camera.CFrame == lastWritten then camera.CFrame * lastRotation:Inverse() else camera.CFrame
-		lastRotation = CFrame.Angles(math.rad(recoilPitch), math.rad(recoilYaw), 0)
-		camera.CFrame = base * lastRotation; lastWritten = camera.CFrame
+		local motion = if GuiService.ReducedMotionEnabled then HC.ReducedMotionShare else 1
+		local wantPitch = (pitchSpring.x * HC.CameraRecoilShare + punchSpring.x) * motion
+		local wantYaw = yawSpring.x * HC.CameraRecoilShare * motion
+		camera.CFrame *= CFrame.Angles(math.rad(wantPitch - appliedPitch), math.rad(wantYaw - appliedYaw), 0)
+		appliedPitch, appliedYaw = wantPitch, wantYaw
 	end
 	panel.Visible = active
 	reloadButton.Visible = active and weapon ~= nil and weapon.Magazine ~= nil and UserInputService.TouchEnabled
@@ -197,7 +225,7 @@ local function render(dt: number)
 	end
 	reticle.Visible = active and (UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter
 		or UserInputService:GetLastInputType() == Enum.UserInputType.Gamepad1 or UserInputService.TouchEnabled)
-	local gap = 5 + (1 - aimBlend) * 5 + recoilPitch * 3
+	local gap = 5 + (1 - aimBlend) * 5 + math.max(0, pitchSpring.x) * 3
 	for i, bar in bars do
 		bar.BackgroundTransparency = aimBlend * 0.85
 		bar.Size = if i <= 2 then UDim2.fromOffset(7, 2) else UDim2.fromOffset(2, 7)
@@ -221,7 +249,8 @@ function WeaponController.start()
 		if ownProjectiles[id] then ownProjectiles[id] = nil; if zombie ~= 0 then WeaponController.hitConfirmed() end end
 	end)
 	RunService:BindToRenderStep("WeaponCamera", Enum.RenderPriority.Camera.Value + 2, render)
-	player.CharacterAdded:Connect(function() aimWanted = false; state = nil; lastWritten = nil end)
+	-- A new character gets a fresh camera subject: the old offset is not carried over or undone.
+	player.CharacterAdded:Connect(function() aimWanted = false; state = nil; settle(); appliedPitch, appliedYaw = 0, 0 end)
 end
 
 return WeaponController

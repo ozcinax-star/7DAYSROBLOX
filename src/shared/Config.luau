@@ -1499,7 +1499,13 @@ export type HandlingDef = {
 }
 Config.WeaponHandling = {
 	AimResponse = 14,
-	RecoilReturn = 15,
+	-- Recoil spring (critically damped): an impulse peaks after 1/RecoilFrequency s (40 ms) and is
+	-- under 2% of its peak after 0.25 s. Item Recoil values are viewmodel peaks in degrees/studs.
+	RecoilFrequency = 25,
+	-- Share of the viewmodel pitch/yaw kick the camera follows: pistol 0.84°, rifle 1.28°, shotgun 1.8°.
+	CameraRecoilShare = 0.4,
+	-- Camera kick and punch scale when the player turns on Reduced Motion in Roblox settings.
+	ReducedMotionShare = 0.25,
 	SwayReturn = 11,
 	SwayAmount = 0.45,
 	SwayLimit = 0.055,
@@ -1995,6 +2001,28 @@ Config.Melee = {
 	-- of the head (studs) and further than the tool's reach plus TooFarMargin.
 	TooFarDistance = 40,
 	TooFarMargin = 1,
+}
+
+-- Client feedback when the local player takes damage (cosmetic only; values tuned by feel).
+Config.Hurt = {
+	-- Red screen-edge flash: peak opacity (0-1) and the seconds it takes to fade out.
+	FlashAlpha = 0.35,
+	FlashSeconds = 0.4,
+	-- A hit of FlashFullDamage or more flashes at full strength; smaller hits scale down to FlashMinStrength.
+	FlashFullDamage = 20,
+	FlashMinStrength = 0.7,
+	-- Health lost below this is regeneration noise and gives no flash.
+	MinDamage = 1,
+	-- Camera punch in degrees per point of damage, capped.
+	PunchPerDamage = 0.15,
+	PunchMax = 2,
+	-- Below this share of max health the edges pulse and the colour drains.
+	LowHealthShare = 0.3,
+	LowHealthAlpha = 0.22,
+	PulseHz = 1.1,
+	LowHealthSaturation = -0.4,
+	-- Width of each edge band as a share of the screen.
+	EdgeShare = 0.28,
 }
 
 -- Player survival stats (7DTD playerMale, buffStatusHungry01-03 and buffStatusThirsty01-03 in 1.0-3.2;
