@@ -67,6 +67,7 @@ ItemIcons.Glyphs = {
 	CookingGrill = "♨",
 	Charcoal = "⚫",
 	Coal = "◼",
+	Gunpowder = "💥",
 	PotassiumNitrate = "🧂",
 	Lighter = "🕯",
 	Forge = "🏭",

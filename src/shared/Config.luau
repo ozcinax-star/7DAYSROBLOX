@@ -968,6 +968,8 @@ Config.Items = {
 	Charcoal = { Stack = 6000, Color = { 0.16, 0.15, 0.15 } },
 	-- 7DTD resourceCoal and resourcePotassiumNitratePowder (stacks 6000): mined from ore boulders.
 	Coal = { Stack = 6000, Color = { 0.1, 0.1, 0.11 }, Raw = true },
+	-- 7DTD resourceGunPowder (stack 6000; V3.3: crafted in the backpack or at a chemistry station).
+	Gunpowder = { Stack = 6000, Color = { 0.2, 0.2, 0.22 } },
 	PotassiumNitrate = { Stack = 6000, Color = { 0.92, 0.9, 0.84 }, Raw = true },
 	Lighter = { Stack = 1, Durability = 50, Color = { 0.8, 0.22, 0.16 } },
 	Forge = { Stack = 10, Color = { 0.45, 0.3, 0.25 } }, -- workstationForge
@@ -1190,6 +1192,34 @@ Config.Recipes = {
 	-- 7DTD torch: 1 Animal Fat, 5 Cloth Fragments and 1 Wood (16.2 s). We have no animal fat: charcoal
 	-- stands in (ours), so the first torches come after the first campfire.
 	Torch = { Output = "Torch", Count = 1, Ingredients = costs({ Wood = 1, Cloth = 5, Charcoal = 1 }), Seconds = 16.2 },
+	-- Gunpowder: 1 coal and 1 potassium nitrate, backpack. The ratio is NOT verified against 7DTD's
+	-- files (V3.3 only confirms backpack or chemistry station crafting); tune when sourced.
+	Gunpowder = { Output = "Gunpowder", Count = 1, Ingredients = costs({ Coal = 1, PotassiumNitrate = 1 }), Seconds = 1 },
+	-- Ammunition at the workbench (7DTD: a round is a bullet tip, a casing and a gunpowder; tips and
+	-- casings are cast from lead and brass, which we do not have). Ours: scrap iron stands in for tips
+	-- and casings, one per two rounds (two for the heavier 7.62), ten rounds a batch.
+	Ammo9mm = {
+		Output = "Ammo9mm",
+		Count = 10,
+		Ingredients = costs({ Gunpowder = 10, ScrapIron = 5 }),
+		Seconds = 24,
+		Station = "Workbench",
+	},
+	Ammo762mm = {
+		Output = "Ammo762mm",
+		Count = 10,
+		Ingredients = costs({ Gunpowder = 10, ScrapIron = 10 }),
+		Seconds = 24,
+		Station = "Workbench",
+	},
+	-- A shell: gunpowder, a scrap-iron shot load and a fibre wad (ours).
+	AmmoShotgunShell = {
+		Output = "AmmoShotgunShell",
+		Count = 10,
+		Ingredients = costs({ Gunpowder = 10, ScrapIron = 10, PlantFiber = 5 }),
+		Seconds = 24,
+		Station = "Workbench",
+	},
 	-- 7DTD duct tape: 1 Glue and 7 Cloth Fragments (2.4 s) in the backpack; cloth stands in.
 	DuctTape = { Output = "DuctTape", Count = 1, Ingredients = costs({ Glue = 1, Cloth = 7 }), Seconds = 2.4 },
 	-- 7DTD nails: 1 iron and 1 clay unit of the forge pool each (1 s); here ten at a time from the items.
@@ -1255,6 +1285,10 @@ Config.Crafting = {
 		"MetalPipe",
 		"CookingPot",
 		"CookingGrill",
+		"Gunpowder",
+		"Ammo9mm",
+		"Ammo762mm",
+		"AmmoShotgunShell",
 		"DuctTape",
 		"Nails",
 		"RepairKit",
@@ -1302,6 +1336,10 @@ Config.Crafting = {
 		Generator = "Building",
 		ElectricLamp = "Building",
 		Torch = "Tools",
+		Gunpowder = "Resources",
+		Ammo9mm = "Weapons",
+		Ammo762mm = "Weapons",
+		AmmoShotgunShell = "Weapons",
 		DuctTape = "Resources",
 		Nails = "Resources",
 		RepairKit = "Tools",
