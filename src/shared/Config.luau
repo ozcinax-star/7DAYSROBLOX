@@ -291,6 +291,10 @@ Config.Zombie = {
 	SpeedJitter = 0.15,
 	-- Max distance at which a zombie notices a player directly; line of sight is checked by raycast.
 	SightRange = 60,
+	-- Field of view (degrees, full width) around the direction it last walked: a player behind it is not
+	-- seen (ours; 7DTD publishes no cone). Within SenseRange studs a player is noticed from any side.
+	SightConeDegrees = 120,
+	SenseRange = 6,
 	-- Chase is dropped when the player gets farther than SightRange * LoseSightMultiplier.
 	LoseSightMultiplier = 1.5,
 	SightCheckInterval = 0.5,
@@ -360,6 +364,10 @@ Config.Zombie = {
 	-- Spawn ring around the target players (studs).
 	SpawnMinDistance = 60,
 	SpawnMaxDistance = 120,
+	-- An outdoor spawn point a player faces (within SpawnViewDegrees of where their character looks) and
+	-- can see within this distance is skipped, so zombies never pop in before their eyes (ours).
+	SpawnHiddenDistance = 160,
+	SpawnViewDegrees = 140,
 	SpawnAttempts = 12,
 }
 

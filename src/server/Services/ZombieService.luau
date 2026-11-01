@@ -42,6 +42,8 @@ local NC = Config.Network
 local GROUND = 1
 local UPPER = 2
 local FLOOR_HEIGHT = BuildingKit.FloorHeight
+local SIGHT_COS = math.cos(math.rad(ZC.SightConeDegrees / 2))
+local SPAWN_VIEW_COS = math.cos(math.rad(ZC.SpawnViewDegrees / 2))
 -- Distance from the foot or top cell centre at which a zombie steps onto the flight (studs).
 local STAIR_SNAP = 1
 -- Closest a zombie's path offset may come to the edge of the waypoint's cell (studs).
@@ -127,6 +129,9 @@ type Zombie = {
 	-- Seconds wedged with no wall to push and no free axis, and the side it slides out to (1 / -1).
 	stuckFor: number,
 	slideSide: number,
+	-- Unit direction of the last step taken: where the zombie looks (sight cone).
+	faceX: number,
+	faceZ: number,
 	breaking: boolean,
 	dirty: boolean,
 	-- Last state put in a snapshot, and how many more snapshots repeat it: snapshots are unreliable and
@@ -499,6 +504,7 @@ local function moveToward(zombie: Zombie, tx: number, tz: number, speed: number,
 	if dist < 1e-3 then
 		return
 	end
+	zombie.faceX, zombie.faceZ = dx / dist, dz / dist
 	local step = math.min(dist, speed * dt)
 	local nx = zombie.x + dx / dist * step
 	local nz = zombie.z + dz / dist * step
@@ -783,6 +789,15 @@ end
 
 local stepMovement: (zombie: Zombie, players: { PlayerInfo }, now: number, dt: number) -> ()
 
+-- True when `target` is inside the zombie's field of view, or close enough to be sensed anyway.
+local function inSightCone(zombie: Zombie, target: PlayerInfo, dist: number): boolean
+	if dist <= ZC.SenseRange or dist < 1e-3 then
+		return true
+	end
+	local dot = ((target.x - zombie.x) * zombie.faceX + (target.z - zombie.z) * zombie.faceZ) / dist
+	return dot >= SIGHT_COS
+end
+
 local function stepZombie(zombie: Zombie, players: { PlayerInfo }, now: number, dt: number)
 	local nearest, nearestDist = nearestPlayer(players, zombie.x, zombie.z)
 
@@ -799,7 +814,7 @@ local function stepZombie(zombie: Zombie, players: { PlayerInfo }, now: number, 
 		local bumped = zombie.dormant
 			and nearestDist <= ZC.DormantWakeDistance
 			and math.abs(nearest.y - zombie.y) < FLOOR_HEIGHT / 2
-		if bumped or (nearestDist <= sight and hasLineOfSight(zombie, nearest)) then
+		if bumped or (nearestDist <= sight and inSightCone(zombie, nearest, nearestDist) and hasLineOfSight(zombie, nearest)) then
 			startChase(zombie, nearest.player)
 		end
 	end
@@ -1016,6 +1031,28 @@ local function pickIndoorSpawnPoint(players: { PlayerInfo }): (number?, number?,
 	return nil, nil, GROUND, 0
 end
 
+-- True when a player faces (x, z) within Config.Zombie.SpawnHiddenDistance and nothing blocks the view:
+-- a zombie appearing there would pop in before their eyes.
+local function seenFromPlayers(players: { PlayerInfo }, x: number, z: number): boolean
+	local y = MapService.groundAt(x, z) + ZC.RootHeight
+	for _, info in players do
+		local dx, dz = x - info.x, z - info.z
+		local dist = math.sqrt(dx * dx + dz * dz)
+		if dist <= ZC.SpawnHiddenDistance and dist > 1e-3 then
+			local look = info.root.CFrame.LookVector
+			local flat = math.sqrt(look.X * look.X + look.Z * look.Z)
+			local facing = flat < 1e-3 or (look.X * dx + look.Z * dz) / (flat * dist) >= SPAWN_VIEW_COS
+			if facing then
+				local origin = Vector3.new(info.x, info.y, info.z)
+				if Workspace:Raycast(origin, Vector3.new(x, y, z) - origin, sightParams) == nil then
+					return true
+				end
+			end
+		end
+	end
+	return false
+end
+
 local function pickSpawnPoint(players: { PlayerInfo }): (number?, number?)
 	local cx, cz = 0, 0
 	if #players > 0 then
@@ -1027,8 +1064,8 @@ local function pickSpawnPoint(players: { PlayerInfo }): (number?, number?)
 		local radius = randomRange(ZC.SpawnMinDistance, ZC.SpawnMaxDistance)
 		local x = cx + math.cos(angle) * radius
 		local z = cz + math.sin(angle) * radius
-		-- Never inside a player structure (structure cells are walkable for path costs).
-		if isFree(grid, -1, x, z) then
+		-- Never inside a player structure (structure cells are walkable for path costs), never in view.
+		if isFree(grid, -1, x, z) and not seenFromPlayers(players, x, z) then
 			return x, z
 		end
 	end
@@ -1057,6 +1094,7 @@ local function spawnOne(players: { PlayerInfo }, now: number, horde: boolean): b
 	local floor = if level == UPPER then buildingNavs[building].upperY else MapService.groundAt(x, z)
 	local spread = ZC.SpreadRadius
 	local kind = ZombieKinds.of(id)
+	local faceAngle = math.random() * math.pi * 2
 	local health = ZC.MaxHealth * kind.HealthShare * (1 + randomRange(-ZC.HealthSpread, ZC.HealthSpread))
 	local zombie: Zombie = {
 		id = id,
@@ -1098,6 +1136,8 @@ local function spawnOne(players: { PlayerInfo }, now: number, horde: boolean): b
 		pushing = nil,
 		stuckFor = 0,
 		slideSide = if math.random() < 0.5 then 1 else -1,
+		faceX = math.cos(faceAngle),
+		faceZ = math.sin(faceAngle),
 		breaking = false,
 		dirty = true,
 		sentState = "",
