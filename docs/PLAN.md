@@ -278,6 +278,7 @@ Lobi, PvP ve hikâye için verilmiş kararlar.
 | Hasar geri bildirimi | Can düşünce kırmızı kenar flaşı (0,35 opaklık, 0,4 sn) ve hasarla ölçeklenen kamera sarsıntısı (en çok 2°); %30 canın altında nabız gibi atan kenar ve renk solması | İncelemede oyuncu fark etmeden öldü; Roblox'un kendi flaşı HUD için kapatılmıştı |
 | Tepme | Kritik sönümlü yay (40 ms'de tepe, 0,25 sn'de %2'nin altı); kamera görüş tepmesinin %40'ını izler. Kamera her karede yalnızca farkı alır | Eski kod her atışta kalıcı +1,24° bırakıyordu (ölçüldü); yeni kodda 0,00° |
 | Dolgu toprağı | Dirt ile doldurulan voksel 12 Clay verir (Dirt 16 Clay) | Kaz-doldur-kaz döngüsü turda +6 Clay üretiyordu |
+| Kayıt | ProfileStore (oturum kilidi). Dünya kaydı private sunucu anahtarıyla; karakter (envanter, değerler) dünyanın içinde, oyuncu başına (7DTD gibi). Profil dünyalar arası: görevler, ileride perk ve kozmetik. Public sunucu geçici dünya. Studio sahte depoda | Kullanıcı 2 Kasım'da kayda başlanmasını onayladı. Lobi ve ReserveServer gelince dünya anahtarı onunla belirlenecek. [SAVE.md](SAVE.md) |
 
 ## Silah kullanımı güncellemesi — 1 Kasım 2026
 

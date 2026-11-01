@@ -39,8 +39,10 @@ Aynı gün sonradan yapılanlar:
 - Doğma kontrolü kameranın değil karakterin yönünü kullanıyor.
 
 Kullanıcı kararı bekleyen:
-- **Kalıcılık (DataStore):** PLAN 3. aşama. Şema geri dönüşü zor bir karar olduğu için kullanıcı onayı
-  olmadan başlanmadı.
+- **Kalıcılık:** 2 Kasım'da kullanıcı onayıyla yapıldı ([SAVE.md](SAVE.md)). Kalanlar:
+  - loot konteyner durumu
+  - gerçek mağazada 50 döngülük kapı testi
+  - lobi ve ReserveServer dünyaları (PLAN 3. aşama)
 
 **Silah kullanımı (1 Kasım 2026, Codex):** Şarjör/doldurma artık her silah için sunucuda gerçek;
 nişan, tepme, mermi paneli ve birinci/üçüncü şahıs tutuşu yenilendi. 90 test geçti. Kontroller:

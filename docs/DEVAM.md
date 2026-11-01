@@ -19,6 +19,17 @@ Debug GiveKit artık demir balta ve demir kürek de verir. Ayrıntı ve test ad�
 birinci şahıs kopyaları Play'de denetlendi; makineliyle 3 atış sunucudan doğrulandı. Mobil FPS ölçülmedi.
 Önceki oturumların oynanış doğrulamaları ve aşağıdaki yol haritası devam ediyor.
 
+## Güncel ek: kayıt sistemi (2 Kasım 2026, Claude)
+
+Kullanıcı onayıyla kayıt eklendi (ProfileStore, oturum kilitli):
+- **Private sunucu dünyası kalıcı:** bloklar, sandıklar, kazı, ekinler, ateşler, jeneratörler, kesilen
+  ağaçlar, saat, İz ve her oyuncunun o dünyadaki envanteri ile değerleri.
+- **Profil:** görev ilerlemesi.
+- **Public sunucu:** geçici dünya (PLAN).
+
+Studio'da sahte depoyla geri okuma ve yükleme yolları doğrulandı. Gerçek mağazada çok oturumlu test
+ve PLAN 3. aşama kapısı henüz yapılmadı. Ayrıntı ve test: [SAVE.md](SAVE.md).
+
 ## Güncel ek: inceleme ve düzeltme turu (1 Kasım 2026, Claude)
 
 Tam kod ve oyun incelemesi [REVIEW_2026-11-01.md](REVIEW_2026-11-01.md) içinde. Ardından kullanıcı
