@@ -369,6 +369,8 @@ Config.Zombie = {
 	SpawnHiddenDistance = 160,
 	SpawnViewDegrees = 140,
 	SpawnAttempts = 12,
+	-- At most this many zombies spawn per server step (a 30-zombie wave takes about 8 frames).
+	SpawnsPerStep = 4,
 }
 
 Config.Horde = {

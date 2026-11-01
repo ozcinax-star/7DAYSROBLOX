@@ -455,7 +455,9 @@ end
 -- waiting for the next frame (an automatic gun would fire ~10% slow at 30 FPS); a use after a pause
 -- counts from now.
 local function scheduleNext(now: number, seconds: number)
-	local base = if now - nextSwingAt < seconds * 0.5 then nextSwingAt else now
+	-- Only a little lateness is carried over: the server measures from the use it accepted and allows
+	-- uses Config.Melee.CooldownTolerance early, so a bigger carry-over would get the next one dropped.
+	local base = math.max(nextSwingAt, now - seconds * MC.CooldownTolerance * 0.5)
 	nextSwingAt = base + seconds
 end
 

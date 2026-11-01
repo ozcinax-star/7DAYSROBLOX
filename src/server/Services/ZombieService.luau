@@ -521,8 +521,10 @@ local function moveToward(zombie: Zombie, tx: number, tz: number, speed: number,
 		end
 		if isFree(g, here, nx, zombie.z) then
 			zombie.x = nx
+			zombie.stuckFor = 0
 		elseif isFree(g, here, zombie.x, nz) then
 			zombie.z = nz
+			zombie.stuckFor = 0
 		else
 			zombie.pushing = wall
 			if wall ~= nil then
@@ -1153,7 +1155,10 @@ local function processSpawnQueue(players: { PlayerInfo }, now: number)
 		return
 	end
 	local capped = false
-	while spawnQueue > 0 or hordeQueue > 0 do
+	-- A wave arrives over a few frames: each spawn builds a body on every client and casts view rays.
+	local budget = ZC.SpawnsPerStep
+	while (spawnQueue > 0 or hordeQueue > 0) and budget > 0 do
+		budget -= 1
 		if aliveCount >= Config.Horde.MaxConcurrent then
 			capped = true
 			break

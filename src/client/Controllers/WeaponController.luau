@@ -200,7 +200,11 @@ local function render(dt: number)
 		local motion = if GuiService.ReducedMotionEnabled then HC.ReducedMotionShare else 1
 		local wantPitch = (pitchSpring.x * HC.CameraRecoilShare + punchSpring.x) * motion
 		local wantYaw = yawSpring.x * HC.CameraRecoilShare * motion
-		camera.CFrame *= CFrame.Angles(math.rad(wantPitch - appliedPitch), math.rad(wantYaw - appliedYaw), 0)
+		-- Yaw turns about world up and pitch about the camera's right, like the default camera itself, so
+		-- the return exactly undoes the kick and no roll is left for the camera to discard.
+		local cf = camera.CFrame
+		local turned = CFrame.Angles(0, math.rad(wantYaw - appliedYaw), 0) * cf.Rotation
+		camera.CFrame = CFrame.new(cf.Position) * turned * CFrame.Angles(math.rad(wantPitch - appliedPitch), 0, 0)
 		appliedPitch, appliedYaw = wantPitch, wantYaw
 	end
 	panel.Visible = active
