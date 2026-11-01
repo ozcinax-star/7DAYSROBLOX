@@ -841,6 +841,11 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
 
 ## Bilinen sorunlar ve tuzaklar
 
+- **`H.sync()` sonrası `require` eski kodu döndürür.** `execute_luau` aynı ModuleScript için önbelleği
+  tutuyor; sync kaynağı yerinde değiştirdiğinden değişen modül Edit'te eski sonucu verir. Modülü
+  klonlayıp klonu `require` et ya da Play'de dene.
+- **EditableMesh oyun script'lerinde kapalı.** Komut bağlamında Edit'te çalışır, Play'de oyun
+  script'lerinden "EditableMesh is not accessible" hatası verir; izin Game Settings → Security'de.
 - **Studio ikinci ekranda.** Kullanıcı 1. ekranı kullanır; Studio VG248 ekranında öndeyken
   `screen_capture` Edit'te de Play'de de 3B çizer. Görüntü beyazsa kullanıcıdan Studio'yu öne
   almasını iste; masaüstü aracıyla görev çubuğuna tıklama (bir kez Studio'yu kapattı).

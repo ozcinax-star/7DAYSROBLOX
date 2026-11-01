@@ -1,5 +1,17 @@
 # Devam notu
 
+## Güncel ek: kullanıcı testinden üç hata (1 Kasım 2026, Claude)
+
+Dal `claude/zombie-animation-weapon-bugs-93a707`, `a3f7690`'ın (dövüş/zombi dalı) üstünde.
+- **Görev takılıyordu** (`b9e8936`): toplama görevi izlenirken yapılan taş balta sayılmıyordu.
+  Artık oturum boyunca yapılan her iş sayılır, sırası gelen görev oradan başlar. 103 test geçiyor.
+- **Gömlek kolları kolla dönmüyordu** (`329f70e`): ekoseli gömlek tek parça mesh'ti. İstemci onu bir
+  kez gövde ve iki kolluğa keser; kolluk üst kolun yerini alır. **Oyunda çalışması için Game Settings
+  → Security'de mesh/görsel API'lerine izin verilmeli**; izin yoksa bu zombiler blok gömlek giyer
+  (Play'de 80 zombi, hata yok). Kesim Edit'te ölçüldü ve görüntüyle doğrulandı.
+- **"Silahla ateş edince zombinin bir eklemi uzadı":** yeniden üretilemedi. Kodda zombi parçasının
+  boyunu çalışırken değiştiren yer yok; hangi silah, hangi kamera ve hangi uzuv olduğu soruldu.
+
 ## Güncel ek: silahlar, dövüş, zombiler, elektrik, evler (1 Kasım 2026, Claude)
 
 Altı commit, hepsi Studio Play'de ölçüldü. Ayrıntı ve kullanıcı test adımları:
