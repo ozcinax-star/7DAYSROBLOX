@@ -54,7 +54,15 @@ local GRASSY = { Grass = true, LeafyGrass = true }
 local PAVED = { Asphalt = true, Pavement = true }
 -- Forest prop kinds that can be gathered, and their Config.Harvest.Nodes entry (trees by size).
 local PROP_NODES =
-	{ Bush = "Bush", Rock = "Boulder", IronRock = "IronBoulder", TallGrass = "Grass", LooseRock = "LooseRock" }
+	{
+		Bush = "Bush",
+		Rock = "Boulder",
+		IronRock = "IronBoulder",
+		CoalRock = "CoalBoulder",
+		NitrateRock = "NitrateBoulder",
+		TallGrass = "Grass",
+		LooseRock = "LooseRock",
+	}
 
 local mapFolder: Folder? = nil
 local heightGrid: TerrainBuilder.HeightGrid? = nil
@@ -406,7 +414,11 @@ local function buildForest(parent: Instance, keepOut: { Circle })
 				local yaw = Noise.hash(ix, iz, seed + 6) * 360
 				local kind
 				if roll < forest.RockChance then
-					kind = if Noise.hash(ix, iz, seed + 8) < forest.IronShare then "IronRock" else "Rock"
+					local ore = Noise.hash(ix, iz, seed + 8)
+					kind = if ore < forest.IronShare then "IronRock"
+						elseif ore < forest.IronShare + forest.CoalShare then "CoalRock"
+						elseif ore < forest.IronShare + forest.CoalShare + forest.NitrateShare then "NitrateRock"
+						else "Rock"
 				elseif roll < forest.RockChance + forest.LogChance then
 					kind = "FallenLog"
 				elseif roll < forest.RockChance + forest.LogChance + forest.BushChance then

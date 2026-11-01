@@ -79,6 +79,11 @@ Palette.Styles = {
 	-- Iron ore boulders: a rust-brown rock with rusty veins.
 	IronOre = style(rgb(112, 96, 88), M.Rock),
 	OreVein = style(rgb(160, 84, 46), M.CorrodedMetal),
+	-- Coal boulders: dark grey rock with glossy black seams; nitrate boulders: pale rock crusted white.
+	CoalOre = style(rgb(74, 72, 70), M.Rock),
+	CoalVein = style(rgb(24, 24, 26), M.Basalt),
+	NitrateOre = style(rgb(150, 142, 128), M.Rock),
+	NitrateVein = style(rgb(232, 228, 214), M.Salt),
 	-- Gatherable plants and stones read lighter than the terrain around them.
 	TallGrass = style(rgb(128, 152, 66), M.Grass),
 	LooseRock = style(rgb(156, 150, 140), M.Rock),

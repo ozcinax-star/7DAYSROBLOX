@@ -966,6 +966,9 @@ Config.Items = {
 	-- Here charcoal is burnt from wood at a campfire and stands in for coal (resourceCoal's stack), and
 	-- a lighter, found in houses, lights a station (50 lights; plant fibre tinder also works).
 	Charcoal = { Stack = 6000, Color = { 0.16, 0.15, 0.15 } },
+	-- 7DTD resourceCoal and resourcePotassiumNitratePowder (stacks 6000): mined from ore boulders.
+	Coal = { Stack = 6000, Color = { 0.1, 0.1, 0.11 }, Raw = true },
+	PotassiumNitrate = { Stack = 6000, Color = { 0.92, 0.9, 0.84 }, Raw = true },
 	Lighter = { Stack = 1, Durability = 50, Color = { 0.8, 0.22, 0.16 } },
 	Forge = { Stack = 10, Color = { 0.45, 0.3, 0.25 } }, -- workstationForge
 	-- resourceForgedIron; its stack is ours.
@@ -1332,12 +1335,12 @@ Config.Crafting = {
 -- charcoal only (ours: 7DTD's forge also takes wood; here it needs the hotter fuel, which is what the
 -- charcoal recipe is for).
 Config.Stations = {
-	FuelSeconds = { Wood = 50, Charcoal = 100 } :: { [string]: number },
+	FuelSeconds = { Wood = 50, Charcoal = 100, Coal = 100 } :: { [string]: number },
 	-- Ours: a campfire holds 30 wood, over two day cycles of burning.
 	Kinds = {
-		Campfire = { Fuels = { "Wood", "Charcoal" }, MaxFuel = 1500, Tab = "Food" },
+		Campfire = { Fuels = { "Wood", "Charcoal", "Coal" }, MaxFuel = 1500, Tab = "Food" },
 		-- Ours: 30 charcoal.
-		Forge = { Fuels = { "Charcoal" }, MaxFuel = 3000, Tab = "Resources" },
+		Forge = { Fuels = { "Charcoal", "Coal" }, MaxFuel = 3000, Tab = "Resources" },
 	} :: { [string]: StationDef },
 	-- Items one "Add fuel" press puts in (ours: 7DTD drags stacks into fuel slots).
 	FuelPerAdd = 5,
@@ -1745,6 +1748,15 @@ Config.Harvest = {
 			Material = "Stone",
 			Health = 600,
 			Harvest = { drop("ScrapIron", 105), drop("SmallStone", 14) },
+			Destroy = {},
+		},
+		-- 7DTD oreCoalBoulder / orePotassiumNitrateBoulder: 600 hit points, 50 coal or 50 nitrate and 14
+		-- small stones over the hits.
+		CoalBoulder = { Material = "Stone", Health = 600, Harvest = { drop("Coal", 50), drop("SmallStone", 14) }, Destroy = {} },
+		NitrateBoulder = {
+			Material = "Stone",
+			Health = 600,
+			Harvest = { drop("PotassiumNitrate", 50), drop("SmallStone", 14) },
 			Destroy = {},
 		},
 		-- Town furniture (Furniture below): health is the 7DTD block material's MaxDamage

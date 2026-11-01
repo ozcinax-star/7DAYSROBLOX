@@ -1369,10 +1369,13 @@ test("every fire station is a station block with known fuels, a crafting tab and
 	expectEq(Crafting.costs(Recipes.Charcoal, 1).Wood, 3, "from three wood")
 end)
 
-test("the forge burns charcoal and forges 7DTD's iron from scrap and clay", function()
+test("the forge burns charcoal or coal and forges 7DTD's iron from scrap and clay", function()
 	local forge = Config.Stations.Kinds.Forge
-	expectEq(#forge.Fuels, 1, "one fuel")
-	expectEq(forge.Fuels[1], "Charcoal", "charcoal only")
+	expectEq(#forge.Fuels, 2, "two fuels")
+	expectEq(forge.Fuels[1], "Charcoal", "charcoal")
+	expectEq(forge.Fuels[2], "Coal", "and mined coal")
+	expectEq(Config.Stations.FuelSeconds.Coal, 100, "coal burns 100 s (7DTD FuelValue)")
+	expectEq(Config.Harvest.Nodes.CoalBoulder.Health, 600, "coal boulder 600 hit points")
 	local block = Config.Build.Blocks.Forge
 	assert(block.Station and not block.Passable, "zombies break the forge like a wall")
 	local iron = Crafting.costs(Recipes.ForgedIron, 1)

@@ -136,6 +136,35 @@ local Builders: { [string]: Builder } = {
 			part(model, "Vein", vein.size * scale, base * CFrame.new(vein.at * scale) * tilt, S.OreVein)
 		end
 	end,
+	-- Coal and nitrate boulders: the same shape, their own rock and seam colours.
+	CoalRock = function(model, base, scale)
+		block(model, base, "Rock", Vector3.new(7, 4, 6) * scale, 0, -0.5, 0, S.CoalOre)
+		part(
+			model,
+			"Rock",
+			Vector3.new(4, 3, 4) * scale,
+			base * CFrame.new(2 * scale, 2.5 * scale, 1 * scale) * CFrame.Angles(0.3, 0.6, 0.2),
+			S.CoalOre
+		)
+		for _, vein in IRON_VEINS do
+			local tilt = CFrame.Angles(vein.tilt.X, vein.tilt.Y, vein.tilt.Z)
+			part(model, "Vein", vein.size * scale, base * CFrame.new(vein.at * scale) * tilt, S.CoalVein)
+		end
+	end,
+	NitrateRock = function(model, base, scale)
+		block(model, base, "Rock", Vector3.new(7, 4, 6) * scale, 0, -0.5, 0, S.NitrateOre)
+		part(
+			model,
+			"Rock",
+			Vector3.new(4, 3, 4) * scale,
+			base * CFrame.new(2 * scale, 2.5 * scale, 1 * scale) * CFrame.Angles(0.3, 0.6, 0.2),
+			S.NitrateOre
+		)
+		for _, vein in IRON_VEINS do
+			local tilt = CFrame.Angles(vein.tilt.X, vein.tilt.Y, vein.tilt.Z)
+			part(model, "Vein", vein.size * scale, base * CFrame.new(vein.at * scale) * tilt, S.NitrateVein)
+		end
+	end,
 	-- Three wedge blades fanned out and leaning outward, waist high so a swing from the head reaches
 	-- them.
 	TallGrass = function(model, base, scale)

@@ -284,8 +284,11 @@ WorldLayout.Forest = {
 	PadClearance = 8,
 	PineChance = 0.6,
 	RockChance = 0.05,
-	-- Share of forest boulders that carry iron ore (ours).
+	-- Share of forest boulders that carry iron ore, coal or potassium nitrate (ours; 7DTD puts coal and
+	-- nitrate boulders in its biomes, we have one forest). The rest are plain stone.
 	IronShare = 0.3,
+	CoalShare = 0.15,
+	NitrateShare = 0.12,
 	BushChance = 0.12,
 	LogChance = 0.03,
 }
