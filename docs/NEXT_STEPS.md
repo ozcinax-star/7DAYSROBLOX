@@ -69,8 +69,7 @@ Yol haritası notu ve Kararlar tablosu).
 Her sorunun ilk seçeneği benim önerim.
 
 0. **Mesh API izni (Game Settings → Security):** ekoseli gömleğin kollarının kolla dönmesi için
-   gerekli (`ZombieMeshes`). Açılmazsa bu zombiler blok gömlek giyer. Ayrıca kullanıcıdan "eklem
-   uzadı" hatasının ayrıntısı bekleniyor (silah, birinci/üçüncü şahıs, uzuv).
+   gerekli (`ZombieMeshes`). Açılmazsa bu zombiler blok gömlek giyer.
 1. **Taş kazma ve kereste tarifleri:** 7DTD'de taş kazma yok (ilk kazma demirdir; demir kazma artık
    oyunda) ve kereste diye bir eşya yok. Kullanıcı istediği için ikisi de eklendi: taş kazma 4 taş /
    3 lif / 3 odun (2 sn), kayada en iyi alet; kereste 2 odun (0,4 sn). İtiraz yoksa böyle kalır.

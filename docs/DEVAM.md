@@ -9,8 +9,9 @@ Dal `claude/zombie-animation-weapon-bugs-93a707`, `a3f7690`'ın (dövüş/zombi 
   kez gövde ve iki kolluğa keser; kolluk üst kolun yerini alır. **Oyunda çalışması için Game Settings
   → Security'de mesh/görsel API'lerine izin verilmeli**; izin yoksa bu zombiler blok gömlek giyer
   (Play'de 80 zombi, hata yok). Kesim Edit'te ölçüldü ve görüntüyle doğrulandı.
-- **"Silahla ateş edince zombinin bir eklemi uzadı":** yeniden üretilemedi. Kodda zombi parçasının
-  boyunu çalışırken değiştiren yer yok; hangi silah, hangi kamera ve hangi uzuv olduğu soruldu.
+- **"Silahla ateş edince zombinin bir eklemi uzadı":** oyun hatası değil. Kullanıcı Ctrl'e basılıyken
+  oynamış; Studio'da Ctrl+2/3/4 Play sırasında da taşıma/boyutlandırma/döndürme aracını açar ve
+  tıklanan zombi parçası büyür. Oyun Ctrl kullanmıyor; yayınlanmış oyunda bu araçlar yok.
 
 ## Güncel ek: silahlar, dövüş, zombiler, elektrik, evler (1 Kasım 2026, Claude)
 

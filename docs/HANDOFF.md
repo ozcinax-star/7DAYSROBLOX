@@ -844,6 +844,8 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
 - **`H.sync()` sonrası `require` eski kodu döndürür.** `execute_luau` aynı ModuleScript için önbelleği
   tutuyor; sync kaynağı yerinde değiştirdiğinden değişen modül Edit'te eski sonucu verir. Modülü
   klonlayıp klonu `require` et ya da Play'de dene.
+- **Play'de Ctrl + rakam Studio aracını açar.** Ctrl+2/3/4 taşıma/boyutlandırma/döndürme aracıdır;
+  alet kemeri tuşlarıyla birlikte basılınca zombi parçaları tıklanıp büyütülebilir. Oyun hatası değil.
 - **EditableMesh oyun script'lerinde kapalı.** Komut bağlamında Edit'te çalışır, Play'de oyun
   script'lerinden "EditableMesh is not accessible" hatası verir; izin Game Settings → Security'de.
 - **Studio ikinci ekranda.** Kullanıcı 1. ekranı kullanır; Studio VG248 ekranında öndeyken
