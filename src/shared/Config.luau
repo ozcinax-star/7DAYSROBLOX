@@ -295,6 +295,8 @@ Config.Zombie = {
 	AttackWindup = 0.6,
 	AttackCooldown = 1.5,
 	AttackCooldownNight = 1.1,
+	-- A zombie wedged this long (seconds) with nothing to break slides sideways out of the corner.
+	StuckSeconds = 0.6,
 	-- A hit zombie staggers and stops moving for this long.
 	HitStunSeconds = 0.35,
 	-- Wandering zombies near a building sometimes walk in through a door, linger inside, and walk
@@ -1780,6 +1782,9 @@ Config.Dig = {
 		Rock = { Material = "Stone", Health = 500, Harvest = { drop("SmallStone", 55) }, Destroy = {} },
 		Slate = { Material = "Stone", Health = 500, Harvest = { drop("SmallStone", 55) }, Destroy = {} },
 	} :: { [string]: HarvestNode },
+	-- A voxel put back with Dirt digs as this, whatever material was there before: it pays less Clay
+	-- than the 16 the Dirt cost, so filling and digging the same hole is never a Clay source (ours).
+	Refilled = { Material = "Earth", Health = 200, Harvest = { drop("Clay", 12) }, Destroy = {} } :: HarvestNode,
 	-- Whole voxels that always stay above the terrain bottom (7DTD: 3 layers of bedrock). With the
 	-- bottom at -24 a column at height 0 can be dug four deep.
 	BedrockLayers = 1,

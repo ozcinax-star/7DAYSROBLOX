@@ -121,6 +121,9 @@ type Zombie = {
 	-- Ground cell of the player structure this zombie walked into this step, and whether it is
 	-- breaking one (sent to clients as AttackStructure).
 	pushing: number?,
+	-- Seconds wedged with no wall to push and no free axis, and the side it slides out to (1 / -1).
+	stuckFor: number,
+	slideSide: number,
 	breaking: boolean,
 	dirty: boolean,
 	-- Last state put in a snapshot, and how many more snapshots repeat it: snapshots are unreliable and
@@ -513,8 +516,27 @@ local function moveToward(zombie: Zombie, tx: number, tz: number, speed: number,
 			zombie.z = nz
 		else
 			zombie.pushing = wall
-			return
+			if wall ~= nil then
+				return
+			end
+			-- Wedged on a corner the flow field cannot see (furniture, a prop edge): after a moment,
+			-- slide sideways; if that side is shut too, try the other one next step.
+			zombie.stuckFor += dt
+			if zombie.stuckFor < ZC.StuckSeconds then
+				return
+			end
+			local sx = -dz / dist * zombie.slideSide * step
+			local sz = dx / dist * zombie.slideSide * step
+			if not isFree(g, here, zombie.x + sx, zombie.z + sz) then
+				zombie.slideSide = -zombie.slideSide
+				return
+			end
+			zombie.x += sx
+			zombie.z += sz
 		end
+	end
+	if zombie.stuckFor > 0 and isFree(g, here, nx, nz) then
+		zombie.stuckFor = 0
 	end
 	local floor = if zombie.level == GROUND
 		then MapService.groundAt(zombie.x, zombie.z)
@@ -1069,6 +1091,8 @@ local function spawnOne(players: { PlayerInfo }, now: number, horde: boolean): b
 		nextAttack = 0,
 		nextSightCheck = now + math.random() * ZC.SightCheckInterval,
 		pushing = nil,
+		stuckFor = 0,
+		slideSide = if math.random() < 0.5 then 1 else -1,
 		breaking = false,
 		dirty = true,
 		sentState = "",
