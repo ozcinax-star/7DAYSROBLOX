@@ -34,14 +34,23 @@ local THIGH = V(0.48, 1.05, 0.48)
 local SHIN = V(0.42, 1.05, 0.42)
 local HIP_X = 0.36
 local PELVIS = V(1.4, 0.55, 0.7)
+-- Under the textured shirt, which is narrower than the block torso.
+local MESH_PELVIS = V(1.15, 0.55, 0.62)
 local PELVIS_UP = 0.2
 local WAIST_UP = 0.45
 local TORSO = V(1.5, 1.5, 0.66)
 local SHOULDER_UP = 1.32
-local SHOULDER_X = 0.94
+local SHOULDER_X = 0.88
+-- The textured shirt is narrower at the shoulders than the block torso.
+local MESH_SHOULDER_X = 0.68
+-- Every limb reaches this far past its joint into the part above, so bent elbows, knees, hips
+-- and shoulders never show a gap (studs at scale 1).
+local JOINT_OVERLAP = 0.2
 local NECK_UP = 1.5
 local HEAD = V(0.82, 1, 0.88)
 local HEAD_UP = 0.55
+-- A textured head sits lower, on the collar.
+local MESH_HEAD_UP = 0.4
 local UPPER_ARM = V(0.36, 1, 0.36)
 local FOREARM = V(0.32, 1, 0.32)
 -- Limbs are cylinders (axis along X), turned onto the hanging -Y axis when posed.
@@ -179,8 +188,9 @@ local function makePart(model: Model, name: string, size: Vector3, tint: { numbe
 end
 
 -- A rounded limb: a cylinder whose length (`size.Y`) runs along its X axis (see LIMB_TURN).
-local function makeLimb(model: Model, name: string, size: Vector3, tint: { number }, material: Enum.Material): Part
-	return makeShape(model, name, V(size.Y, size.X, size.Z), tint, material, Enum.PartType.Cylinder)
+local function makeLimb(model: Model, name: string, size: Vector3, tint: { number }, material: Enum.Material,
+	scale: number): Part
+	return makeShape(model, name, V(size.Y + JOINT_OVERLAP * scale, size.X, size.Z), tint, material, Enum.PartType.Cylinder)
 end
 
 function ZombieRig.build(id: number): Rig
@@ -195,17 +205,17 @@ function ZombieRig.build(id: number): Rig
 	local shinTint = if look.bareShins then look.extremity else look.pants
 	local shinMaterial = if look.bareShins then skin else cloth
 	local core = {
-		makePart(model, "Pelvis", PELVIS * s, look.pants, cloth),
+		makePart(model, "Pelvis", (if look.torsoMesh ~= 0 then MESH_PELVIS else PELVIS) * s, look.pants, cloth),
 		makePart(model, "Torso", TORSO * s, look.shirt, cloth),
 		makePart(model, "Head", HEAD * s, look.face, skin),
-		makeLimb(model, "LeftUpperArm", UPPER_ARM * s, armTint, armMaterial),
-		makeLimb(model, "LeftForearm", FOREARM * s, look.extremity, skin),
-		makeLimb(model, "RightUpperArm", UPPER_ARM * s, armTint, armMaterial),
-		makeLimb(model, "RightForearm", FOREARM * s, look.extremity, skin),
-		makeLimb(model, "LeftThigh", THIGH * s, look.pants, cloth),
-		makeLimb(model, "LeftShin", SHIN * s, shinTint, shinMaterial),
-		makeLimb(model, "RightThigh", THIGH * s, look.pants, cloth),
-		makeLimb(model, "RightShin", SHIN * s, shinTint, shinMaterial),
+		makeLimb(model, "LeftUpperArm", UPPER_ARM * s, armTint, armMaterial, s),
+		makeLimb(model, "LeftForearm", FOREARM * s, look.extremity, skin, s),
+		makeLimb(model, "RightUpperArm", UPPER_ARM * s, armTint, armMaterial, s),
+		makeLimb(model, "RightForearm", FOREARM * s, look.extremity, skin, s),
+		makeLimb(model, "LeftThigh", THIGH * s, look.pants, cloth, s),
+		makeLimb(model, "LeftShin", SHIN * s, shinTint, shinMaterial, s),
+		makeLimb(model, "RightThigh", THIGH * s, look.pants, cloth, s),
+		makeLimb(model, "RightShin", SHIN * s, shinTint, shinMaterial, s),
 	}
 	local detail = {
 		makePart(model, "Jaw", JAW * s, look.extremity, skin),
@@ -399,7 +409,7 @@ function ZombieRig.pose(rig: Rig, p: Pose, parts: { BasePart }, cframes: { CFram
 		- (if state == "Idle" then 0.25 else 0)
 		+ twitch(p.now, look.twitchSeed + 31)
 	local headRoll = look.headTilt + VC.HeadLollRadians * math.sin(phase * 0.5 + look.twitchSeed) * (0.4 + gait)
-	local head = neck * ANG(headPitch, 0, headRoll) * CF(0, HEAD_UP * s, 0)
+	local head = neck * ANG(headPitch, 0, headRoll) * CF(0, (if rig.meshHead then MESH_HEAD_UP else HEAD_UP) * s, 0)
 
 	local core = rig.core
 	local n = #parts
@@ -444,12 +454,13 @@ function ZombieRig.pose(rig: Rig, p: Pose, parts: { BasePart }, cframes: { CFram
 			pitch = torsoLean + 0.12 + VC.ArmHangSwingRadians * legSwing * gait
 			elbow, spread = ELBOW_REST, ARM_SPREAD
 		end
-		local shoulder = waist * CF(side * SHOULDER_X * s, SHOULDER_UP * s, 0) * ANG(pitch, 0, side * spread)
+		local shoulderX = if rig.meshTorso then MESH_SHOULDER_X else SHOULDER_X
+		local shoulder = waist * CF(side * shoulderX * s, SHOULDER_UP * s, 0) * ANG(pitch, 0, side * spread)
 		local elbowJoint = shoulder * CF(0, -UPPER_ARM.Y * s, 0) * ANG(elbow, 0, 0)
 		parts[n + 1] = core[2 + index * 2]
-		cframes[n + 1] = shoulder * CF(0, -UPPER_ARM.Y / 2 * s, 0) * LIMB_TURN
+		cframes[n + 1] = shoulder * CF(0, (JOINT_OVERLAP - UPPER_ARM.Y) / 2 * s, 0) * LIMB_TURN
 		parts[n + 2] = core[3 + index * 2]
-		cframes[n + 2] = elbowJoint * CF(0, -FOREARM.Y / 2 * s, 0) * LIMB_TURN
+		cframes[n + 2] = elbowJoint * CF(0, (JOINT_OVERLAP - FOREARM.Y) / 2 * s, 0) * LIMB_TURN
 		n += 2
 	end
 
@@ -474,9 +485,9 @@ function ZombieRig.pose(rig: Rig, p: Pose, parts: { BasePart }, cframes: { CFram
 		local hip = pelvisPivot * CF(side * HIP_X * s, 0, 0) * ANG(thighPitch, 0, turnOut)
 		local kneeJoint = hip * CF(0, -THIGH.Y * s, 0) * ANG(-knee, 0, 0)
 		parts[n + 1] = core[6 + index * 2]
-		cframes[n + 1] = hip * CF(0, -THIGH.Y / 2 * s, 0) * LIMB_TURN
+		cframes[n + 1] = hip * CF(0, (JOINT_OVERLAP - THIGH.Y) / 2 * s, 0) * LIMB_TURN
 		parts[n + 2] = core[7 + index * 2]
-		cframes[n + 2] = kneeJoint * CF(0, -SHIN.Y / 2 * s, 0) * LIMB_TURN
+		cframes[n + 2] = kneeJoint * CF(0, (JOINT_OVERLAP - SHIN.Y) / 2 * s, 0) * LIMB_TURN
 		n += 2
 	end
 
