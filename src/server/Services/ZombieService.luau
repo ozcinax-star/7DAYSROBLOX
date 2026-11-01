@@ -123,6 +123,10 @@ type Zombie = {
 	pushing: number?,
 	breaking: boolean,
 	dirty: boolean,
+	-- Last state put in a snapshot, and how many more snapshots repeat it: snapshots are unreliable and
+	-- a standing zombie is never dirty again, so a lost attack state would otherwise wait for a full one.
+	sentState: string,
+	stateResends: number,
 }
 
 -- (x and z of the ground cell's centre, damage) for a zombie hitting a player structure.
@@ -1067,6 +1071,8 @@ local function spawnOne(players: { PlayerInfo }, now: number, horde: boolean): b
 		pushing = nil,
 		breaking = false,
 		dirty = true,
+		sentState = "",
+		stateResends = 0,
 	}
 	zombies[id] = zombie
 	aliveCount += 1
@@ -1142,14 +1148,20 @@ local function sendSnapshots(now: number)
 
 	table.clear(snapshotEntries)
 	for _, zombie in zombies do
-		if full or zombie.dirty then
+		local state = if zombie.breaking then "AttackStructure" else zombie.state
+		if state ~= zombie.sentState then
+			zombie.sentState = state
+			zombie.stateResends = NC.StateResends
+		end
+		if full or zombie.dirty or zombie.stateResends > 0 then
 			zombie.dirty = false
+			zombie.stateResends = math.max(0, zombie.stateResends - 1)
 			table.insert(snapshotEntries, {
 				id = zombie.id,
 				x = zombie.x,
 				y = zombie.y,
 				z = zombie.z,
-				state = if zombie.breaking then "AttackStructure" else zombie.state,
+				state = state,
 			})
 		end
 	end

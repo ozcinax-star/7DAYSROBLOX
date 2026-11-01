@@ -98,6 +98,8 @@ export type Pose = {
 	death: number?,
 	-- 1 = falls forward, -1 = falls backward.
 	deathDirection: number,
+	-- Seconds between grabs, as the server times them (shorter at night).
+	attackCooldown: number,
 }
 
 local ZombieRig = {}
@@ -182,6 +184,7 @@ function ZombieRig.newPose(id: number): Pose
 		flinch = 0,
 		death = nil,
 		deathDirection = if Noise.hash(id, 17, 9173) < 0.7 then 1 else -1,
+		attackCooldown = ZC.AttackCooldown,
 	}
 end
 
@@ -255,7 +258,7 @@ function ZombieRig.pose(rig: Rig, p: Pose, parts: { BasePart }, cframes: { CFram
 	local strike = 0
 	if attacking then
 		local sinceFirst = p.stateTime - ZC.AttackWindup
-		local u = if sinceFirst < 0 then sinceFirst else sinceFirst % ZC.AttackCooldown
+		local u = if sinceFirst < 0 then sinceFirst else sinceFirst % p.attackCooldown
 		strike = strikeEnvelope(u)
 	end
 

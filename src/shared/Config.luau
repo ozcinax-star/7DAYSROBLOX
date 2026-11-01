@@ -411,6 +411,12 @@ Config.Network = {
 	SnapshotHz = 10,
 	-- Every N seconds all zombies are sent, so late joiners and dropped packets recover.
 	FullSnapshotInterval = 2,
+	-- A changed zombie state is repeated in this many snapshots (0.3 s at 10 Hz) against packet loss.
+	StateResends = 3,
+	-- A client drops a zombie it has not heard of for this many full snapshots (a removal it missed).
+	StaleFullSnapshots = 3,
+	-- Ids removed or killed are ignored this long (seconds), so a late snapshot cannot bring them back.
+	TombstoneSeconds = 2,
 	-- Positions are quantized to 1/PositionScale studs in int16 (range +-32767 / PositionScale).
 	PositionScale = 8,
 	-- UnreliableRemoteEvent payloads must stay under ~900 bytes.

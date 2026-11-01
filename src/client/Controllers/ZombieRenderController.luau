@@ -16,6 +16,7 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local DayClock = require(Shared.DayClock)
 local Melee = require(Shared.Melee)
 local Net = require(Shared.Net)
 local ZombieProtocol = require(Shared.ZombieProtocol)
@@ -62,6 +63,10 @@ type View = {
 local ZombieRenderController = {}
 
 local views: { [number]: View } = {}
+-- Ids the server removed or killed, with os.clock() of the removal: a snapshot sent before the removal
+-- can arrive after it (unreliable vs reliable) and must not bring the zombie back.
+local tombstones: { [number]: number } = {}
+local nextStaleCheck = 0
 -- Killed zombies keep animating here until removed; their ids may be reused by the server meanwhile.
 local corpses: { View } = {}
 local container: Folder
@@ -110,6 +115,13 @@ end
 
 local function onSample(id: number, x: number, y: number, z: number, state: string)
 	local now = os.clock()
+	local buried = tombstones[id]
+	if buried then
+		if now - buried < NC.TombstoneSeconds then
+			return
+		end
+		tombstones[id] = nil
+	end
 	local view = views[id]
 	if view == nil then
 		views[id] = createView(id, x, y, z, state, now)
@@ -146,6 +158,7 @@ local function onKilled(id: number, now: number)
 		return
 	end
 	views[id] = nil
+	tombstones[id] = now
 	SoundController.play("ZombieDeath", Vector3.new(view.x, view.y, view.z))
 	view.diedAt = now
 	view.pose.moving = false
@@ -236,6 +249,26 @@ local function onRender(dt: number)
 		return
 	end
 	local camPos = camera.CFrame.Position
+	-- The server shortens the time between grabs at night; the rig follows the same clock.
+	local epoch = ReplicatedStorage:GetAttribute(Net.Attributes.ClockEpoch)
+	local night = typeof(epoch) == "number" and DayClock.at(Workspace:GetServerTimeNow() - epoch).phase == "Night"
+	local attackCooldown = if night then ZC.AttackCooldownNight else ZC.AttackCooldown
+	-- Every zombie is in each full snapshot; one silent for several of them was removed unheard.
+	if now >= nextStaleCheck then
+		nextStaleCheck = now + NC.FullSnapshotInterval
+		local stale = NC.FullSnapshotInterval * NC.StaleFullSnapshots
+		for id, view in views do
+			if now - view.lastSample > stale then
+				destroyView(view)
+				views[id] = nil
+			end
+		end
+		for id, buriedAt in tombstones do
+			if now - buriedAt >= NC.TombstoneSeconds then
+				tombstones[id] = nil
+			end
+		end
+	end
 	local renderSq = renderDistance * renderDistance
 	local detailSq = detailDistance * detailDistance
 	local animateSq = animateDistance * animateDistance
@@ -257,6 +290,7 @@ local function onRender(dt: number)
 	frame += 1
 
 	for _, view in views do
+		view.pose.attackCooldown = attackCooldown
 		advance(view, now, dt)
 
 		local dx = view.x - camPos.X
@@ -345,6 +379,7 @@ function ZombieRenderController.start()
 		if typeof(removed) == "table" then
 			for _, id in removed :: { any } do
 				local view = views[id]
+				tombstones[id] = now
 				if view then
 					destroyView(view)
 					views[id] = nil
