@@ -14,6 +14,7 @@ local Net = require(Shared.Net)
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local DayNightService = require(script.Parent.DayNightService)
 local FarmService = require(script.Parent.FarmService)
+local PersistenceService = require(script.Parent.PersistenceService)
 local InventoryService = require(script.Parent.InventoryService)
 local SurvivalService = require(script.Parent.SurvivalService)
 local ThreatService = require(script.Parent.ThreatService)
@@ -51,6 +52,14 @@ local function onCommand(player: Player, command: unknown, value: unknown)
 		ZombieService.clear()
 	elseif command == "Director" then
 		ThreatService.setDirectorEnabled(not ThreatService.isDirectorEnabled())
+	elseif command == "SaveReport" then
+		print("[Debug] " .. PersistenceService.debugReport())
+	elseif command == "LoadPart" then
+		if typeof(value) == "string" and #value <= 32 then
+			print("[Debug] " .. PersistenceService.debugLoadPart(value))
+		end
+	elseif command == "ReloadCharacter" then
+		print("[Debug] " .. PersistenceService.debugReloadCharacter(player))
 	elseif command == "SkipPhase" then
 		DayNightService.skipPhase()
 	elseif command == "GodMode" then

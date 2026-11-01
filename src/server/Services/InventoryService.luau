@@ -17,6 +17,7 @@ local Net = require(Shared.Net)
 local Types = require(Shared.Types)
 
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
+local PersistenceService = require(script.Parent.PersistenceService)
 
 local IC = Config.Inventory
 
@@ -155,7 +156,37 @@ local function onPlayerAdded(player: Player)
 	end)
 end
 
+-- Saved character part "Inventory": the slots and the active toolbelt slot. A saved inventory replaces
+-- the starting kit entirely.
+local function saveInventory(player: Player): any
+	local state = states[player]
+	if state == nil then
+		return nil
+	end
+	return { Selected = state.selected, Slots = Inventory.serialize(state.inventory) }
+end
+
+local function loadInventory(player: Player, data: any)
+	local state = states[player]
+	if state == nil or type(data) ~= "table" then
+		return
+	end
+	local inventory = Inventory.new(IC.ToolbeltSlots, IC.BackpackSlots)
+	local skipped = Inventory.deserialize(inventory, data.Slots)
+	if skipped > 0 then
+		warn(`[Inventory] {skipped} saved stacks of {player.UserId} were invalid and dropped`)
+	end
+	-- In place: other services may hold the inventory table.
+	state.inventory.slots = inventory.slots
+	local selected = data.Selected
+	state.selected = if type(selected) == "number" and selected % 1 == 0 and selected >= 1 and selected <= IC.ToolbeltSlots
+		then selected
+		else 1
+	markDirty(player)
+end
+
 function InventoryService.init()
+	PersistenceService.registerCharacter("Inventory", { save = saveInventory, load = loadInventory })
 	limiter = RateLimiter.new(Config.Remotes.InventoryRequestsPerSecond)
 	updateRemote = Net.event("InventoryUpdate")
 	gainRemote = Net.event("InventoryGain")

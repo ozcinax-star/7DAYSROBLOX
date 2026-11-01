@@ -2289,6 +2289,21 @@ Config.Storage = {
 	CheckSeconds = 0.5,
 }
 
+-- Save and load (PersistenceService, ProfileStore). Changing a store name or a key format loses every
+-- save made under the old one: ask the user first, and bump the version with a migration instead.
+Config.Persistence = {
+	WorldStore = "World_v1",
+	ProfileStore = "Profile_v1",
+	WorldVersion = 1,
+	ProfileVersion = 1,
+	-- Studio plays use ProfileStore's in-memory mock (nothing reaches live saves) under this world key.
+	-- Set StudioUsesLiveStore to test real saving across Studio sessions (needs API access enabled).
+	StudioWorldKey = "Studio",
+	StudioUsesLiveStore = false,
+	-- Caps that keep a world far below the 4 MB key limit (one block is ~40 bytes saved).
+	MaxSavedBlocks = 20000,
+}
+
 Config.Debug = {
 	-- Debug commands are allowed in Studio, or for these UserIds in live servers.
 	-- 11911303584: project owner (tester), needed to run the stress test on a phone.

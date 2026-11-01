@@ -22,6 +22,7 @@ local Types = require(Shared.Types)
 
 local DayNightService = require(script.Parent.DayNightService)
 local ZombieService = require(script.Parent.ZombieService)
+local PersistenceService = require(script.Parent.PersistenceService)
 
 local TC = Config.Threat
 local PC = Config.Population
@@ -240,7 +241,21 @@ function ThreatService.getStats(): Stats
 	}
 end
 
-function ThreatService.init() end
+function ThreatService.init()
+	-- Saved world part "Threat": the slow Trace (PLAN), so a big base does not start a world unnoticed.
+	-- Noise is momentary and starts at zero.
+	PersistenceService.registerWorld("Threat", {
+		save = function()
+			return { Trace = trace }
+		end,
+		load = function(data: any)
+			local value = type(data) == "table" and data.Trace
+			if type(value) == "number" and value == value and value >= 0 and value < math.huge then
+				trace = value
+			end
+		end,
+	})
+end
 
 function ThreatService.start()
 	Players.PlayerRemoving:Connect(function(player)

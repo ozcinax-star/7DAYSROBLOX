@@ -20,6 +20,7 @@ local BuildService = require(script.Parent.BuildService)
 local InventoryService = require(script.Parent.InventoryService)
 local LootService = require(script.Parent.LootService)
 local ToolService = require(script.Parent.ToolService)
+local PersistenceService = require(script.Parent.PersistenceService)
 
 local FC = Config.Farming
 local BC = Config.Build
@@ -186,7 +187,39 @@ function FarmService.ripenAll()
 	update()
 end
 
+-- Saved world part "Crops": kind and age (seconds since planting; plantedAt is os.clock, which does not
+-- carry over servers) by plot block key.
+local function saveCrops(): any
+	local rows = {}
+	local now = os.clock()
+	for key, crop in crops do
+		table.insert(rows, { key, crop.kind, now - crop.plantedAt })
+	end
+	return rows
+end
+
+local function loadCrops(data: any)
+	if type(data) ~= "table" then
+		return
+	end
+	local now = os.clock()
+	for _, row in data do
+		local key, kind, age = row[1], row[2], row[3]
+		local top = type(key) == "number" and BuildService.plotTop(key)
+		if top and crops[key] == nil and type(kind) == "string" and FC.Crops[kind]
+			and type(age) == "number" and age == age and age >= 0 then
+			local model = Instance.new("Model")
+			model.Name = kind
+			model.Parent = folder
+			local crop: Crop = { kind = kind, plantedAt = now - age, stage = Farming.stageAt(age), top = top, model = model }
+			crops[key] = crop
+			show(key, crop)
+		end
+	end
+end
+
 function FarmService.init()
+	PersistenceService.registerWorld("Crops", { save = saveCrops, load = loadCrops })
 	folder = Instance.new("Folder")
 	folder.Name = FC.FolderName
 	folder.Parent = Workspace

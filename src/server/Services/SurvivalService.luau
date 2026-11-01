@@ -25,6 +25,7 @@ local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local ChallengeService = require(script.Parent.ChallengeService)
 local InventoryService = require(script.Parent.InventoryService)
 local LootService = require(script.Parent.LootService)
+local PersistenceService = require(script.Parent.PersistenceService)
 local ThreatService = require(script.Parent.ThreatService)
 local ToolService = require(script.Parent.ToolService)
 
@@ -201,6 +202,22 @@ local function dropRaw(player: Player, position: Vector3): boolean
 	return ok
 end
 
+-- Saved vitals waiting for the player's character: a spawn starts fresh stats (7DTD respawn), so a
+-- loaded save is applied right after that reset instead of being wiped by it.
+local pendingVitals: { [Player]: { [string]: number } } = {}
+
+local function applyVitals(player: Player, state: PlayerState, character: Model?, saved: { [string]: number })
+	state.stats.food = math.clamp(saved.Food, 0, SC.MaxFood)
+	state.stats.water = math.clamp(saved.Water, 0, SC.MaxWater)
+	state.stats.stamina = math.clamp(saved.Stamina, 0, SC.MaxStamina)
+	Vitals.consume(state.stats, 0, 0, 0, 0)
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if humanoid and humanoid.Health > 0 then
+		humanoid.Health = math.clamp(saved.Health, 1, humanoid.MaxHealth)
+	end
+	publish(player, state)
+end
+
 local function onCharacter(player: Player, character: Model)
 	local state = states[player]
 	if state == nil then
@@ -228,6 +245,49 @@ local function onCharacter(player: Player, character: Model)
 	)
 	updateSprint(player, state)
 	publish(player, state)
+	local saved = pendingVitals[player]
+	if saved then
+		pendingVitals[player] = nil
+		applyVitals(player, state, character, saved)
+	end
+end
+
+-- Saved character part "Vitals": food, water, stamina and health.
+local function saveVitals(player: Player): any
+	local state = states[player]
+	if state == nil then
+		return nil
+	end
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	return {
+		Food = state.stats.food,
+		Water = state.stats.water,
+		Stamina = state.stats.stamina,
+		Health = if humanoid and humanoid.Health > 0 then humanoid.Health else humanoid and humanoid.MaxHealth or 100,
+	}
+end
+
+local function loadVitals(player: Player, data: any)
+	if type(data) ~= "table" then
+		return
+	end
+	local saved: { [string]: number } = {}
+	for _, key in { "Food", "Water", "Stamina", "Health" } do
+		local value = data[key]
+		if type(value) ~= "number" or value ~= value then
+			return
+		end
+		saved[key] = value
+	end
+	local state = states[player]
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if state and humanoid then
+		applyVitals(player, state, character, saved)
+	else
+		pendingVitals[player] = saved
+	end
 end
 
 local function onPlayerAdded(player: Player)
@@ -332,6 +392,7 @@ local function payStamina(player: Player, cost: number): boolean
 end
 
 function SurvivalService.init()
+	PersistenceService.registerCharacter("Vitals", { save = saveVitals, load = loadVitals })
 	sprintLimiter = RateLimiter.new(Config.Remotes.SprintRequestsPerSecond)
 	Net.event("SprintIntent")
 	diedRemote = Net.event("PlayerDied")
@@ -351,6 +412,7 @@ function SurvivalService.start()
 		task.spawn(onPlayerAdded, player)
 	end
 	Players.PlayerRemoving:Connect(function(player)
+		pendingVitals[player] = nil
 		local state = states[player]
 		if state then
 			for _, connection in state.connections do

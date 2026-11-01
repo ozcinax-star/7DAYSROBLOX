@@ -35,6 +35,7 @@ local InventoryService = require(script.Parent.InventoryService)
 local LootService = require(script.Parent.LootService)
 local MapService = require(script.Parent.MapService)
 local ThreatService = require(script.Parent.ThreatService)
+local PersistenceService = require(script.Parent.PersistenceService)
 local ToolService = require(script.Parent.ToolService)
 local ZombieService = require(script.Parent.ZombieService)
 
@@ -404,7 +405,63 @@ local function onWorldHit(player: Player, result: RaycastResult, _toolId: string
 	lower(index, level, loose)
 end
 
-function DigService.init() end
+-- Saved world part "Dig": every column dug or filled (its level before the first dig, its level now and
+-- how many voxels on top are refilled dirt) and every column whose grass was cut. The map regenerates
+-- its original terrain at start, so a load rewrites each column from its original level.
+local function saveDig(): any
+	local columnsOut = {}
+	for index, original in originals do
+		table.insert(columnsOut, { index, original, levels[index] or original, filled[index] or 0 })
+	end
+	local cutOut = {}
+	for index in cut do
+		table.insert(cutOut, index)
+	end
+	return { Columns = columnsOut, Cut = cutOut }
+end
+
+local function whole(value: any): boolean
+	return type(value) == "number" and value == value and value % 1 == 0 and value >= 0 and value < 2 ^ 31
+end
+
+local function finite(value: any): boolean
+	return type(value) == "number" and value == value and math.abs(value) < 1e6
+end
+
+local function loadDig(data: any)
+	if type(data) ~= "table" then
+		return
+	end
+	local grid = MapService.getHeightGrid()
+	local cells = grid.columns * grid.columns
+	if type(data.Cut) == "table" then
+		for _, index in data.Cut do
+			if whole(index) and index < cells and not cut[index] then
+				cutGrass(index, levelOf(grid, index))
+			end
+		end
+	end
+	if type(data.Columns) == "table" then
+		for _, row in data.Columns do
+			local index, original, level, refilled = row[1], row[2], row[3], row[4]
+			if whole(index) and index < cells and finite(original) and finite(level) and originals[index] == nil then
+				originals[index] = original
+				levels[index] = level
+				if whole(refilled) and refilled > 0 then
+					filled[index] = refilled
+				end
+				if level ~= original then
+					TerrainBuilder.writeColumn(grid, index, original, level, Enum.Material.Ground)
+					task.spawn(settle, index, {})
+				end
+			end
+		end
+	end
+end
+
+function DigService.init()
+	PersistenceService.registerWorld("Dig", { save = saveDig, load = loadDig })
+end
 
 function DigService.start()
 	map = MapService.getMap()

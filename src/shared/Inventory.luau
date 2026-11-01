@@ -391,4 +391,58 @@ function Inventory.copySlots(inv: Inventory): { Slot }
 	return copy
 end
 
+-- Save rows: one { slot, id, count, source, durability, loadedRounds, loadedAmmo } per filled slot, with
+-- -1 / "" for absent values (saved tables cannot hold nil gaps).
+export type SavedRow = { any }
+local SOURCES: { [string]: boolean } = { Craft = true, Loot = true, Purchase = true, Pass = true }
+
+function Inventory.serialize(inv: Inventory): { SavedRow }
+	local rows = {}
+	for index, stack in inv.slots do
+		if stack then
+			table.insert(rows, {
+				index, stack.id, stack.count, stack.source,
+				stack.durability or -1, stack.loadedRounds or -1, stack.loadedAmmo or "",
+			})
+		end
+	end
+	return rows
+end
+
+local function whole(value: any, low: number, high: number): boolean
+	return type(value) == "number" and value == value and value >= low and value <= high and value % 1 == 0
+end
+
+-- Fills `inv` (whose slots must be empty) from saved rows. Rows that fail validation (unknown item, bad
+-- count, slot out of range or taken) are skipped, never trusted. Returns how many rows were skipped.
+function Inventory.deserialize(inv: Inventory, rows: any): number
+	if type(rows) ~= "table" then
+		return 0
+	end
+	local skipped = 0
+	for _, row in rows do
+		local index, id, count, source = row[1], row[2], row[3], row[4]
+		local def = type(id) == "string" and Config.Items[id]
+		if def and whole(index, 1, #inv.slots) and whole(count, 1, def.Stack) and type(source) == "string"
+			and SOURCES[source] and inv.slots[index] == false then
+			local stack: Stack = { id = id, count = count, source = source :: Types.ItemSource }
+			local durability, rounds, ammo = row[5], row[6], row[7]
+			if def.Durability and whole(durability, 0, def.Durability) then
+				stack.durability = durability
+			end
+			local weapon = Config.Ranged.Weapons[id]
+			if weapon and whole(rounds, 0, weapon.Magazine or 0) then
+				stack.loadedRounds = rounds
+			end
+			if type(ammo) == "string" and Config.Items[ammo] then
+				stack.loadedAmmo = ammo
+			end
+			inv.slots[index] = stack
+		else
+			skipped += 1
+		end
+	end
+	return skipped
+end
+
 return Inventory

@@ -22,6 +22,7 @@ local BuildService = require(script.Parent.BuildService)
 local InventoryService = require(script.Parent.InventoryService)
 local ThreatService = require(script.Parent.ThreatService)
 local ToolService = require(script.Parent.ToolService)
+local PersistenceService = require(script.Parent.PersistenceService)
 
 local PC = Config.Power
 local BC = Config.Build
@@ -300,7 +301,36 @@ function PowerService.getGenerator(key: number): (number?, boolean?)
 	return generator.fuel, generator.on
 end
 
+local function finite(value: any): boolean
+	return type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge
+end
+
+-- Saved world part "Generators": fuel and on/off by block key; lamps follow from the generators.
+local function saveGenerators(): any
+	local rows = {}
+	for key, generator in generators do
+		table.insert(rows, { key, generator.fuel, if generator.on then 1 else 0 })
+	end
+	return rows
+end
+
+local function loadGenerators(data: any)
+	if type(data) ~= "table" then
+		return
+	end
+	for _, row in data do
+		local generator = generators[row[1]]
+		if generator and finite(row[2]) then
+			generator.fuel = math.clamp(row[2], 0, PC.FuelCapacity)
+			generator.on = row[3] == 1 and generator.fuel > 0
+			label(generator)
+		end
+	end
+	refresh(0)
+end
+
 function PowerService.init()
+	PersistenceService.registerWorld("Generators", { save = saveGenerators, load = loadGenerators })
 	limiter = RateLimiter.new(PC.TogglesPerSecond)
 end
 

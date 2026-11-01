@@ -410,6 +410,46 @@ test("malformed packet is rejected", function()
 	expectEq(ZombieProtocol.decode(packet, 8, function() end), nil, "decode")
 end)
 
+print("Save rows")
+
+test("an inventory survives a save round trip", function()
+	local inv = Inventory.new(10, 45)
+	Inventory.putSlot(inv, 3, { id = "StoneAxe", count = 1, source = "Craft", durability = 37 })
+	Inventory.putSlot(inv, 12, { id = "Wood", count = 250, source = "Loot" })
+	Inventory.putSlot(inv, 4, { id = "PipePistol", count = 1, source = "Loot", durability = 300, loadedRounds = 4, loadedAmmo = "Ammo9mm" })
+	local back = Inventory.new(10, 45)
+	expectEq(Inventory.deserialize(back, Inventory.serialize(inv)), 0, "skipped")
+	for index = 1, 55 do
+		local a, b = inv.slots[index], back.slots[index]
+		if a then
+			expectEq(b and b.id, a.id, `slot {index} id`)
+			expectEq(b and b.count, a.count, `slot {index} count`)
+			expectEq(b and b.durability, a.durability, `slot {index} durability`)
+			expectEq(b and b.loadedRounds, a.loadedRounds, `slot {index} rounds`)
+			expectEq(b and b.loadedAmmo, a.loadedAmmo, `slot {index} ammo`)
+		else
+			expectEq(b, false, `slot {index} empty`)
+		end
+	end
+end)
+
+test("a tampered save loads only its valid stacks", function()
+	local rows = {
+		{ 1, "NoSuchItem", 1, "Loot", -1, -1, "" },
+		{ 2, "Wood", 0 / 0, "Loot", -1, -1, "" },
+		{ 3, "Wood", 999999, "Loot", -1, -1, "" },
+		{ 99, "Wood", 5, "Loot", -1, -1, "" },
+		{ 4, "Wood", 5, "Stolen", -1, -1, "" },
+		{ 5, "PipePistol", 1, "Loot", 300, 500, "Ammo9mm" },
+		{ 6, "Wood", 5, "Loot", -1, -1, "" },
+		{ 6, "Wood", 7, "Loot", -1, -1, "" },
+	}
+	local inv = Inventory.new(10, 45)
+	expectEq(Inventory.deserialize(inv, rows), 6, "skipped")
+	expectEq((inv.slots[5] :: any).loadedRounds, nil, "magazine overflow dropped")
+	expectEq((inv.slots[6] :: any).count, 5, "first stack in a slot wins")
+end)
+
 print("ZombieLook")
 
 test("a zombie looks the same on every client", function()

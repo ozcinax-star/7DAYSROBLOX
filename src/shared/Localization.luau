@@ -19,6 +19,10 @@ local Strings: { [string]: { [string]: string } } = {
 		HordeNight = "Horde night",
 		HudClock = "Day {day}  {time}",
 
+		-- Saving (PersistenceService): kick reasons
+		SaveLoadFailed = "Your save could not be loaded. Please rejoin.",
+		SaveOpenElsewhere = "Your save is open on another server.",
+
 		-- Camera
 		CameraShoulder = "Shoulder",
 		CameraFirstPerson = "First person",

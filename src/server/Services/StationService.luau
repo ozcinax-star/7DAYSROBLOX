@@ -22,6 +22,7 @@ local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local BuildService = require(script.Parent.BuildService)
 local InventoryService = require(script.Parent.InventoryService)
 local ThreatService = require(script.Parent.ThreatService)
+local PersistenceService = require(script.Parent.PersistenceService)
 
 local SC = Config.Stations
 local BC = Config.Build
@@ -383,7 +384,36 @@ function StationService.get(key: number): (number?, boolean?)
 	return station.fuel, station.lit
 end
 
+local function finite(value: any): boolean
+	return type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge
+end
+
+-- Saved world part "Stations": fuel (seconds) and whether each fire burns, by block key.
+local function saveStations(): any
+	local rows = {}
+	for key, station in stations do
+		table.insert(rows, { key, station.fuel, if station.lit then 1 else 0 })
+	end
+	return rows
+end
+
+local function loadStations(data: any)
+	if type(data) ~= "table" then
+		return
+	end
+	for _, row in data do
+		local station = stations[row[1]]
+		local def = station and SC.Kinds[station.kind]
+		if station and def and finite(row[2]) then
+			station.fuel = math.clamp(row[2], 0, def.MaxFuel)
+			setLit(station, row[3] == 1 and station.fuel > 0)
+		end
+	end
+	refreshTrace()
+end
+
 function StationService.init()
+	PersistenceService.registerWorld("Stations", { save = saveStations, load = loadStations })
 	limiter = RateLimiter.new(SC.ActionsPerSecond)
 	noticeRemote = Net.event("Notice")
 end

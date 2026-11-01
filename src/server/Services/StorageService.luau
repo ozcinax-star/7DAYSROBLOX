@@ -21,6 +21,7 @@ local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local BuildService = require(script.Parent.BuildService)
 local InventoryService = require(script.Parent.InventoryService)
 local LootService = require(script.Parent.LootService)
+local PersistenceService = require(script.Parent.PersistenceService)
 
 local SC = Config.Storage
 local BC = Config.Build
@@ -174,7 +175,32 @@ function StorageService.itemCount(key: number): number?
 	return total
 end
 
+-- Saved world part "Crates": each crate's slots by its block key. Blocks load first, which creates the
+-- (empty) crates this fills.
+local function saveCrates(): any
+	local rows = {}
+	for key, crate in crates do
+		table.insert(rows, { Key = key, Slots = Inventory.serialize(crate.inventory) })
+	end
+	return rows
+end
+
+local function loadCrates(data: any)
+	if type(data) ~= "table" then
+		return
+	end
+	for _, row in data do
+		local crate = type(row) == "table" and crates[row.Key]
+		if crate then
+			local inventory = Inventory.new(0, SC.Slots)
+			Inventory.deserialize(inventory, row.Slots)
+			crate.inventory.slots = inventory.slots
+		end
+	end
+end
+
 function StorageService.init()
+	PersistenceService.registerWorld("Crates", { save = saveCrates, load = loadCrates })
 	updateRemote = Net.event("StorageUpdate")
 	limiter = RateLimiter.new(Config.Remotes.StorageRequestsPerSecond)
 end

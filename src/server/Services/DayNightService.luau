@@ -13,6 +13,7 @@ local Config = require(Shared.Config)
 local DayClock = require(Shared.DayClock)
 local Net = require(Shared.Net)
 local Types = require(Shared.Types)
+local PersistenceService = require(script.Parent.PersistenceService)
 
 local DC = Config.DayNight
 -- A skip lands this far past the phase boundary so rounding cannot leave it in the old phase.
@@ -74,6 +75,20 @@ end
 
 function DayNightService.init()
 	epoch = Workspace:GetServerTimeNow() - DayClock.secondsAt(DC.StartClockTime)
+	-- Saved world part "Clock": seconds since the dawn of day 1, so a world resumes on its day and hour.
+	PersistenceService.registerWorld("Clock", {
+		save = function()
+			return { Elapsed = Workspace:GetServerTimeNow() - epoch }
+		end,
+		load = function(data: any)
+			local elapsed = type(data) == "table" and data.Elapsed
+			if type(elapsed) == "number" and elapsed == elapsed and elapsed >= 0 and elapsed < math.huge then
+				epoch = Workspace:GetServerTimeNow() - elapsed
+				publish()
+				check()
+			end
+		end,
+	})
 	current = DayNightService.getState()
 	publish()
 end

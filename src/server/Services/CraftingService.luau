@@ -32,6 +32,7 @@ local ChallengeService = require(script.Parent.ChallengeService)
 local InventoryService = require(script.Parent.InventoryService)
 local LootService = require(script.Parent.LootService)
 local StationService = require(script.Parent.StationService)
+local PersistenceService = require(script.Parent.PersistenceService)
 
 local CC = Config.Crafting
 local SOURCE: Types.ItemSource = "Craft"
@@ -309,7 +310,45 @@ local function onRepair(player: Player, slot: unknown)
 	send(player)
 end
 
+-- Saved character part "Crafting": the queue is not resumed, but what it holds (ingredients already
+-- taken, a tool being repaired) comes back as items, so leaving mid-craft never loses them.
+local function saveCrafting(player: Player): any
+	local queue = queues[player]
+	if queue == nil then
+		return nil
+	end
+	local held = Inventory.new(0, 0)
+	for _, job in queue do
+		for _, stack in job.pool do
+			table.insert(held.slots, stack)
+		end
+		if job.tool then
+			table.insert(held.slots, job.tool)
+		end
+	end
+	return Inventory.serialize(held)
+end
+
+local function loadCrafting(player: Player, data: any)
+	if type(data) ~= "table" then
+		return
+	end
+	local held = Inventory.new(0, #data)
+	Inventory.deserialize(held, data)
+	for _, stack in held.slots do
+		if stack then
+			local left = InventoryService.give(player, stack.id, stack.count, stack.source, stack.durability, stack)
+			local character = player.Character
+			local root = character and character.PrimaryPart
+			if left > 0 and root then
+				LootService.drop(root.Position, { { id = stack.id, count = left, source = stack.source, durability = stack.durability } }, true)
+			end
+		end
+	end
+end
+
 function CraftingService.init()
+	PersistenceService.registerCharacter("Crafting", { save = saveCrafting, load = loadCrafting })
 	limiter = RateLimiter.new(Config.Remotes.CraftRequestsPerSecond)
 	updateRemote = Net.event("CraftUpdate")
 	Net.event("CraftQueue")

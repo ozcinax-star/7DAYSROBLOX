@@ -16,6 +16,7 @@ local Net = require(Shared.Net)
 
 local InventoryService = require(script.Parent.InventoryService)
 local ZombieService = require(script.Parent.ZombieService)
+local PersistenceService = require(script.Parent.PersistenceService)
 
 type State = {
 	-- Index into Config.Challenges of the tracked challenge (past the end: all done).
@@ -133,7 +134,53 @@ local function onPlayerAdded(player: Player)
 	end)
 end
 
+-- Saved profile part "Challenges": the tracked challenge by Id (so reordering Config.Challenges keeps
+-- saves valid) and its objective counts as a full array ("Done" once every challenge is finished).
+local function saveChallenges(player: Player): any
+	local state = states[player]
+	if state == nil then
+		return nil
+	end
+	local def = Config.Challenges[state.index]
+	if def == nil then
+		return { Id = "Done", Progress = {} }
+	end
+	local progress = {}
+	for index in def.Objectives do
+		progress[index] = state.progress[index] or 0
+	end
+	return { Id = def.Id, Progress = progress }
+end
+
+local function loadChallenges(player: Player, data: any)
+	local state = states[player]
+	if state == nil or type(data) ~= "table" then
+		return
+	end
+	if data.Id == "Done" then
+		state.index = #Config.Challenges + 1
+		state.progress = {}
+	else
+		for index, def in Config.Challenges do
+			if def.Id == data.Id then
+				state.index = index
+				state.progress = {}
+				for objective, goal in def.Objectives do
+					local value = type(data.Progress) == "table" and data.Progress[objective]
+					if type(value) == "number" and value == value then
+						state.progress[objective] = math.clamp(math.floor(value), 0, goal.Count)
+					end
+				end
+				break
+			end
+		end
+	end
+	readInventory(player, state)
+	advance(player, state)
+end
+
 function ChallengeService.init()
+	PersistenceService.registerProfile("Challenges", { save = saveChallenges, load = loadChallenges })
 	updateRemote = Net.event("ChallengeUpdate")
 end
 

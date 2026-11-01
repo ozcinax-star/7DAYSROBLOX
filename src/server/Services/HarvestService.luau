@@ -27,6 +27,7 @@ local MapService = require(script.Parent.MapService)
 local ThreatService = require(script.Parent.ThreatService)
 local ToolService = require(script.Parent.ToolService)
 local ZombieService = require(script.Parent.ZombieService)
+local PersistenceService = require(script.Parent.PersistenceService)
 
 local HC = Config.Harvest
 -- Gathered items count as found in the world.
@@ -56,6 +57,9 @@ local fellRemote: RemoteEvent
 local function roll(drop: Config.Drop): number
 	return random:NextInteger(drop.Min, drop.Max)
 end
+
+-- Ids of objects broken or felled in this world (saved).
+local gone: { [string]: boolean } = {}
 
 local function give(player: Player, id: string, count: number)
 	LootService.giveOrDrop(player, id, count, SOURCE)
@@ -112,6 +116,8 @@ local function hit(entry: Entry, player: Player, damage: number, toolId: string,
 		return
 	end
 	entries[entry.model] = nil
+	-- Nothing grows back (7DTD trees and boulders stay gone in a save); the world remembers it.
+	gone[entry.id] = true
 	for _, drop in node.Destroy do
 		give(player, drop.Id, roll(drop))
 	end
@@ -176,7 +182,53 @@ local function addPickupPrompt(entry: Entry)
 	prompt.Parent = part
 end
 
+-- Saved world part "Harvest": objects already broken, and the damage on ones partly worked.
+local function saveHarvest(): any
+	local goneOut = {}
+	for id in gone do
+		table.insert(goneOut, id)
+	end
+	local damaged = {}
+	for _, entry in entries do
+		if entry.damage > 0 then
+			table.insert(damaged, { entry.id, entry.damage })
+		end
+	end
+	return { Gone = goneOut, Damage = damaged }
+end
+
+local function loadHarvest(data: any)
+	if type(data) ~= "table" then
+		return
+	end
+	local byId: { [string]: Entry } = {}
+	for _, entry in entries do
+		byId[entry.id] = entry
+	end
+	if type(data.Gone) == "table" then
+		for _, id in data.Gone do
+			local entry = type(id) == "string" and byId[id]
+			if entry then
+				gone[id] = true
+				entries[entry.model] = nil
+				release(entry.model)
+				entry.model:Destroy()
+			end
+		end
+	end
+	if type(data.Damage) == "table" then
+		for _, row in data.Damage do
+			local entry = type(row) == "table" and byId[row[1]]
+			local damage = row[2]
+			if entry and entries[entry.model] and type(damage) == "number" and damage == damage then
+				entry.damage = math.clamp(damage, 0, entry.node.Health - 1)
+			end
+		end
+	end
+end
+
 function HarvestService.init()
+	PersistenceService.registerWorld("Harvest", { save = saveHarvest, load = loadHarvest })
 	pickupLimiter = RateLimiter.new(HC.PickupsPerSecond)
 	fellRemote = Net.event("TreeFelled")
 end

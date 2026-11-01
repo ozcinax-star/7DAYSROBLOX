@@ -34,6 +34,7 @@ local HeightField = require(Shared.World.HeightField)
 
 local Localization = require(Shared.Localization)
 local Net = require(Shared.Net)
+local PersistenceService = require(script.Parent.PersistenceService)
 
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local BuildingKit = require(script.Parent.Parent.World.BuildingKit)
@@ -83,6 +84,7 @@ local groundParams: RaycastParams
 local mapOverlap: OverlapParams
 local doorLimiter: RateLimiter.RateLimiter
 local worldSound: UnreliableRemoteEvent
+local ready = false
 local removedCallbacks: { (key: number) -> () } = {}
 -- Spike traps, and the next time each zombie may be hurt by one.
 local traps: { [Block]: boolean } = {}
@@ -90,7 +92,8 @@ local trapHitAt: { [number]: number } = {}
 local trapClock = 0
 local random = Random.new()
 -- Each player's respawn bedroll.
-local beds: { [Player]: Block } = {}
+-- Bed rolls by owner UserId: kept while the owner is away and saved with the world.
+local beds: { [number]: Block } = {}
 local placedCallbacks: { (key: number, kind: string, part: BasePart) -> () } = {}
 
 local function setTrace()
@@ -526,7 +529,7 @@ local function onPlace(player: Player, origin: Vector3, direction: Vector3, item
 	if ok and InventoryService.consumeHeld(player, 1) then
 		local block = createBlock(cx, cy, cz, itemId, grounded, BuildGrid.sideToward(cx, cz, origin.X, origin.Z))
 		if def.Bed then
-			beds[player] = block
+			beds[player.UserId] = block
 		end
 		ChallengeService.record(player, "Place", itemId, 1)
 	end
@@ -595,7 +598,7 @@ end
 
 -- A player with a bedroll respawns standing on it.
 local function onCharacterAdded(player: Player, character: Model)
-	local bed = beds[player]
+	local bed = beds[player.UserId]
 	if bed == nil or blocks[bed.key] ~= bed then
 		return
 	end
@@ -672,6 +675,16 @@ function BuildService.plotOf(instance: Instance): (number?, Vector3?)
 	return block.key, part.Position + Vector3.new(0, part.Size.Y / 2, 0)
 end
 
+-- The top centre of the farm plot with block `key`, or nil when that block is not a plot.
+function BuildService.plotTop(key: number): Vector3?
+	local block = blocks[key]
+	if block == nil or not BC.Blocks[block.kind].Plot then
+		return nil
+	end
+	local part = block.part
+	return part.Position + Vector3.new(0, part.Size.Y / 2, 0)
+end
+
 -- The key and kind of the block `instance` is, or nil.
 function BuildService.blockAt(instance: Instance): (number?, string?)
 	local block = blockOf(instance)
@@ -709,7 +722,69 @@ function BuildService.clear()
 	setTrace()
 end
 
+-- Saved world part "Blocks": one row per block (doors once), lowest first so supports come back
+-- before what rests on them, plus bed owners.
+local function saveBlocks(): any
+	local rows = {}
+	local seen: { [Block]: boolean } = {}
+	for _, block in blocks do
+		if not seen[block] and #rows < Config.Persistence.MaxSavedBlocks then
+			seen[block] = true
+			table.insert(rows, {
+				block.kind, block.cx, block.cy, block.cz, block.health, block.upgrade, block.side,
+				if block.open then 1 else 0, if block.grounded then 1 else 0,
+			})
+		end
+	end
+	table.sort(rows, function(a, b)
+		return a[3] < b[3]
+	end)
+	local bedRows = {}
+	for userId, block in beds do
+		if blocks[block.key] == block then
+			table.insert(bedRows, { userId, block.cx, block.cy, block.cz })
+		end
+	end
+	return { Blocks = rows, Beds = bedRows }
+end
+
+local function finite(value: any): boolean
+	return type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge
+end
+
+local function loadBlocks(data: any)
+	if type(data) ~= "table" or type(data.Blocks) ~= "table" then
+		return
+	end
+	for _, row in data.Blocks do
+		local kind, cx, cy, cz, health, upgrade, side = row[1], row[2], row[3], row[4], row[5], row[6], row[7]
+		local def = type(kind) == "string" and BC.Blocks[kind]
+		if def and finite(cx) and finite(cy) and finite(cz) and finite(health) and blocks[BuildGrid.key(cx, cy, cz)] == nil then
+			local block = createBlock(cx, cy, cz, kind, row[9] == 1, if finite(side) then side else 0)
+			block.health = math.clamp(health, 1, def.Health)
+			block.upgrade = if finite(upgrade) then math.max(0, upgrade) else 0
+			block.part:SetAttribute("Health", block.health)
+			showStage(block)
+			if row[8] == 1 and def.Door then
+				setDoorOpen(block, true)
+			end
+		end
+	end
+	if type(data.Beds) == "table" then
+		for _, row in data.Beds do
+			local block = blocks[BuildGrid.key(row[2], row[3], row[4])]
+			if finite(row[1]) and block and BC.Blocks[block.kind].Bed then
+				beds[row[1]] = block
+			end
+		end
+	end
+end
+
 function BuildService.init()
+	PersistenceService.registerWorld("Blocks", { save = saveBlocks, load = loadBlocks })
+	PersistenceService.registerReady(function()
+		return ready
+	end)
 	Workspace:RegisterCollisionGroup(BC.BarsGroup)
 	Workspace:RegisterCollisionGroup(BC.ShotsGroup)
 	Workspace:CollisionGroupSetCollidable(BC.BarsGroup, BC.ShotsGroup, false)
@@ -761,8 +836,13 @@ function BuildService.start()
 	end
 	Players.PlayerRemoving:Connect(function(player)
 		nextPlaceAt[player] = nil
-		beds[player] = nil
 	end)
+	ready = true
+end
+
+-- True once start() set up placement (the world loader waits for it before restoring blocks).
+function BuildService.isReady(): boolean
+	return ready
 end
 
 return BuildService
