@@ -1615,6 +1615,31 @@ Config.WeaponHandling = {
 	EquipDip = 0.65,
 	PoseSmoothSeconds = 0.08,
 	ElbowWidth = 1.4,
+	-- Third-person carry of melee tools. Fist: the dominant (right) fist from the right shoulder, in
+	-- arm lengths (+X outward, -Z forward); Haft: the direction from the fist toward the tool's head.
+	-- A haft sits in the fist about 120 degrees from the fingers (HeldItems.HoldTilt), so each fist
+	-- is placed where the forearm meets its haft near that angle and the wrist stays nearly straight.
+	-- Two-handed carries put the left fist on the haft where it passes closest to the left shoulder,
+	-- at least SupportMin studs above the right fist (scaled by arm length).
+	Carry = {
+		-- One hand at the side, arm almost straight, head up and forward.
+		OneHand = { Fist = { 0.1, -0.88, -0.22 }, Haft = { 0.05, 0.8, -0.6 }, TwoHanded = false },
+		-- Low port: right fist at the hip, haft across the body, head up and to the left.
+		TwoHand = { Fist = { -0.05, -0.88, -0.2 }, Haft = { -0.6, 0.7, -0.38 }, TwoHanded = true },
+		-- Low guard: rear fist beside the hip, point forward across the body.
+		Spear = { Fist = { -0.15, -0.85, 0.25 }, Haft = { -0.4, 0.1, -0.9 }, TwoHanded = true },
+	} :: { [string]: { Fist: { number }, Haft: { number }, TwoHanded: boolean } },
+	CarryItems = {
+		StoneAxe = "OneHand",
+		WoodenClub = "OneHand",
+		IronFireaxe = "TwoHand",
+		StonePickaxe = "TwoHand",
+		IronPickaxe = "TwoHand",
+		StoneShovel = "TwoHand",
+		IronShovel = "TwoHand",
+		StoneSpear = "Spear",
+	} :: { [string]: string },
+	SupportMin = 0.35,
 	PoseInterval = 0.22,
 	Items = {
 		-- Pistol 1.25 studs (about 0.4 m at 3.1 studs a metre; read larger than a real 0.3 m pipe pistol).

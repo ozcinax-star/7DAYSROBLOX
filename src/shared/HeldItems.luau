@@ -24,6 +24,14 @@ local LENGTHS: { [string]: number } = {
 	StoneSpear = 4.2,
 }
 
+-- Visual length of a long tool, or nil for items without a haft.
+function HeldItems.length(id: string): number?
+	return LENGTHS[id]
+end
+
+-- Share of a long tool's length between its butt end and the dominant fist.
+HeldItems.GripShare = GRIP_SHARE
+
 local function part(model: Model, name: string, size: Vector3, color: Color3): BasePart
 	local p = Instance.new("Part")
 	p.Name, p.Size, p.Color = name, size, color

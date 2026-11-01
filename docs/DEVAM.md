@@ -11,6 +11,12 @@ Dal `claude/zombie-animation-weapon-bugs-93a707`, `a3f7690`'ın (dövüş/zombi 
   (Play'de 80 zombi, hata yok). Kesim Edit'te ölçüldü ve görüntüyle doğrulandı. Kullanıcı izni açtı;
   Play'de 80 zombinin 49'u kolluklu ekoseli gömlek giydi. Kesim bitmeden çıkan zombiler kesim bitince
   yeniden giydirilir.
+- **Alet tutuşu (üçüncü şahıs):** el yönü artık sapın yönü ve önkoldan hesaplanıyor (eskiden kameraya
+  bakıyordu, bilek 90° kırılıyordu). Taş balta ve sopa tek elle yanda; kazma, yangın baltası ve kürek
+  iki elle çapraz; mızrak iki elle ileri. Sol el sapta omzuna en yakın noktayı bulur; hedefler kol
+  boyuna göre ölçeklenir (`Config.WeaponHandling.Carry`). Play ölçümü: sağ yumruk sapta (0,00),
+  sol el sapa 0,09–0,16 stud, bilek bükümü balta 18°, iki elli 35–43°, mızrak 41–53°. Görsel
+  kontrol kullanıcıda (3B ekran görüntüsü bu oturumda da beyaz geldi). Birinci şahıs değişmedi.
 - **"Silahla ateş edince zombinin bir eklemi uzadı":** oyun hatası değil. Kullanıcı Ctrl'e basılıyken
   oynamış; Studio'da Ctrl+2/3/4 Play sırasında da taşıma/boyutlandırma/döndürme aracını açar ve
   tıklanan zombi parçası büyür. Oyun Ctrl kullanmıyor; yayınlanmış oyunda bu araçlar yok.
