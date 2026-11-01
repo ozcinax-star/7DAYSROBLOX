@@ -4,6 +4,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage:WaitForChild("Shared").Config)
+local HeldItems = require(ReplicatedStorage:WaitForChild("Shared").HeldItems)
+local BowState = require(script.Parent.Parent.Modules.BowState)
 local HC = Config.WeaponHandling
 type Joint = Motor6D | AnimationConstraint
 type Arm = { shoulder: Joint, elbow: Joint, wrist: Joint }
@@ -106,6 +108,9 @@ local function step(dt: number)
 		rig.pose = if rig.pose then rig.pose:Lerp(desired, 1 - math.exp(-dt / HC.PoseSmoothSeconds)) else desired
 		local rightCF = solve(rig.right, rig.root.CFrame * (rig.pose :: CFrame),
 			(rig.root.CFrame * CFrame.new(HC.ElbowWidth, -0.2, 0.35)).Position)
+		if id == "PrimitiveBow" and held and held:IsA("Model") then
+			HeldItems.poseBow(held, BowState.sample(player))
+		end
 		local primary = held and held:IsA("Model") and held.PrimaryPart
 		local support = primary and primary:FindFirstChild("SupportGrip")
 		local hand = rig.right.wrist.Part1

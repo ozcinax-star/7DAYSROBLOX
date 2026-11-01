@@ -26,6 +26,7 @@ local Melee = require(Shared.Melee)
 
 local InventoryController = require(script.Parent.InventoryController)
 local WeaponController = require(script.Parent.WeaponController)
+local BowState = require(script.Parent.Parent.Modules.BowState)
 
 export type Action = "Shoot" | "Use" | "Place"
 type Kind = "Fist" | "Tool" | "Spear" | "Gun" | "Bow" | "Block"
@@ -396,6 +397,9 @@ local function onRender(dt: number)
 	rightHand.CFrame = gripWorld
 	placeArm(rightArm, rightSleeve, rightUpper, (view * CFrame.new(RIGHT_SHOULDER)).Position, gripWorld.Position, 1)
 	for index, part in itemParts do part.CFrame = gripWorld * itemOffsets[index] end
+	if heldId == "PrimitiveBow" and itemModel then
+		HeldItems.poseBow(itemModel, BowState.sample(player))
+	end
 	local support = kind ~= "Block" and heldId ~= "WoodenClub"
 	if support ~= leftShown then
 		leftShown = support

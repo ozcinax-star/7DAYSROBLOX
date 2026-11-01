@@ -12,6 +12,7 @@ local Firearm = require(Shared.Firearm)
 local Localization = require(Shared.Localization)
 local Net = require(Shared.Net)
 local InventoryController = require(script.Parent.InventoryController)
+local BowState = require(script.Parent.Parent.Modules.BowState)
 
 type State = { id: string | boolean, slot: number, loaded: number, capacity: number, reserve: number, ammo: string?,
 	reloadStarted: number, reloadEnds: number, readyAt: number, revision: number, shot: boolean }
@@ -214,8 +215,12 @@ function WeaponController.start()
 		state = nextState
 		if nextState.shot and os.clock() - lastPrediction > 0.25 then WeaponController.predictShot() end
 	end)
-	Net.unreliable("ArrowFired").OnClientEvent:Connect(function(id, _, _, _, _, _, _, owner)
+	Net.unreliable("ArrowFired").OnClientEvent:Connect(function(id, _, _, _, _, _, weaponId, owner)
 		if owner == player then ownProjectiles[id] = os.clock() end
+		-- Another player's bow: show the loose and the next arrow (their draw is not sent).
+		if typeof(owner) == "Instance" and owner:IsA("Player") and owner ~= player and weaponId == "PrimitiveBow" then
+			BowState.release(owner)
+		end
 	end)
 	Net.unreliable("ArrowStopped").OnClientEvent:Connect(function(id, _, zombie)
 		if ownProjectiles[id] then ownProjectiles[id] = nil; if zombie ~= 0 then WeaponController.hitConfirmed() end end

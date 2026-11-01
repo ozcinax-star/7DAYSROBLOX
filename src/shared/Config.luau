@@ -141,6 +141,7 @@ export type ToolDef = {
 -- keeps and its range in metres. Guns also have a magazine (rounds, then ReloadSeconds before the
 -- next shot), a random spread cone (degrees) and the noise event every shot makes.
 export type RangedDef = {
+	DrawSeconds: number?,
 	Automatic: boolean?,
 	Ammo: { string },
 	ShotSeconds: number,
@@ -1480,6 +1481,8 @@ Config.Ranged = {
 		PrimitiveBow = {
 			Ammo = { "StoneArrow" },
 			ShotSeconds = 1,
+			-- The shot leaves when the draw animation ends (7DTD: a 0.5 s draw; ours is quicker, a tap).
+			DrawSeconds = 0.35,
 			DamageOffset = -5,
 			SpeedShare = 0.7,
 			MaxRange = 100,

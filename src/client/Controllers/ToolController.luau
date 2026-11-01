@@ -26,6 +26,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local WeaponController = require(script.Parent.WeaponController)
 local EquipmentPoseController = require(script.Parent.EquipmentPoseController)
 local CameraController = require(script.Parent.CameraController)
+local BowState = require(script.Parent.Parent.Modules.BowState)
 local Config = require(Shared.Config)
 local Localization = require(Shared.Localization)
 local Melee = require(Shared.Melee)
@@ -477,6 +478,25 @@ local function trySwing(source: Source, repeated: boolean?, power: boolean?)
 			end
 		elseif not hasAmmo(ranged) then
 			showMessage(Localization.get("NoAmmo")); nextSwingAt = now + MC.MessageSeconds
+			return
+		end
+		if ranged.DrawSeconds then
+			-- A bow: draw first, loose the arrow when the draw ends (if the bow is still in hand).
+			nextSwingAt = now + ranged.ShotSeconds
+			BowState.start(player)
+			local id = held.id
+			task.delay(ranged.DrawSeconds, function()
+				local still = InventoryController.getHeld()
+				local aim = ToolController.aimDirection()
+				if still == nil or still.id ~= id or aim == nil then
+					BowState.cancel(player)
+					return
+				end
+				BowState.release(player)
+				WeaponController.predictShot()
+				ViewmodelController.act("Shoot")
+				useRemote:FireServer(aim)
+			end)
 			return
 		end
 		WeaponController.predictShot()

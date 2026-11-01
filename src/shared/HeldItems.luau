@@ -85,6 +85,7 @@ function HeldItems.build(id: string, hand: BasePart, grip: CFrame): Model
 	if model.PrimaryPart then
 		local root = model.PrimaryPart
 		local points = if handling then { SupportGrip = handling.Support, Sight = handling.Sight, Muzzle = handling.Muzzle }
+			elseif id == "PrimitiveBow" then { SupportGrip = { 0, 0, EquipmentModels.BowStringZ } }
 			else { SupportGrip = { 0, 0.38, -(length or 1) * 0.55 } }
 		for name, point in points do
 			local attachment = Instance.new("Attachment")
@@ -94,6 +95,50 @@ function HeldItems.build(id: string, hand: BasePart, grip: CFrame): Model
 		end
 	end
 	return model
+end
+
+-- Bow draw pulls the nock this far behind the grip at full draw (studs; about the archer's anchor).
+local BOW_DRAW_Z = 1.45
+
+-- Poses a built bow: the string halves meet at the nock, `draw` (0 rest .. 1 full) pulls the nock
+-- back, the arrow rides on it while `nocked`, and the SupportGrip (the drawing hand) follows it.
+-- Welded parts (a character's bow) get new weld offsets; loose ones (the viewmodel) new CFrames.
+function HeldItems.poseBow(model: Model, draw: number, nocked: boolean)
+	local root = model.PrimaryPart
+	if root == nil then
+		return
+	end
+	local restZ = EquipmentModels.BowStringZ
+	local nock = V(0, 0, restZ + (BOW_DRAW_Z - restZ) * math.clamp(draw, 0, 1))
+	local function place(part: BasePart, offset: CFrame)
+		local weld = part:FindFirstChildOfClass("Weld")
+		if weld and weld.Part0 == root then
+			weld.C0 = offset
+		else
+			part.CFrame = root.CFrame * offset
+		end
+	end
+	for _, child in model:GetChildren() do
+		if not child:IsA("BasePart") then
+			continue
+		end
+		local tip = if child.Name == "BowstringUpper" then 1 elseif child.Name == "BowstringLower" then -1 else 0
+		if tip ~= 0 then
+			local a = V(0, tip * EquipmentModels.BowTip, restZ)
+			child.Size = V((nock - a).Magnitude, child.Size.Y, child.Size.Z)
+			place(child, CFrame.lookAt((a + nock) / 2, nock, Vector3.xAxis) * CFrame.Angles(0, math.pi / 2, 0))
+		elseif child.Name == "NockedArrow" then
+			local offset = child:GetAttribute("NockOffset")
+			if typeof(offset) == "CFrame" then
+				place(child, CFrame.new(nock) * offset)
+			end
+			child.Transparency = if nocked then 0 else 1
+		end
+	end
+	local hand = root:FindFirstChild("SupportGrip")
+	if hand and hand:IsA("Attachment") then
+		hand.Position = nock
+	end
 end
 
 return HeldItems

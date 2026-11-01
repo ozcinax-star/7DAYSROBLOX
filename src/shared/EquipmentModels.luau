@@ -230,22 +230,42 @@ BUILDERS.StoneSpear = function(s, length)
 	wrap(s, length * 0.48, 5, 0.23, P.rope)
 end
 
+-- The bow in grip space: the hand on the grip at the origin, the limbs bending back toward the archer
+-- (+Z) so the string runs behind the grip, and an arrow nocked on the string pointing at -Z.
+-- HeldItems.poseBow draws the two string halves, the arrow and the drawing hand from the draw amount.
+local BOW_TIP = 1.7
+local BOW_STRING_Z = 0.48
+EquipmentModels.BowTip = BOW_TIP
+EquipmentModels.BowStringZ = BOW_STRING_Z
+
 BUILDERS.PrimitiveBow = function(s, _length)
-	local points = { V(0, -1.7, -0.25), V(0, -1.42, -0.18), V(0, -1.04, 0.04),
-		V(0, -0.55, 0.2), V(0, 0, 0.23), V(0, 0.55, 0.2), V(0, 1.04, 0.04),
-		V(0, 1.42, -0.18), V(0, 1.7, -0.25) }
+	local points = { V(0, -BOW_TIP, BOW_STRING_Z), V(0, -1.42, 0.41), V(0, -1.04, 0.19),
+		V(0, -0.55, 0.03), V(0, 0, 0), V(0, 0.55, 0.03), V(0, 1.04, 0.19),
+		V(0, 1.42, 0.41), V(0, BOW_TIP, BOW_STRING_Z) }
 	for i = 1, #points - 1 do
 		local diameter = if i == 1 or i == #points - 1 then 0.09 else 0.14
 		rod(s, "CarvedBowLimb", points[i], points[i + 1], diameter, if i % 2 == 0 then P.wood else P.woodLight, WOOD)
 	end
-	rod(s, "BowGrip", V(0, -0.26, 0.23), V(0, 0.26, 0.23), 0.2, P.grain, WOOD)
+	rod(s, "BowGrip", V(0, -0.26, 0), V(0, 0.26, 0), 0.2, P.grain, WOOD)
 	for i = -3, 3 do
-		rod(s, "LeatherBowWrap", V(0, i * 0.06 - 0.022, 0.23), V(0, i * 0.06 + 0.022, 0.23), 0.215, P.tape, CLOTH)
+		rod(s, "LeatherBowWrap", V(0, i * 0.06 - 0.022, 0), V(0, i * 0.06 + 0.022, 0), 0.215, P.tape, CLOTH)
 	end
-	rod(s, "Bowstring", points[1], points[#points], 0.026, P.rope, CLOTH)
-	rod(s, "StringServing", V(0, -0.1, -0.25), V(0, 0.1, -0.25), 0.042, P.grain, CLOTH)
+	local nock = V(0, 0, BOW_STRING_Z)
+	rod(s, "BowstringUpper", points[#points], nock, 0.026, P.rope, CLOTH)
+	rod(s, "BowstringLower", points[1], nock, 0.026, P.rope, CLOTH)
 	for _, y in { -1.64, 1.64 } do
-		rod(s, "TipBinding", V(0, y - 0.035, -0.235), V(0, y + 0.035, -0.235), 0.125, P.rope, CLOTH)
+		rod(s, "TipBinding", V(0, y - 0.035, BOW_STRING_Z - 0.015), V(0, y + 0.035, BOW_STRING_Z - 0.015), 0.125, P.rope, CLOTH)
+	end
+	-- The nocked arrow, offsets kept relative to the nock (it rests on the left of the grip).
+	local function arrowPart(part: BasePart)
+		local offset = CFrame.new(nock):Inverse() * s.root.CFrame:ToObjectSpace(part.CFrame)
+		part:SetAttribute("NockOffset", offset)
+		part.Name = "NockedArrow"
+	end
+	arrowPart(rod(s, "Shaft", nock + V(-0.07, 0, 0), nock + V(-0.07, 0, -2.2), 0.05, P.woodLight, WOOD))
+	arrowPart(add(s, "Head", V(0.04, 0.12, 0.26), C(nock + V(-0.07, 0, -2.3)) * A(math.pi / 2, 0, 0), P.flint, STONE, nil, true))
+	for _, angle in { 0, math.pi / 2 } do
+		arrowPart(box(s, "Fletch", V(0.012, 0.12, 0.3), nock + V(-0.07, 0, -0.22), P.red, CLOTH, A(0, 0, angle)))
 	end
 end
 
