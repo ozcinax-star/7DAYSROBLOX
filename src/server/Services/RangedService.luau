@@ -260,6 +260,12 @@ updateWeapons = function()
 			player:SetAttribute("WeaponReloadEnds", 0)
 			publishState(player)
 		end
+		-- A dead player stops aiming: the inventory (and held stack) survives death, so nothing else
+		-- would clear it, and the respawned character would keep the aimed spread and walk speed.
+		if aiming[player] and not alive(player) then
+			aiming[player] = nil
+			player:SetAttribute("WeaponAiming", false)
+		end
 		local reload = reloads[player]
 		if reload then
 			if not alive(player) or held ~= reload.stack then

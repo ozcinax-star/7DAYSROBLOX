@@ -213,9 +213,10 @@ local function newBag(ground: Vector3, seconds: number, kept: boolean): Bag
 	model.Parent = folder
 	bag.expiry = task.delay(seconds, remove, bag)
 	table.insert(bags, bag)
-	-- Over the cap the oldest bag goes, unless it is kept.
+	-- Over the cap the oldest bag goes, unless it is kept. The new bag (last) is never evicted: the
+	-- caller is about to fill it.
 	local index = 1
-	while #bags > LC.MaxBags and index <= #bags do
+	while #bags > LC.MaxBags and index < #bags do
 		if bags[index].kept then
 			index += 1
 		else

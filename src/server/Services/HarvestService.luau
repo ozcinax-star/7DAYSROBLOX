@@ -153,8 +153,8 @@ local function onPickup(player: Player, entry: Entry, part: BasePart)
 	if (root.Position - part.Position).Magnitude > HC.PickupDistance + PICKUP_TOLERANCE then
 		return
 	end
-	-- Picking up takes the whole object, as if one hit broke it.
-	hit(entry, player, entry.node.Health)
+	-- Picking up takes the whole object, as if one bare-handed hit broke it.
+	hit(entry, player, entry.node.Health, "Fist", Config.Tools.Fist)
 end
 
 -- Loose rocks get an interact prompt (7DTD: rocks can be picked up as small stones).
