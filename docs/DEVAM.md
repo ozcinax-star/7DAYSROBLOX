@@ -19,6 +19,8 @@ Debug GiveKit artık demir balta ve demir kürek de verir. Ayrıntı ve test ad�
 birinci şahıs kopyaları Play'de denetlendi; makineliyle 3 atış sunucudan doğrulandı. Mobil FPS ölçülmedi.
 Önceki oturumların oynanış doğrulamaları ve aşağıdaki yol haritası devam ediyor.
 
+**İnceleme (1 Kasım 2026):** bulgular ve düzeltme sırası [REVIEW_2026-11-01.md](REVIEW_2026-11-01.md) içinde; kod değişmedi.
+
 Yeni bir oturum için tek sayfalık özet. Durum 1 Kasım 2026 itibarıyla. Ayrıntılar:
 [HANDOFF.md](HANDOFF.md) (geçmiş, ölçümler, tuzaklar), [NEXT_STEPS.md](NEXT_STEPS.md) (sıradaki işler,
 kullanıcı soruları), [PLAN.md](PLAN.md) (tasarım kararları; kodla çelişirse PLAN geçerli).

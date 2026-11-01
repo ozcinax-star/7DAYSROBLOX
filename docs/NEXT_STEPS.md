@@ -5,6 +5,16 @@ Durum 1 Kasım 2026 itibarıyla. Önce [HANDOFF.md](HANDOFF.md) dosyasını oku.
 
 ## Neredeyiz
 
+**İnceleme (1 Kasım 2026):** Kod ve oyunun tam incelemesi [REVIEW_2026-11-01.md](REVIEW_2026-11-01.md)
+içinde. Kod değişmedi. Öne çıkanlar:
+- Tepme kamerada birikiyor (ölçüldü).
+- Hasar alınca ekranda uyarı yok.
+- Hayalet zombi ve gece saldırı animasyonu kayması (koddan doğrulandı).
+- Sonsuz Clay döngüsü.
+- Robot gibi görünen kutu zombiler ve fazla parlak gündüz ışığı.
+
+Önerilen düzeltme sırası belgenin 7. bölümünde.
+
 **Silah kullanımı (1 Kasım 2026, Codex):** Şarjör/doldurma artık her silah için sunucuda gerçek;
 nişan, tepme, mermi paneli ve birinci/üçüncü şahıs tutuşu yenilendi. 90 test geçti. Kontroller:
 R/B Reload, RMB/L2 Aim; yakıt T. [WEAPON_HANDLING.md](WEAPON_HANDLING.md) kullanıcı testini içerir.
