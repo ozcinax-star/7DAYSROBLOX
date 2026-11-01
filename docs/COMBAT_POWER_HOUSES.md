@@ -180,6 +180,26 @@ Play ölçümleri:
   dış zemin ızgarası açılır.
 - Üst katlarda oyuncu bloğu hâlâ yok (`IndoorCells`).
 
+## Kullanıcı testi sonrası (1 Kasım, üç bulgu)
+
+1. **Yay ters duruyordu, çekme animasyonu yoktu** (`09a1418`):
+   - Kabza elde; kollar ve kiriş okçu tarafında; kiriş iki parça, ortasında takılı ok.
+   - Tıklayınca destek eli kirişi 0,35 sn'de geri çeker, ok bırakılır, kiriş fırlar, 0,45 sn sonra
+     yeni ok takılır.
+   - Atış çekme bitince sunucuya gider; sunucunun 1 sn'lik aralığı aynı.
+   - Play'de kiriş 1,70 → 1,96 stud uzadı; sunucu atışı bırakmadan 0,04 sn sonra aldı.
+2. **Zombi parçaları kopuktu** (`369a845`):
+   - Her uzuv ekleminin 0,2 stud ötesine uzanır; omuzlar içeri alındı (gömlekte 0,68).
+   - Mesh kafa yakaya oturur; gömlek altındaki kalça daraldı.
+   - Parça sayısı 17.
+3. **Büyük duvar parçası** (`33c33b8`):
+   - Z (gamepad D-Pad yukarı, dokunmatik "Size") düz bloklarda 1×1 → 2×2 → 3×2 → 3×3 boyutunu
+     seçer. Duvar bakış yönüne dik açılır.
+   - Hayalet her hücreyi gösterir; sunucu hücreleri alttan üste tek tek denetler, hücre başına bir
+     blok alır.
+   - Kapı, tarla, jeneratör, yatak ve merdiven tek hücre kalır.
+   - Play'de 3×2 seçiliyken tek tık 6 çerçeve koydu.
+
 ## Kullanıcı testi
 
 1. Studio'da **Play** → soldaki **Give test items** → **God mode**.

@@ -19,7 +19,9 @@ Altı commit, hepsi Studio Play'de ölçüldü. Ayrıntı ve kullanıcı test ad
   yalnızca kabloyla bağlı olanı besler.
 - **Evler:** duvar ilk vuruşta dilimlenir, kırılır, taş baltayla tamir edilir; iki kademe güçlendirilir
   (kereste, çelik plaka).
-- **Testler:** 101 test geçiyor.
+- **Kullanıcı testi sonrası:** yay doğru tutuluyor ve çekme / bırakma / ok takma animasyonu var;
+  zombi uzuvları birleşik; Z ile 3×3'e kadar duvar tek tıkla konuyor.
+- **Testler:** 102 test geçiyor.
 - **Bekleyenler:**
   - Zombilerin ev duvarını kırması.
   - Tabanca ve makinelinin özgün el yapımı görünümü.
