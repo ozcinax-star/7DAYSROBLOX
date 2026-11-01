@@ -3,17 +3,21 @@
 -- for a farm plot, a smaller box for a generator or lamp) shows where "use" will put it, green when
 -- the spot looks free and supported, red otherwise. The cell comes from the same raycast and
 -- Shared/BuildGrid math as the server's (a block may sink into the floor it stands on; inside a town
--- building only its ground storey takes blocks); the server decides.
+-- building only its ground storey takes blocks); the server decides. Plain cubes go up as a wall of
+-- the chosen size (Config.Build.WallSizes; Z, D-pad up or the Size button), one ghost per cell.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local BuildGrid = require(Shared.BuildGrid)
 local Config = require(Shared.Config)
+local Localization = require(Shared.Localization)
+local Net = require(Shared.Net)
 
 local InventoryController = require(script.Parent.InventoryController)
 local ToolController = require(script.Parent.ToolController)
@@ -28,6 +32,11 @@ local BuildController = {}
 
 local player = Players.LocalPlayer
 local ghost: Part
+-- Ghosts for the other cells of a wall, made as needed.
+local extraGhosts: { Part } = {}
+local sizeIndex = 1
+local sizeLabel: TextLabel
+local sizeButton: TextButton
 local structures: Folder
 -- Terrain and the map, what carries a block (the server's groundParams).
 local groundParams = RaycastParams.new()
@@ -104,14 +113,62 @@ local function supported(cx: number, cy: number, cz: number): boolean
 	return Workspace:Raycast(Vector3.new(x, y, z), Vector3.new(0, -length, 0), groundParams) ~= nil
 end
 
+local function isPlain(def: Config.BlockDef): boolean
+	return not (def.Door or def.Plot or def.Size or def.Bed or def.Climbable)
+end
+
+local function ghostAt(index: number): Part
+	if index == 1 then
+		return ghost
+	end
+	local extra = extraGhosts[index - 1]
+	if extra == nil then
+		extra = ghost:Clone()
+		extraGhosts[index - 1] = extra
+	end
+	return extra
+end
+
+local function hideGhosts(from: number)
+	if from <= 1 then
+		ghost.Parent = nil
+	end
+	for i = math.max(1, from - 1), #extraGhosts do
+		extraGhosts[i].Parent = nil
+	end
+end
+
+local function sizeText(): string
+	local size = BC.WallSizes[sizeIndex]
+	return Localization.get("BuildSize", {
+		width = size[1],
+		height = size[2],
+		key = UserInputService:GetStringForKeyCode(Enum.KeyCode.Z),
+	})
+end
+
+local function changeSize()
+	local held = InventoryController.getHeld()
+	local def = held and BC.Blocks[held.id]
+	if def == nil or not isPlain(def) then
+		return
+	end
+	sizeIndex = sizeIndex % #BC.WallSizes + 1
+	Net.event("BuildSize"):FireServer(sizeIndex)
+	sizeLabel.Text = sizeText()
+end
+
 local function update()
 	local held = InventoryController.getHeld()
 	local def = held and BC.Blocks[held.id]
+	local plainHeld = def ~= nil and isPlain(def) and not InventoryController.isBackpackOpen()
+	sizeLabel.Visible = plainHeld
+	sizeButton.Visible = plainHeld and UserInputService.TouchEnabled
 	local character = player.Character
 	local head = character and character:FindFirstChild("Head")
 	local aim = if def and not InventoryController.isBackpackOpen() then ToolController.aimDirection() else nil
 	if aim == nil or character == nil or head == nil or not head:IsA("BasePart") then
-		ghost.Parent = nil
+		hideGhosts(1)
 		return
 	end
 	local params = RaycastParams.new()
@@ -121,7 +178,7 @@ local function update()
 	params.RespectCanCollide = true
 	local result = Workspace:Raycast(head.Position, aim * BC.MaxPlaceDistance, params)
 	if result == nil then
-		ghost.Parent = nil
+		hideGhosts(1)
 		return
 	end
 	local p, n = result.Position, result.Normal
@@ -144,11 +201,75 @@ local function update()
 		ghost.CFrame = BuildGrid.doorCFrame(cx, cy, cz, side, false, BC.DoorThickness)
 		valid = valid and not occupied(cx, cy + 1, cz)
 	else
-		ghost.Size = Vector3.one * (BC.GridSize - GHOST_INSET * 2)
-		ghost.CFrame = CFrame.new(x, y, z)
+		-- A wall: every cell gets a ghost; a cell over another cell of the wall counts as supported.
+		local size = BC.WallSizes[sizeIndex]
+		local cells = BuildGrid.wallCells(cx, cy, cz, size[1], size[2], BuildGrid.wallAxis(aim.X, aim.Z))
+		for index, cell in cells do
+			local part = ghostAt(index)
+			local wx, wy, wz = BuildGrid.center(cell[1], cell[2], cell[3])
+			local carried = cell[2] > cy or supported(cell[1], cell[2], cell[3])
+			part.Size = Vector3.one * (BC.GridSize - GHOST_INSET * 2)
+			part.CFrame = CFrame.new(wx, wy, wz)
+			part.Color = if not occupied(cell[1], cell[2], cell[3]) and carried then VALID_COLOR else INVALID_COLOR
+			part.Parent = Workspace.CurrentCamera
+		end
+		hideGhosts(#cells + 1)
+		return
 	end
+	hideGhosts(2)
 	ghost.Color = if valid then VALID_COLOR else INVALID_COLOR
 	ghost.Parent = Workspace.CurrentCamera
+end
+
+local function buildGui()
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "BuildHud"
+	gui.ResetOnSpawn = false
+	sizeLabel = Instance.new("TextLabel")
+	sizeLabel.Name = "WallSize"
+	sizeLabel.AnchorPoint = Vector2.new(0.5, 0)
+	sizeLabel.Position = UDim2.new(0.5, 0, 0.5, 44)
+	sizeLabel.Size = UDim2.fromOffset(260, 22)
+	sizeLabel.BackgroundTransparency = 1
+	sizeLabel.Font = Enum.Font.GothamBold
+	sizeLabel.TextSize = 15
+	sizeLabel.TextColor3 = Color3.new(1, 1, 1)
+	sizeLabel.TextStrokeTransparency = 0.4
+	sizeLabel.Text = sizeText()
+	sizeLabel.Visible = false
+	sizeLabel.Parent = gui
+	sizeButton = Instance.new("TextButton")
+	sizeButton.Name = "WallSizeButton"
+	sizeButton.AnchorPoint = Vector2.new(1, 1)
+	sizeButton.Position = UDim2.new(1, -170, 1, -40)
+	sizeButton.Size = UDim2.fromOffset(64, 64)
+	sizeButton.BackgroundColor3 = Color3.fromRGB(28, 28, 30)
+	sizeButton.BackgroundTransparency = 0.25
+	sizeButton.Font = Enum.Font.GothamBold
+	sizeButton.TextScaled = true
+	sizeButton.TextColor3 = Color3.new(1, 1, 1)
+	sizeButton.Text = Localization.get("BuildSizeButton")
+	sizeButton.Visible = false
+	sizeButton.Parent = gui
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0.5, 0)
+	corner.Parent = sizeButton
+	sizeButton.Activated:Connect(changeSize)
+	gui.Parent = player:WaitForChild("PlayerGui")
+
+	-- Input Action System: Z and D-pad up change the wall size.
+	local context = Instance.new("InputContext")
+	context.Name = "BuildInput"
+	local action = Instance.new("InputAction")
+	action.Name = "WallSize"
+	action.Parent = context
+	for _, key in { Enum.KeyCode.Z, Enum.KeyCode.DPadUp } do
+		local binding = Instance.new("InputBinding")
+		binding.KeyCode = key
+		binding.Parent = action
+	end
+	action.Pressed:Connect(changeSize)
+	context.Parent = gui
 end
 
 function BuildController.init() end
@@ -166,6 +287,7 @@ function BuildController.start()
 	ghost.Material = Enum.Material.SmoothPlastic
 	ghost.Transparency = GHOST_TRANSPARENCY
 	ghost.Size = Vector3.one * (BC.GridSize - GHOST_INSET * 2)
+	buildGui()
 	RunService.PreRender:Connect(update)
 end
 

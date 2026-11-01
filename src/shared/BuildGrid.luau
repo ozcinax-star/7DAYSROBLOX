@@ -218,4 +218,26 @@ function BuildGrid.unsupported(blocks: { [number]: Support }, removed: number): 
 	return falling
 end
 
+-- The horizontal axis a wall runs along when the player looks along (dx, dz): across the view.
+function BuildGrid.wallAxis(dx: number, dz: number): "X" | "Z"
+	return if math.abs(dx) > math.abs(dz) then "Z" else "X"
+end
+
+-- Cells of a `width` x `height` wall whose bottom row is centred on (cx, cy, cz) along `axis`, bottom
+-- row first (so every cell is placed after the one it stands on).
+function BuildGrid.wallCells(cx: number, cy: number, cz: number, width: number, height: number, axis: "X" | "Z"): { { number } }
+	local cells: { { number } } = {}
+	local first = -math.floor((width - 1) / 2)
+	for row = 0, height - 1 do
+		for column = first, first + width - 1 do
+			if axis == "X" then
+				table.insert(cells, { cx + column, cy + row, cz })
+			else
+				table.insert(cells, { cx, cy + row, cz + column })
+			end
+		end
+	end
+	return cells
+end
+
 return BuildGrid

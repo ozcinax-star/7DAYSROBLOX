@@ -1585,6 +1585,25 @@ end)
 
 print("BuildGrid")
 
+test("a wall runs across the view, bottom row first, centred on the aimed cell", function()
+	expectEq(BuildGrid.wallAxis(0, -1), "X", "looking along Z")
+	expectEq(BuildGrid.wallAxis(1, 0.2), "Z", "looking along X")
+	local cells = BuildGrid.wallCells(10, 2, 5, 3, 2, "X")
+	expectEq(#cells, 6)
+	expectEq(cells[1][1], 9, "starts one to the left")
+	expectEq(cells[3][1], 11)
+	expectEq(cells[1][2], 2, "bottom row first")
+	expectEq(cells[4][2], 3, "then the row above")
+	expectEq(cells[1][3], 5, "stays in its row")
+	local tall = BuildGrid.wallCells(0, 0, 0, 2, 2, "Z")
+	expectEq(tall[1][3], 0, "an even width leans right")
+	expectEq(tall[2][3], 1)
+	expectEq(#BuildGrid.wallCells(0, 0, 0, 1, 1, "X"), 1, "1 x 1 is one cell")
+	for _, size in Config.Build.WallSizes do
+		assert(size[1] >= 1 and size[2] >= 1 and size[1] * size[2] <= 9, "wall size")
+	end
+end)
+
 test("cells pack into keys and a block sits next to what the ray hit", function()
 	local size = Config.Build.GridSize
 	for _, cell in { { 0, 0, 0 }, { -3, 7, 12 }, { 255, -40, -256 }, { -1, -1, -1 } } do

@@ -34,6 +34,7 @@ local Harvest = require(Shared.Harvest)
 local HeightField = require(Shared.World.HeightField)
 
 local Localization = require(Shared.Localization)
+local Net = require(Shared.Net)
 
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local BuildingKit = require(script.Parent.Parent.World.BuildingKit)
@@ -81,6 +82,9 @@ local folder: Folder
 local blocks: { [number]: Block } = {}
 local count = 0
 local nextPlaceAt: { [Player]: number } = {}
+-- Each player's wall size (index into Config.Build.WallSizes; 1 when unset).
+local wallSizes: { [Player]: number } = {}
+local sizeLimiter: RateLimiter.RateLimiter
 local groundParams: RaycastParams
 local mapOverlap: OverlapParams
 local doorLimiter: RateLimiter.RateLimiter
@@ -564,17 +568,45 @@ local function onPlace(player: Player, origin: Vector3, direction: Vector3, item
 	local p, n = result.Position, result.Normal
 	local cx, cy, cz =
 		BuildGrid.target(p.X, p.Y, p.Z, n.X, n.Y, n.Z, if hit then { hit.cx, hit.cy, hit.cz } else nil)
-	local ok, grounded = canPlace(cx, cy, cz)
-	if ok and def.Door then
-		ok = cellFree(cx, cy + 1, cz)
-	end
-	if ok and InventoryService.consumeHeld(player, 1) then
-		local block = createBlock(cx, cy, cz, itemId, grounded, BuildGrid.sideToward(cx, cz, origin.X, origin.Z))
-		if def.Bed then
-			beds[player] = block
+	-- Plain cubes go up as a wall of the player's size, bottom row first, one block a cell, skipping
+	-- cells that cannot take one, until the blocks run out. Everything else is a single cell.
+	local plain = not (def.Door or def.Plot or def.Size or def.Bed or def.Climbable)
+	local size = if plain then BC.WallSizes[wallSizes[player] or 1] else nil
+	local cells = if size
+		then BuildGrid.wallCells(cx, cy, cz, size[1], size[2], BuildGrid.wallAxis(direction.X, direction.Z))
+		else { { cx, cy, cz } }
+	local placed = 0
+	for _, cell in cells do
+		local ok, grounded = canPlace(cell[1], cell[2], cell[3])
+		if ok and def.Door then
+			ok = cellFree(cell[1], cell[2] + 1, cell[3])
 		end
-		ChallengeService.record(player, "Place", itemId, 1)
+		if ok then
+			if not InventoryService.consumeHeld(player, 1) then
+				break
+			end
+			local block = createBlock(cell[1], cell[2], cell[3], itemId, grounded,
+				BuildGrid.sideToward(cell[1], cell[3], origin.X, origin.Z))
+			if def.Bed then
+				beds[player] = block
+			end
+			placed += 1
+		end
 	end
+	if placed > 0 then
+		ChallengeService.record(player, "Place", itemId, placed)
+	end
+end
+
+-- The client picks its wall size (an index into Config.Build.WallSizes).
+local function onBuildSize(player: Player, index: unknown)
+	if not sizeLimiter:allow(player) then
+		return
+	end
+	if typeof(index) ~= "number" or index ~= index or index % 1 ~= 0 or BC.WallSizes[index] == nil then
+		return
+	end
+	wallSizes[player] = index
 end
 
 -- Stone axe on a block: repair it when damaged, otherwise work on its upgrade.
@@ -767,6 +799,8 @@ function BuildService.init()
 	PhysicsService:RegisterCollisionGroup(BC.ShotsGroup)
 	PhysicsService:CollisionGroupSetCollidable(BC.BarsGroup, BC.ShotsGroup, false)
 	doorLimiter = RateLimiter.new(BC.DoorTogglesPerSecond)
+	sizeLimiter = RateLimiter.new(BC.WallSizeChangesPerSecond)
+	Net.event("BuildSize")
 	folder = Instance.new("Folder")
 	folder.Name = BC.FolderName
 	folder.Parent = Workspace
@@ -794,6 +828,7 @@ function BuildService.start()
 	end
 	ToolService.onWorldHit(onWorldHit)
 	ZombieService.onStructureHit(onStructureHit)
+	Net.event("BuildSize").OnServerEvent:Connect(onBuildSize)
 	RunService.Heartbeat:Connect(function(dt)
 		trapClock += dt
 		if trapClock < BC.Spikes.CheckSeconds or next(traps) == nil then
@@ -813,6 +848,7 @@ function BuildService.start()
 	end
 	Players.PlayerRemoving:Connect(function(player)
 		nextPlaceAt[player] = nil
+		wallSizes[player] = nil
 		beds[player] = nil
 	end)
 end

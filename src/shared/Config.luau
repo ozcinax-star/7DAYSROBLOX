@@ -562,6 +562,11 @@ Config.Build = {
 	-- Reach for placing, from the head (PLAN; 7DTD has no single value).
 	MaxPlaceDistance = 24,
 	PlaceCooldown = 0.25,
+	-- Wall sizes a plain block can be placed in at once (width x height cells; ours: 7DTD places one
+	-- block at a time). Z / D-pad up / the Size button picks one; each cell takes one block, and the
+	-- server places them bottom row first until the blocks run out. Size picks per second per player.
+	WallSizes = { { 1, 1 }, { 2, 2 }, { 3, 2 }, { 3, 3 } } :: { { number } },
+	WallSizeChangesPerSecond = 8,
 	-- A ray hit point is moved this far off the surface before picking its cell.
 	SurfaceOffset = 0.05,
 	-- A new block may not overlap a wall, a tree or a character; touching faces are fine.

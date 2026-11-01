@@ -70,6 +70,8 @@ local Definitions: { [string]: "RemoteEvent" | "UnreliableRemoteEvent" } = {
 	Notice = "RemoteEvent",
 	-- Server -> all clients: a turret shot (muzzle position, where it hit), for the tracer and flash.
 	TurretFired = "UnreliableRemoteEvent",
+	-- Client -> server: the wall size block placement uses (index into Config.Build.WallSizes).
+	BuildSize = "RemoteEvent",
 }
 
 local Net = {}
