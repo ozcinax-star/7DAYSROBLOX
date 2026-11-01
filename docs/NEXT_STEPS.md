@@ -15,6 +15,19 @@ içinde. Kod değişmedi. Öne çıkanlar:
 
 Önerilen düzeltme sırası belgenin 7. bölümünde.
 
+**Düzeltme turu (1 Kasım 2026, aynı gün):** İncelemenin 1–5. maddeleri ve sesler yapıldı; 3 zombi türü
+eklendi. Özet DEVAM.md'nin başında. Kalan inceleme maddeleri:
+- Namlu alevini yerelde tahmin etme.
+- Vuruş durması (hit-stop).
+- Ölüm çöküşü ve kafa patlaması.
+- Görüş konisi.
+- Görünür yerde doğmama.
+- Zombi rig'inin dokulu mesh'e geçmesi.
+- Taş aletler ve yay için mesh; boru silahlara hurda görünüm.
+- Ağaçlar ve prop'lar.
+
+Görsel işler Studio görüntüsü düzelince yapılmalı (bu oturumda beyazdı).
+
 **Silah kullanımı (1 Kasım 2026, Codex):** Şarjör/doldurma artık her silah için sunucuda gerçek;
 nişan, tepme, mermi paneli ve birinci/üçüncü şahıs tutuşu yenilendi. 90 test geçti. Kontroller:
 R/B Reload, RMB/L2 Aim; yakıt T. [WEAPON_HANDLING.md](WEAPON_HANDLING.md) kullanıcı testini içerir.

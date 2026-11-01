@@ -19,7 +19,44 @@ Debug GiveKit artık demir balta ve demir kürek de verir. Ayrıntı ve test ad�
 birinci şahıs kopyaları Play'de denetlendi; makineliyle 3 atış sunucudan doğrulandı. Mobil FPS ölçülmedi.
 Önceki oturumların oynanış doğrulamaları ve aşağıdaki yol haritası devam ediyor.
 
-**İnceleme (1 Kasım 2026):** bulgular ve düzeltme sırası [REVIEW_2026-11-01.md](REVIEW_2026-11-01.md) içinde; kod değişmedi.
+## Güncel ek: inceleme ve düzeltme turu (1 Kasım 2026, Claude)
+
+Tam kod ve oyun incelemesi [REVIEW_2026-11-01.md](REVIEW_2026-11-01.md) içinde. Ardından kullanıcı
+"otonom devam et" dedi ve şunlar yapıldı (her biri ayrı commit'te):
+
+- **Tepme:** kamera artık geri dönüyor.
+  - Eskiden her atış kalıcı +1,24° bırakıyordu; şimdi 0,00° (ölçüldü).
+  - Kritik sönümlü yay: 40 ms'de tepe.
+- **Hasar geri bildirimi:**
+  - kırmızı kenar flaşı
+  - kamera sarsıntısı
+  - %30 canın altında nabız ve renk solması
+- **Sesler:** önceden hiç ses yoktu.
+  - Silah, yakın dövüş (malzemeye göre), zombi, kapı ve blok, ağaç, eşya, crafting, ortam ve ateş.
+  - Hepsi Roblox'un lisanslı Pro Sound Effects kütüphanesinden; kesimler ölçülen ses zarfından.
+  - Ayrıntı ve kullanıcı testi: [SOUND.md](SOUND.md).
+- **Yakın dövüş:** efekt ve ses bıçağın indiği karede; yakın dövüşte isabet işareti, kafa vuruşu kırmızı.
+- **Ağ:**
+  - Hayalet zombi düzeltildi (mezar taşı ve bayat görünüm temizliği).
+  - Durum değişikliği 3 görüntüde yeniden gönderiliyor.
+  - Gece saldırı animasyonu sunucuyla eşleşiyor.
+- **Sunucu:**
+  - takılan zombi yana kayıyor
+  - sonsuz Clay döngüsü kapandı
+  - ölümde nişan sıfırlanıyor
+  - çanta sınırı doldurulan çantayı silmiyor
+- **Silah hissi:**
+  - 0,12 sn tıklama tamponu
+  - sabit atış aralığı (yumruk 0,850 sn ölçüldü)
+  - nişan alırken fare hassasiyeti ölçekleniyor
+  - viewmodel vuruşa hızlanarak giriyor
+- **Görünüm:** solgun ve hafif sıcak renk düzeltmesi; gündüz tozlu pus, gece soğuk koyu atmosfer.
+  **Ekranda doğrulanmadı:** bu oturumda Studio görüntüsü bembeyaz kaldı (Edit modunda bile).
+  Studio yeniden başlatılmalı.
+- **3 zombi türü:** Normal, Hızlı, Dinleyici (PLAN MVP). Tür kimlikten türetiliyor.
+
+91 test geçiyor. Doğrulanmayanlar: görsel değişiklikler (beyaz görüntü), seslerin kulakla ayarı,
+telefon FPS'i.
 
 Yeni bir oturum için tek sayfalık özet. Durum 1 Kasım 2026 itibarıyla. Ayrıntılar:
 [HANDOFF.md](HANDOFF.md) (geçmiş, ölçümler, tuzaklar), [NEXT_STEPS.md](NEXT_STEPS.md) (sıradaki işler,

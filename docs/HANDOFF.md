@@ -823,6 +823,19 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
 
 ## Bilinen sorunlar ve tuzaklar
 
+- **Beyaz Studio görüntüsü (1 Kasım 2026):** Uzun bir MCP oturumundan sonra `screen_capture` hem Play
+  hem Edit modunda bembeyaz döndü; Lighting değerleri normaldi. Kodla ilgisi yok: Studio'yu yeniden
+  başlat.
+- **Bayat script:** Place'te başka bir worktree'den kalma
+  `StarterPlayerScripts.Client.Controllers.TurretController` var ve `[Net] unknown remote: TurretFired`
+  hatası veriyor. Harness senkronu fazla script'leri silmiyor. Place'i paylaşan diğer oturumlara
+  dokunmamak için silinmedi; kullanıcı kararı.
+- **Ses kaynağı:** Mağaza aramasında yükleyici süzgeci yok. Pro Sound Effects adlarıyla ara
+  (`... (SFX)`) ve `creatorName == "ProSoundEffects"` olanları al. Yükleyiciyi
+  `GetProductInfoAsync` ile, sesin kendisini `PlaybackLoudness` zarfıyla doğrula ([SOUND.md](SOUND.md)).
+- **Python ile dosya yazarken:** `open(p, 'w')` Windows'ta CRLF yazar; git commit'te LF'ye çevirir
+  (uyarı verir, içerik doğru).
+
 - **Telefonda FPS hiç ölçülmedi.** Aşama 1'in kapısı (kullanıcı erteledi). Bina parça sayısı hedefin
   üstünde; zombi başına parça sayısı 17'ye çıktı.
 - **Araç zinciri hiç çalıştırılmadı.** README'deki `stylua --check`, `selene src` ve `lune run tests/run`
