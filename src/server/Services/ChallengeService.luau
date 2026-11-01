@@ -1,9 +1,10 @@
 --!strict
 -- ChallengeService: the 7DTD challenge chain (Config.Challenges), the game's tutorial. Each player
--- tracks one challenge at a time and only it counts, like 7DTD's linked challenges. Other services
--- report what players do (`record`: crafts, placed and upgraded blocks, harvests with the held tool,
--- lake drinks); zombie kills come from ZombieService and Gather objectives read the inventory whenever
--- it changes. The client is sent the tracked challenge (ChallengeUpdate) and only displays it.
+-- tracks one challenge at a time, like 7DTD's linked challenges, but what was done before its turn
+-- (a stone axe crafted while the gathering step was still tracked) counts once it comes up. Other
+-- services report what players do (`record`: crafts, placed and upgraded blocks, harvests with the
+-- held tool, lake drinks); zombie kills come from ZombieService and Gather objectives read the
+-- inventory whenever it changes. The client is sent the tracked challenge (ChallengeUpdate) and only displays it.
 -- Progress lives for the session; saving comes with the persistence step.
 
 local Players = game:GetService("Players")
@@ -22,6 +23,8 @@ type State = {
 	index: number,
 	-- Count per objective of the tracked challenge.
 	progress: { number },
+	-- Every countable event this session, for challenges still to come.
+	tally: Challenges.Tally,
 }
 
 local ChallengeService = {}
@@ -88,7 +91,8 @@ local function advance(player: Player, state: State)
 		end
 		completed = def.Id
 		state.index += 1
-		state.progress = {}
+		local nextDef = Config.Challenges[state.index]
+		state.progress = if nextDef then Challenges.seed(nextDef, state.tally) else {}
 		readInventory(player, state)
 	end
 	send(player, state, completed)
@@ -103,8 +107,12 @@ function ChallengeService.record(
 	held: string?
 )
 	local state = states[player]
-	local def = state and Config.Challenges[state.index]
-	if state == nil or def == nil or count <= 0 then
+	if state == nil or count <= 0 then
+		return
+	end
+	Challenges.addToTally(state.tally, kind, item, held, count)
+	local def = Config.Challenges[state.index]
+	if def == nil then
 		return
 	end
 	local changed = false
@@ -123,7 +131,7 @@ function ChallengeService.record(
 end
 
 local function onPlayerAdded(player: Player)
-	local state: State = { index = 1, progress = {} }
+	local state: State = { index = 1, progress = {}, tally = {} }
 	states[player] = state
 	task.defer(function()
 		if states[player] == state then

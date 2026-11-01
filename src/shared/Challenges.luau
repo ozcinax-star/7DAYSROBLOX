@@ -42,6 +42,41 @@ function Challenges.matches(
 	return objective.Held == nil or objective.Held == held
 end
 
+-- Everything a player has done this session that a challenge can count (all kinds but Gather),
+-- keyed by kind, item and held tool. A challenge that comes up later starts from it, so work done
+-- early (a stone axe crafted while still gathering) still counts when its turn comes.
+export type Tally = { [string]: { kind: Config.ChallengeKind, item: string?, held: string?, count: number } }
+
+function Challenges.addToTally(tally: Tally, kind: Config.ChallengeKind, item: string?, held: string?, count: number)
+	local key = `{kind}|{item or ""}|{held or ""}`
+	local entry = tally[key]
+	if entry then
+		entry.count += count
+	else
+		tally[key] = { kind = kind, item = item, held = held, count = count }
+	end
+end
+
+-- Starting progress of `def` from `tally`: each non-Gather objective counts the matching events,
+-- capped at its count. Gather objectives are left to the inventory.
+function Challenges.seed(def: Config.ChallengeDef, tally: Tally): { number }
+	local progress: { number } = {}
+	for index, objective in def.Objectives do
+		if objective.Kind ~= "Gather" then
+			local have = 0
+			for _, entry in tally do
+				if Challenges.matches(objective, entry.kind, entry.item, entry.held) then
+					have += entry.count
+				end
+			end
+			if have > 0 then
+				progress[index] = math.min(objective.Count, have)
+			end
+		end
+	end
+	return progress
+end
+
 -- True when every objective of `def` has reached its count in `progress` (by objective index).
 function Challenges.isComplete(def: Config.ChallengeDef, progress: { number }): boolean
 	for index, objective in def.Objectives do

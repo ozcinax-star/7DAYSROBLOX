@@ -529,6 +529,24 @@ test("a challenge objective counts only its own kind, item and held tool", funct
 	expectEq(total > 1, true, "group size")
 end)
 
+test("a stone axe crafted before its turn counts once its challenge comes up", function()
+	local tally: Challenges.Tally = {}
+	Challenges.addToTally(tally, "Craft", "StoneAxe", nil, 1)
+	Challenges.addToTally(tally, "Harvest", "Wood", "StoneAxe", 4)
+	Challenges.addToTally(tally, "Harvest", "Wood", "StoneAxe", 3)
+	Challenges.addToTally(tally, "Harvest", "Wood", "Fist", 20)
+	local craft = Config.Challenges[2]
+	expectEq(craft.Id, "CraftStoneAxe", "the axe follows the gathering")
+	expectEq(Challenges.isComplete(craft, Challenges.seed(craft, tally)), true, "the early axe completes it")
+	local harvest = Challenges.seed(Config.Challenges[3], tally)
+	expectEq(harvest[1], 7, "only wood cut with the axe counts")
+	expectEq(harvest[2], nil, "no stone yet")
+	Challenges.addToTally(tally, "Kill", nil, nil, 9)
+	local kills = Config.Challenges[#Config.Challenges - 1]
+	expectEq(kills.Id, "KillZombies", "kill challenge")
+	expectEq(Challenges.seed(kills, tally)[1], 5, "capped at the objective's count")
+end)
+
 print("Inventory")
 
 test("the 7DTD starting kit fits on the toolbelt and keeps the first slot free", function()
