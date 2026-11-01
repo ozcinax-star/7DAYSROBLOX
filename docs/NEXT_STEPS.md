@@ -28,6 +28,20 @@ eklendi. Özet DEVAM.md'nin başında. Kalan inceleme maddeleri:
 
 Görsel işler Studio görüntüsü düzelince yapılmalı (bu oturumda beyazdı).
 
+Aynı gün sonradan yapılanlar:
+- zombilerin görüş konisi (arkadan yaklaşılabiliyor)
+- görüş alanında doğmama
+- son kod incelemesi ve düzeltmeleri
+
+İncelemede kalan küçük notlar:
+- Yüksek pingte bir vuruşun efekti sonraki salınıma kayabilir (yalnızca görsel).
+- Ateş çıtırtısı her saniye bütün yapı parçalarını tarıyor; büyük üslerde etiket ya da sinyale geçmeli.
+- Doğma kontrolü kameranın değil karakterin yönünü kullanıyor.
+
+Kullanıcı kararı bekleyen:
+- **Kalıcılık (DataStore):** PLAN 3. aşama. Şema geri dönüşü zor bir karar olduğu için kullanıcı onayı
+  olmadan başlanmadı.
+
 **Silah kullanımı (1 Kasım 2026, Codex):** Şarjör/doldurma artık her silah için sunucuda gerçek;
 nişan, tepme, mermi paneli ve birinci/üçüncü şahıs tutuşu yenilendi. 90 test geçti. Kontroller:
 R/B Reload, RMB/L2 Aim; yakıt T. [WEAPON_HANDLING.md](WEAPON_HANDLING.md) kullanıcı testini içerir.
