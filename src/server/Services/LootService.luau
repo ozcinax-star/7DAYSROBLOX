@@ -25,6 +25,7 @@ local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local DayNightService = require(script.Parent.DayNightService)
 local InventoryService = require(script.Parent.InventoryService)
 local MapService = require(script.Parent.MapService)
+local ProgressionService = require(script.Parent.ProgressionService)
 local ZombieService = require(script.Parent.ZombieService)
 
 local LC = Config.Loot
@@ -321,13 +322,19 @@ local function inSight(player: Player, container: Container): boolean
 	return Workspace:Raycast(head.Position, offset, params) == nil
 end
 
--- What the container holds, rolled first when it was never filled or is due a refill.
-local function fill(container: Container): Inventory.Inventory
+-- What the container holds, rolled first when it was never filled or is due a refill. The player who
+-- fills it gets their Scavenger share of every stack (rounded, within the stack size).
+local function fill(container: Container, searcher: Player?): Inventory.Inventory
 	local day = DayNightService.getState().day
 	if container.inventory == nil or day - container.filledDay >= LC.ContainerRespawnDays then
 		local inventory = Inventory.new(0, LC.BagSlots)
+		local share = if searcher then ProgressionService.lootShare(searcher) else 1
 		for _, stack in Loot.rollContainer(rand, container.kind, container.buildingLoot) do
-			Inventory.add(inventory, stack.id, stack.count, stack.source, stack.durability, stack)
+			local count = stack.count
+			if share > 1 and stack.durability == nil then
+				count = math.min(Inventory.stackSize(stack.id), math.floor(count * share + 0.5))
+			end
+			Inventory.add(inventory, stack.id, count, stack.source, stack.durability, stack)
 		end
 		container.inventory = inventory
 		container.filledDay = day
@@ -339,7 +346,7 @@ local function onSearchContainer(player: Player, container: Container)
 	if not canSearch(player, container.point.WorldPosition) or not inSight(player, container) then
 		return
 	end
-	takeAll(player, fill(container))
+	takeAll(player, fill(container, player))
 	container.prompt.ObjectText = containerName(container)
 end
 

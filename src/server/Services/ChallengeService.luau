@@ -17,6 +17,7 @@ local Net = require(Shared.Net)
 local InventoryService = require(script.Parent.InventoryService)
 local ZombieService = require(script.Parent.ZombieService)
 local PersistenceService = require(script.Parent.PersistenceService)
+local ProgressionService = require(script.Parent.ProgressionService)
 
 type State = {
 	-- Index into Config.Challenges of the tracked challenge (past the end: all done).
@@ -103,6 +104,8 @@ function ChallengeService.record(
 	count: number,
 	held: string?
 )
+	-- Every recorded event is also experience (ProgressionService), finished challenges or not.
+	ProgressionService.award(player, kind, count)
 	local state = states[player]
 	local def = state and Config.Challenges[state.index]
 	if state == nil or def == nil or count <= 0 then

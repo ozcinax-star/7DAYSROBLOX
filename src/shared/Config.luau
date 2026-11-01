@@ -2244,6 +2244,8 @@ Config.Sounds = {
 		DoorClose = { Ids = { "rbxassetid://9120839871" }, Volume = 1, Range = 50, Region = { 0.4, 1.4 } },
 		ItemPickup = { Ids = { "rbxassetid://9113822732", "rbxassetid://9113823112" }, Volume = 0.5, Pitch = { 0.95, 1.1 } },
 		CraftDone = { Ids = { "rbxassetid://9113649171" }, Volume = 0.35 },
+		-- Measured peak 14 at 0.15 (quiet): raised.
+		UIClick = { Ids = { "rbxassetid://9119717523" }, Volume = 0.8 },
 		AmbientWindDay = { Ids = { "rbxassetid://9114057104" }, Volume = 0.25, Looped = true },
 		AmbientNightCrickets = { Ids = { "rbxassetid://9112765304" }, Volume = 0.3, Looped = true },
 		FireCrackle = { Ids = { "rbxassetid://9112780438" }, Volume = 0.5, Range = 40, Looped = true },
@@ -2417,6 +2419,31 @@ Config.Storage = {
 
 -- Save and load (PersistenceService, ProfileStore). Changing a store name or a key format loses every
 -- save made under the old one: ask the user first, and bump the version with a migration instead.
+-- Experience, levels and perks (ProgressionService, Shared/Progression). PLAN MVP: Scavenger,
+-- Builder and Combat, three tiers each. All numbers are ours (7DTD has ~60 perks gated by attributes).
+export type PerkDef = { TierLevels: { number }, Step: number }
+Config.Progression = {
+	-- Experience per event: a kill, an item paid by a harvest hit, a finished craft, a placed block, a
+	-- block upgrade.
+	Xp = { Kill = 100, Harvest = 2, Craft = 10, Place = 5, Upgrade = 10 } :: { [string]: number },
+	-- Level L to L+1 costs LevelBase * LevelGrowth^(L-1) experience: 500, 575, 661...
+	LevelBase = 500,
+	LevelGrowth = 1.15,
+	MaxLevel = 100,
+	PointsPerLevel = 1,
+	-- TierLevels: the player level each tier needs. Step: the effect per tier.
+	--   Combat: +10% entity damage (melee and ranged).
+	--   Scavenger: +15% items in a container the player fills by searching it first.
+	--   Builder: -20% material cost of block upgrades and repairs (at least 1 item stays).
+	Perks = {
+		Scavenger = { TierLevels = { 1, 4, 8 }, Step = 0.15 },
+		Builder = { TierLevels = { 1, 4, 8 }, Step = 0.2 },
+		Combat = { TierLevels = { 1, 4, 8 }, Step = 0.1 },
+	} :: { [string]: PerkDef },
+	PerkOrder = { "Scavenger", "Builder", "Combat" },
+	PerkRequestsPerSecond = 4,
+}
+
 Config.Persistence = {
 	WorldStore = "World_v1",
 	ProfileStore = "Profile_v1",

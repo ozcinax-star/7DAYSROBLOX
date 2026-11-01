@@ -19,6 +19,23 @@ local Strings: { [string]: { [string]: string } } = {
 		HordeNight = "Horde night",
 		HudClock = "Day {day}  {time}",
 
+		-- Experience and perks (ProgressionController)
+		HudLevel = "Level {level}",
+		LevelUp = "Level {level}! Perk points: {points}",
+		PerksTitle = "Perks",
+		PerksPoints = "Perk points: {points}",
+		PerksOpenHint = "K: Perks",
+		PerkTier = "{tier} / {max}",
+		PerkNeedsLevel = "Needs level {level}",
+		PerkMaxed = "Mastered",
+		PerkUpgrade = "+",
+		PerkScavenger = "Scavenger",
+		PerkScavengerDesc = "+15% loot per tier from containers you search first.",
+		PerkBuilder = "Builder",
+		PerkBuilderDesc = "-20% materials per tier for upgrades and repairs.",
+		PerkCombat = "Combat",
+		PerkCombatDesc = "+10% damage per tier to zombies, melee and ranged.",
+
 		-- Saving (PersistenceService): kick reasons
 		SaveLoadFailed = "Your save could not be loaded. Please rejoin.",
 		SaveOpenElsewhere = "Your save is open on another server.",

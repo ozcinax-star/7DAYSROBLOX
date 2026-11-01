@@ -31,6 +31,7 @@ local InventoryService = require(script.Parent.InventoryService)
 local ThreatService = require(script.Parent.ThreatService)
 local ToolService = require(script.Parent.ToolService)
 local ZombieService = require(script.Parent.ZombieService)
+local ProgressionService = require(script.Parent.ProgressionService)
 
 local MC = Config.Melee
 local RC = Config.Ranged
@@ -130,6 +131,7 @@ local function fly(arrow: Arrow, dt: number, params: RaycastParams)
 	end)
 	if hit then
 		local damage = arrow.damage * (if hit.head then MC.HeadshotMultiplier else 1)
+			* ProgressionService.damageShare(arrow.owner)
 		if arrow.owner.Parent then
 			local _, maximum = ZombieService.getHealth(hit.id)
 			ZombieService.damage(hit.id, damage, arrow.owner)

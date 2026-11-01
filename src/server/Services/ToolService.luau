@@ -27,6 +27,7 @@ local Surface = require(Shared.Surface)
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local InventoryService = require(script.Parent.InventoryService)
 local ZombieService = require(script.Parent.ZombieService)
+local ProgressionService = require(script.Parent.ProgressionService)
 
 local MC = Config.Melee
 local FIST = "Fist"
@@ -159,6 +160,7 @@ local function onUseTool(player: Player, aim: unknown)
 	local color: Color3? = nil
 	if hit then
 		local damage = tool.EntityDamage * (if hit.head then MC.HeadshotMultiplier else 1)
+			* ProgressionService.damageShare(player)
 		local _, maximum = ZombieService.getHealth(hit.id)
 		ZombieService.damage(hit.id, damage, player)
 		ToolService.reportHit(player, (ZombieService.getHealth(hit.id)), maximum)

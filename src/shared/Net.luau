@@ -68,6 +68,11 @@ local Definitions: { [string]: "RemoteEvent" | "UnreliableRemoteEvent" } = {
 	-- Server -> client: a short message for the player (Localization key: string, parameters:
 	-- { [string]: string | number }?), shown in the pickup feed.
 	Notice = "RemoteEvent",
+	-- Server -> owner: experience, level, perk points and tiers (Progression.toSaved shape), and the
+	-- experience the next level needs.
+	ProgressionUpdate = "RemoteEvent",
+	-- Client -> server: spend a perk point on a perk (perk id: string).
+	PerkUpgrade = "RemoteEvent",
 	-- Server -> all clients: a world event worth hearing (Config.Sounds.Events name: string, Vector3).
 	WorldSound = "UnreliableRemoteEvent",
 }

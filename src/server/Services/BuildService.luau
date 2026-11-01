@@ -36,6 +36,7 @@ local HeightField = require(Shared.World.HeightField)
 local Localization = require(Shared.Localization)
 local Net = require(Shared.Net)
 local PersistenceService = require(script.Parent.PersistenceService)
+local ProgressionService = require(script.Parent.ProgressionService)
 
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local BuildingKit = require(script.Parent.Parent.World.BuildingKit)
@@ -555,7 +556,7 @@ local function work(player: Player, block: Block)
 	if block.health < def.Health then
 		local repaired = math.min(BC.RepairPerHit, def.Health - block.health)
 		-- 7DTD charges Repair.Count for a full repair; a hit pays its share, rounded up.
-		local cost = math.ceil(repaired * def.Repair.Count / def.Health)
+		local cost = ProgressionService.buildCost(player, math.ceil(repaired * def.Repair.Count / def.Health))
 		if InventoryService.take(player, { [def.Repair.Id] = cost }) then
 			block.health += repaired
 			block.part:SetAttribute("Health", block.health)
@@ -566,14 +567,15 @@ local function work(player: Player, block: Block)
 	end
 	local nextKind = def.UpgradeTo
 	local upgrade = def.Upgrade
-	if nextKind == nil or upgrade == nil or InventoryService.count(player, upgrade.Id) < upgrade.Count then
+	local upgradeCost = if upgrade then ProgressionService.buildCost(player, upgrade.Count) else 0
+	if nextKind == nil or upgrade == nil or InventoryService.count(player, upgrade.Id) < upgradeCost then
 		return
 	end
 	block.upgrade += 1
 	if block.upgrade < BC.UpgradeHits then
 		return
 	end
-	if InventoryService.take(player, { [upgrade.Id] = upgrade.Count }) then
+	if InventoryService.take(player, { [upgrade.Id] = upgradeCost }) then
 		block.kind = nextKind
 		block.health = BC.Blocks[nextKind].Health
 		block.upgrade = 0
