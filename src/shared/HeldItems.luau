@@ -41,6 +41,25 @@ local function weld(part0: BasePart, part1: BasePart, c0: CFrame)
 	w.Parent = part1
 end
 
+-- Adds a torch's light and fire to `head` (placed torches and held ones share it). `share` scales the
+-- light's range.
+function HeldItems.addFlame(head: BasePart, share: number)
+	local def = Config.Build.Torch
+	local light = Instance.new("PointLight")
+	light.Range = def.Range * share
+	light:SetAttribute("BaseRange", light.Range)
+	light.Brightness = def.Brightness
+	light.Color = Color3.fromRGB(def.Color[1], def.Color[2], def.Color[3])
+	light.Shadows = true
+	light.Parent = head
+	local fire = Instance.new("Fire")
+	fire.Size = 1.6
+	fire.Heat = 4
+	fire.Color = Color3.fromRGB(255, 140, 50)
+	fire.SecondaryColor = Color3.fromRGB(255, 220, 120)
+	fire.Parent = head
+end
+
 -- The caller owns and parents the model. Attachment rotation is deliberately ignored: R6, R15 and
 -- the viewmodel have different attachment orientations; their positions share this grip convention.
 function HeldItems.build(id: string, hand: BasePart, grip: CFrame): Model
@@ -59,6 +78,16 @@ function HeldItems.build(id: string, hand: BasePart, grip: CFrame): Model
 		local built = EquipmentModels.build(id, model, root, length or 0, weapon ~= nil)
 		assert(built, "Missing equipment visual: " .. id)
 		model.PrimaryPart = root
+	elseif id == "Torch" then
+		-- A wooden stick with a burning head; its light goes wherever the hand goes.
+		local stick = part(model, "Stick", V(0.16, 1.6, 0.16), Color3.fromRGB(89, 61, 38))
+		stick.Material = Enum.Material.Wood
+		weld(hand, stick, fist * CFrame.Angles(math.rad(-15), 0, 0) * CFrame.new(0, 0.45, 0))
+		local head = part(model, "Flame", V(0.32, 0.36, 0.32), Color3.fromRGB(255, 150, 60))
+		head.Material = Enum.Material.Neon
+		weld(stick, head, CFrame.new(0, 0.95, 0))
+		HeldItems.addFlame(head, Config.Build.Torch.HeldShare)
+		model.PrimaryPart = stick
 	else
 		local def = Config.Items[id]
 		local c = if def then def.Color else { 0.5, 0.5, 0.5 }

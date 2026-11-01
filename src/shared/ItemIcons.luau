@@ -70,6 +70,7 @@ ItemIcons.Glyphs = {
 	Forge = "🏭",
 	ForgedIron = "⛓",
 	ElectricLamp = "💡",
+	Torch = "🪔",
 	DuctTape = "🩹",
 	Nails = "📌",
 	RepairKit = "🧰",

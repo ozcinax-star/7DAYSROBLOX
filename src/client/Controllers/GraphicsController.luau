@@ -56,7 +56,9 @@ end
 
 local function scaleLight(instance: Instance)
 	if instance:IsA("PointLight") then
-		instance.Range = Config.Power.LightRange * lampScale
+		-- Lights that carry their own BaseRange (torches) scale from it; the rest are lamps.
+		local base = instance:GetAttribute("BaseRange")
+		instance.Range = (if typeof(base) == "number" then base else Config.Power.LightRange) * lampScale
 	end
 end
 

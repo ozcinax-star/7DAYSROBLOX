@@ -30,6 +30,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local BuildGrid = require(Shared.BuildGrid)
 local Config = require(Shared.Config)
 local Harvest = require(Shared.Harvest)
+local HeldItems = require(Shared.HeldItems)
 local HeightField = require(Shared.World.HeightField)
 
 local Localization = require(Shared.Localization)
@@ -403,6 +404,19 @@ local function createBlock(
 	if def.Bars then
 		part.CollisionGroup = BC.BarsGroup
 		addCage(part, Color3.new(def.Color[1], def.Color[2], def.Color[3]))
+	end
+	if def.Flame then
+		-- A torch: the flame sits on the post's top and lights the area for as long as it stands.
+		local head = Instance.new("Part")
+		head.Name = "Flame"
+		head.Size = Vector3.new(0.45, 0.4, 0.45)
+		head.Material = Enum.Material.Neon
+		head.Color = Color3.fromRGB(255, 150, 60)
+		head.Anchored = true
+		head.CanCollide, head.CanQuery, head.CanTouch = false, false, false
+		head.CFrame = part.CFrame * CFrame.new(0, part.Size.Y / 2 + 0.2, 0)
+		HeldItems.addFlame(head, 1)
+		head.Parent = part
 	end
 	if def.Trap then
 		-- 7DTD spikes collide with melee only: players and zombies walk into the cell.

@@ -80,6 +80,8 @@ export type BlockDef = {
 	Trap: boolean?,
 	-- A respawn point (7DTD SleepingBag): its builder respawns on it.
 	Bed: boolean?,
+	-- Burns with a flame and light (Config.Build.Torch) for as long as it stands.
+	Flame: boolean?,
 	-- How tools damage it (Config.Tools Materials); Build.HarvestMaterial when nil.
 	HarvestMaterial: HarvestMaterial?,
 	-- 7DTD drops: Harvest is paid over a player's tool hits like a world object (Shared/Harvest),
@@ -779,6 +781,18 @@ Config.Build = {
 			Material = "Brick",
 			Color = { 0.45, 0.3, 0.25 },
 		},
+		-- 7DTD torch, placed: a thin post that burns for good and lights its surroundings. Its hit
+		-- points are ours (7DTD does not list them); a hit or a zombie knocks it down quickly.
+		Torch = {
+			Health = 50,
+			Placeable = true,
+			Repair = { Id = "Wood", Count = 1 },
+			Size = { 0.35, 2.4, 0.35 },
+			Passable = true,
+			Flame = true,
+			Material = "Wood",
+			Color = { 0.35, 0.24, 0.15 },
+		},
 		-- 7DTD workbench (workstationWorkbench): crafts the advanced recipes (generator, lamps). Its hit
 		-- points are not on the wiki; ours are the forge's, repaired with forged iron.
 		Workbench = {
@@ -792,6 +806,9 @@ Config.Build = {
 			Color = { 0.5, 0.36, 0.22 },
 		},
 	} :: { [string]: BlockDef },
+	-- Torch light (placed and held; ours: 7DTD gives a torch LightValue, not a range). Held torches use
+	-- HeldShare of the range so a carried light does not outshine a placed one.
+	Torch = { Range = 26, Brightness = 1.8, Color = { 255, 168, 92 }, HeldShare = 0.8 },
 	-- Height of a farm plot slab (studs); crops stand on it.
 	PlotHeight = 0.8,
 	-- A player respawning on a bedroll stands with the root this far above its centre (studs).
@@ -956,6 +973,7 @@ Config.Items = {
 	ElectricLamp = { Stack = 100, Color = { 0.95, 0.85, 0.5 } },
 	-- Workbench parts (7DTD stacks: duct tape 500, nails 1000, repair kit 25; the workbench is ours, 10
 	-- like the other stations).
+	Torch = { Stack = 50, Color = { 0.9, 0.55, 0.2 } }, -- meleeToolTorch (no durability)
 	DuctTape = { Stack = 500, Color = { 0.62, 0.64, 0.66 } }, -- resourceDuctTape
 	Nails = { Stack = 1000, Color = { 0.55, 0.55, 0.58 } }, -- resourceNail
 	RepairKit = { Stack = 25, Color = { 0.75, 0.3, 0.2 } }, -- resourceRepairKit
@@ -1166,6 +1184,9 @@ Config.Recipes = {
 		Seconds = 10,
 		Station = "Workbench",
 	},
+	-- 7DTD torch: 1 Animal Fat, 5 Cloth Fragments and 1 Wood (16.2 s). We have no animal fat: charcoal
+	-- stands in (ours), so the first torches come after the first campfire.
+	Torch = { Output = "Torch", Count = 1, Ingredients = costs({ Wood = 1, Cloth = 5, Charcoal = 1 }), Seconds = 16.2 },
 	-- 7DTD duct tape: 1 Glue and 7 Cloth Fragments (2.4 s) in the backpack; cloth stands in.
 	DuctTape = { Output = "DuctTape", Count = 1, Ingredients = costs({ Glue = 1, Cloth = 7 }), Seconds = 2.4 },
 	-- 7DTD nails: 1 iron and 1 clay unit of the forge pool each (1 s); here ten at a time from the items.
@@ -1208,6 +1229,7 @@ Config.Crafting = {
 		"CobblestoneRocks",
 		-- 7DTD's first shelter items: a fire and a place to respawn.
 		"Campfire",
+		"Torch",
 		"Bedroll",
 		"WoodFrame",
 		"WoodLadder",
@@ -1276,6 +1298,7 @@ Config.Crafting = {
 		Campfire = "Building",
 		Generator = "Building",
 		ElectricLamp = "Building",
+		Torch = "Tools",
 		DuctTape = "Resources",
 		Nails = "Resources",
 		RepairKit = "Tools",
@@ -2258,6 +2281,7 @@ Config.Inventory = {
 	-- first aid bandage (the torch is not in the game yet). They go to the end of the toolbelt, so the
 	-- hand stays empty and the first click punches (PLAN: no tools at the start).
 	StartingItems = {
+		{ Id = "Torch", Count = 1 },
 		{ Id = "BottledWater", Count = 1 },
 		{ Id = "CanChili", Count = 1 },
 		{ Id = "FirstAidBandage", Count = 1 },
