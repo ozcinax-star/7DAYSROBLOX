@@ -55,7 +55,8 @@ local CUT_MATERIAL = Enum.Material.Ground
 local CUT_DEPTH = 2
 
 -- A column being dug: its material is fixed by the first hit, its damage is shared by everyone.
-type Column = { node: Config.HarvestNode, damage: number }
+-- refilled: the voxel being dug was put back with Dirt (Config.Dig.Refilled).
+type Column = { node: Config.HarvestNode, damage: number, refilled: boolean }
 
 local DigService = {}
 
@@ -67,6 +68,8 @@ local originals: { [number]: number } = {}
 local nextFillAt: { [Player]: number } = {}
 -- Grassy columns already cut: a hit there digs dirt even where Roblox blends a neighbour's grass in.
 local cut: { [number]: true } = {}
+-- Voxels put back with Dirt on top of each column, still undug.
+local filled: { [number]: number } = {}
 local random = Random.new()
 local overlap: OverlapParams
 local characterOverlap: OverlapParams
@@ -318,6 +321,7 @@ local function onFill(player: Player, origin: Vector3, direction: Vector3, itemI
 		return
 	end
 	columns[index] = nil
+	filled[index] = (filled[index] or 0) + 1
 	levels[index] = raised
 	TerrainBuilder.writeColumn(grid, index, level, raised, (Enum.Material :: any)[fill])
 	task.spawn(settle, index, loose)
@@ -368,7 +372,8 @@ local function onWorldHit(player: Player, result: RaycastResult, _toolId: string
 
 	local column = columns[index]
 	if column == nil then
-		column = { node = node, damage = 0 }
+		local refilled = (filled[index] or 0) > 0
+		column = { node = if refilled then DC.Refilled else node, damage = 0, refilled = refilled }
 		columns[index] = column
 	end
 	local def = column.node
@@ -389,6 +394,10 @@ local function onWorldHit(player: Player, result: RaycastResult, _toolId: string
 		return
 	end
 	columns[index] = nil
+	if column.refilled then
+		local left = (filled[index] or 1) - 1
+		filled[index] = if left > 0 then left else nil
+	end
 	for _, drop in def.Destroy do
 		LootService.giveOrDrop(player, drop.Id, random:NextInteger(drop.Min, drop.Max), SOURCE)
 	end
