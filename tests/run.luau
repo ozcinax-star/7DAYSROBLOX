@@ -9,6 +9,7 @@ local BuildingTemplates = require("../src/server/World/BuildingTemplates")
 local FloorPlan = require("../src/server/World/FloorPlan")
 local Config = require("../src/shared/Config")
 local ZombieLook = require("../src/shared/ZombieLook")
+local ZombieKinds = require("../src/shared/ZombieKinds")
 local Inventory = require("../src/shared/Inventory")
 local Melee = require("../src/shared/Melee")
 local Harvest = require("../src/shared/Harvest")
@@ -434,6 +435,26 @@ test("skin tones follow their spawn weights", function()
 	end
 	for index, tone in tones do
 		expectNear(counts[index] / samples, tone.Weight / total, 0.02, `tone {index} share`)
+	end
+end)
+
+test("zombie kinds follow their spawn weights and agree with the look", function()
+	local kinds = Config.Zombie.Kinds
+	local total = 0
+	for _, kind in kinds do
+		total += kind.Weight
+	end
+	local counts: { [string]: number } = {}
+	local samples = 20000
+	for id = 1, samples do
+		local name = ZombieKinds.nameOf(id)
+		counts[name] = (counts[name] or 0) + 1
+		if id <= 200 then
+			expectEq(ZombieLook.fromId(id).kind, name, "look kind")
+		end
+	end
+	for name, kind in kinds do
+		expectNear((counts[name] or 0) / samples, kind.Weight / total, 0.02, `{name} share`)
 	end
 end)
 

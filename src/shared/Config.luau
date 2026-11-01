@@ -253,7 +253,28 @@ Config.Threat = {
 	UpdateInterval = 0.5,
 }
 
+-- A zombie kind scales the common zombie (PLAN MVP: Normal, Fast, Sound-sensitive). Shares multiply
+-- the matching Config.Zombie value. Hunch and Limp scale the body's look (ZombieLook).
+export type ZombieKind = {
+	Weight: number,
+	HealthShare: number,
+	SpeedShare: number,
+	DamageShare: number,
+	HearingShare: number,
+	Hunch: number,
+	Limp: number,
+}
 Config.Zombie = {
+	-- Spawn mix and stats per kind (ours; 7DTD has many named zombies, PLAN keeps three for the MVP).
+	-- Fast: a feral runner, frail, upright, no limp; it still walks slower than a walking player by
+	-- day (8 vs 16 studs/s) but outruns one on a horde night. Listener: hears twice as far and is a
+	-- little tougher and slower, so noise is what draws it.
+	KindOrder = { "Normal", "Fast", "Listener" },
+	Kinds = {
+		Normal = { Weight = 0.65, HealthShare = 1, SpeedShare = 1, DamageShare = 1, HearingShare = 1, Hunch = 1, Limp = 1 },
+		Fast = { Weight = 0.2, HealthShare = 0.75, SpeedShare = 1.6, DamageShare = 0.75, HearingShare = 1, Hunch = 0.35, Limp = 0 },
+		Listener = { Weight = 0.15, HealthShare = 1.2, SpeedShare = 0.9, DamageShare = 1, HearingShare = 2, Hunch = 1.4, Limp = 0.6 },
+	} :: { [string]: ZombieKind },
 	-- 7DTD: a common ("slim") zombie has 125 health, randomised by +-15% per zombie.
 	MaxHealth = 125,
 	HealthSpread = 0.15,

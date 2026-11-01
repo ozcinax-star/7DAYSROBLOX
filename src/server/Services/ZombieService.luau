@@ -26,6 +26,7 @@ local Melee = require(Shared.Melee)
 local NavGrid = require(Shared.NavGrid)
 local Net = require(Shared.Net)
 local Types = require(Shared.Types)
+local ZombieKinds = require(Shared.ZombieKinds)
 local ZombieProtocol = require(Shared.ZombieProtocol)
 local HeightField = require(Shared.World.HeightField)
 local WorldLayout = require(Shared.World.WorldLayout)
@@ -78,6 +79,8 @@ type Zombie = {
 	y: number,
 	z: number,
 	health: number,
+	-- Config.Zombie.Kinds entry, from the id (ZombieKinds).
+	kind: Config.ZombieKind,
 	-- The health it spawned with (the hit bar's maximum).
 	maxHealth: number,
 	state: Types.ZombieState,
@@ -861,7 +864,7 @@ function stepMovement(zombie: Zombie, players: { PlayerInfo }, now: number, dt: 
 			if now >= zombie.nextAttack then
 				zombie.nextAttack = now
 					+ (if DayNightService.isNight() then ZC.AttackCooldownNight else ZC.AttackCooldown)
-				target.humanoid:TakeDamage(ZC.AttackDamage)
+				target.humanoid:TakeDamage(ZC.AttackDamage * zombie.kind.DamageShare)
 			end
 			return
 		end
@@ -1053,16 +1056,18 @@ local function spawnOne(players: { PlayerInfo }, now: number, horde: boolean): b
 	end
 	local floor = if level == UPPER then buildingNavs[building].upperY else MapService.groundAt(x, z)
 	local spread = ZC.SpreadRadius
-	local health = ZC.MaxHealth * (1 + randomRange(-ZC.HealthSpread, ZC.HealthSpread))
+	local kind = ZombieKinds.of(id)
+	local health = ZC.MaxHealth * kind.HealthShare * (1 + randomRange(-ZC.HealthSpread, ZC.HealthSpread))
 	local zombie: Zombie = {
 		id = id,
+		kind = kind,
 		x = x,
 		y = floor + ZC.RootHeight,
 		z = z,
 		health = health,
 		maxHealth = health,
 		state = "Idle",
-		speedFactor = 1 + randomRange(-ZC.SpeedJitter, ZC.SpeedJitter),
+		speedFactor = kind.SpeedShare * (1 + randomRange(-ZC.SpeedJitter, ZC.SpeedJitter)),
 		dormant = dormant,
 		horde = horde,
 		wanderMode = "Free",
@@ -1640,14 +1645,14 @@ end
 -- loudest sound and keep going until something newer or louder is heard (PLAN: sound tracking).
 function ZombieService.hearSound(point: Types.SoundPoint)
 	local range = point.radius * ZC.HearingMultiplier
-	local rangeSq = range * range
 	local goalLevel, goalBuilding = locate(point.x, point.y, point.z)
 	for _, zombie in zombies do
 		local state = zombie.state
 		if state ~= "Chase" and state ~= "AttackPlayer" then
 			local dx = point.x - zombie.x
 			local dz = point.z - zombie.z
-			if dx * dx + dz * dz <= rangeSq then
+			local heard = range * zombie.kind.HearingShare
+			if dx * dx + dz * dz <= heard * heard then
 				local isNewer = point.createdAt > zombie.soundCreatedAt
 				local isLouder = point.strength > zombie.soundStrength
 				if zombie.soundId == nil or isNewer or isLouder then

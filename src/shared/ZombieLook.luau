@@ -4,6 +4,7 @@
 
 local Config = require("./Config")
 local Noise = require("./World/Noise")
+local ZombieKinds = require("./ZombieKinds")
 
 local VC = Config.ZombieVisual
 
@@ -13,6 +14,8 @@ local SEED = 9173
 export type Color = { number }
 
 export type Look = {
+	-- Config.Zombie.Kinds name; a Fast zombie stands upright and does not limp.
+	kind: string,
 	toneIndex: number,
 	-- Skin of the torso and upper limbs, of hands/forearms (more rotten) and of the face.
 	skin: Color,
@@ -95,7 +98,10 @@ function ZombieLook.fromId(id: number): Look
 	if roll(id, 9) < VC.DeadArmChance then
 		deadArm = if roll(id, 10) < 0.5 then -1 else 1
 	end
+	local kindName = ZombieKinds.nameOf(id)
+	local kind = Config.Zombie.Kinds[kindName]
 	return {
+		kind = kindName,
 		toneIndex = toneIndex,
 		skin = skin,
 		extremity = extremity,
@@ -105,8 +111,8 @@ function ZombieLook.fromId(id: number): Look
 		bareArms = roll(id, 5) < VC.BareArmChance,
 		bareShins = roll(id, 6) < VC.BareShinChance,
 		height = lerp(VC.HeightScaleMin, VC.HeightScaleMax, roll(id, 7)),
-		hunch = lerp(VC.HunchMin, VC.HunchMax, roll(id, 8)),
-		limp = lerp(VC.LimpMin, VC.LimpMax, roll(id, 11)),
+		hunch = lerp(VC.HunchMin, VC.HunchMax, roll(id, 8)) * kind.Hunch,
+		limp = lerp(VC.LimpMin, VC.LimpMax, roll(id, 11)) * kind.Limp,
 		limpSide = if roll(id, 12) < 0.5 then -1 else 1,
 		headTilt = (roll(id, 13) * 2 - 1) * VC.HeadTiltMax,
 		deadArm = deadArm,
