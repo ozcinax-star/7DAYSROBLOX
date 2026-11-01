@@ -154,10 +154,10 @@ serbest kalır; V ile serbest fare moduna geçilir.
 Kullanıcı "7DTD'nin bütün özellikleri kapsamlı ve oynanabilir" istedi. Hafızadaki kural: her adım
 bitince sıradaki eksik sistemi sormadan başlat, sonunda raporla. Ayrıntı: NEXT_STEPS 24. madde.
 
-1. **Tezgâh (workbench):** tamir kiti, koli bandı; jeneratör ve ileri tarifler tezgâha.
-2. **Meşale:** elde taşınan ve duvara konan; gece görünürlüğü.
-3. **Kömür ve nitrat kayaları, yanık ağaç.**
-4. **Kimya istasyonu:** barut ve cephane üretimi.
+1. ~~Tezgâh~~: yapıldı (2 Kasım): tezgâh, koli bandı, çivi, tamir kiti; jeneratör ve lamba tezgâhta.
+2. ~~Meşale~~: yapıldı (2 Kasım): elde ışık, konan meşale, başlangıçta bir tane.
+3. ~~Kömür ve nitrat kayaları~~: yapıldı (2 Kasım). Yanık ağaçlar henüz yok.
+4. Kimya istasyonu: barut (sırt çantasında, oranı doğrulanmadı) ve mermi (tezgâhta) yapıldı (2 Kasım); istasyonun kendisi henüz yok.
 5. **Zırh ve giysi.**
 6. **Perk ve tarif kitapları:** şimdilik bütün tarifler açık.
 7. **Zombi türleri:** Normal, Hızlı, Ses-duyarlı ve 7DTD özel zombileri.

@@ -455,11 +455,10 @@ Kalanlar:
 
 Kullanıcı "7DTD'nin bütün özelliklerini kapsamlı ve oynanabilir" istedi. Önerilen sıra (her biri ayrı
 adım, PLAN'a karar satırıyla):
-1. **Tezgâh (workbench):** 7DTD'de jeneratör, demir kapı ve ileri tarifler burada; tamir kiti ve koli
-   bandı tarifleri.
-2. **Meşale:** elde ışık ve duvara konan meşale (odun + lif + kömür), gece görünürlüğü.
-3. **Kömür ve nitrat kayaları, yanık ağaç:** 7DTD'nin kömürü; barut ve cephane üretimine kapı.
-4. **Kimya istasyonu ve barut / cephane üretimi.**
+1. ~~Tezgâh~~: yapıldı (2 Kasım): tezgâh, koli bandı, çivi, tamir kiti; jeneratör ve lamba tezgâhta.
+2. ~~Meşale~~: yapıldı (2 Kasım): elde ışık, konan meşale, başlangıçta bir tane.
+3. ~~Kömür ve nitrat kayaları~~: yapıldı (2 Kasım). Yanık ağaçlar henüz yok.
+4. Kimya istasyonu: barut (sırt çantasında, oranı doğrulanmadı) ve mermi (tezgâhta) yapıldı (2 Kasım); istasyonun kendisi henüz yok.
 5. **Zırh ve giysi:** 7DTD'nin zırh kademeleri; yüzde hasar azaltma.
 6. **Perk / beceri puanı ve tarif kitapları:** şimdilik bütün tarifler açık.
 7. **Zombi türleri:** PLAN 2. aşama (Normal, Hızlı, Ses-duyarlı) ve 7DTD özel zombileri.
