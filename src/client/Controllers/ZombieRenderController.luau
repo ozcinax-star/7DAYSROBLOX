@@ -1,13 +1,13 @@
 --!strict
 -- ZombieRenderController: builds client-side zombie bodies (ZombieRig) from server snapshots,
 -- interpolates between samples and drives the shamble. LOD:
---   * beyond RenderDistance: model is unparented (sound keeps playing)
+--   * beyond RenderDistance: model is unparented (groans are still heard within their range)
 --   * on screen (or very close) within DetailDistance: full body with face and wound details
 --   * on screen within AnimateDistance: body animated every frame, details hidden
 --   * on screen beyond AnimateDistance: animated every FarAnimateEveryFrames frames
 --   * off screen: re-posed every OffscreenUpdateEveryFrames frames
--- Killed zombies collapse and lie still for a while before they are removed; every zombie keeps its
--- positional sound updated, so attacks from behind are still heard.
+-- Killed zombies collapse and lie still for a while before they are removed. Groans, attack snarls
+-- and deaths play positionally (SoundController), so attacks from behind are still heard.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -21,6 +21,7 @@ local Net = require(Shared.Net)
 local ZombieProtocol = require(Shared.ZombieProtocol)
 
 local ZombieRig = require(script.Parent.Parent.Modules.ZombieRig)
+local SoundController = require(script.Parent.SoundController)
 
 local VC = Config.ZombieVisual
 local ZC = Config.Zombie
@@ -53,8 +54,6 @@ type View = {
 	stateSince: number,
 	flinchAt: number,
 	shown: boolean,
-	attachment: Attachment?,
-	sound: Sound?,
 	nextGroan: number,
 	-- Set when the zombie was killed: time of death.
 	diedAt: number?,
@@ -79,21 +78,6 @@ local function createView(id: number, x: number, y: number, z: number, state: st
 	local pose = ZombieRig.newPose(id)
 	pose.state = state
 
-	local attachment: Attachment? = nil
-	local sound: Sound? = nil
-	if VC.GroanSoundId ~= "" then
-		local a = Instance.new("Attachment")
-		a.Name = `ZombieSound{id}`
-		a.WorldPosition = Vector3.new(x, y, z)
-		local s = Instance.new("Sound")
-		s.SoundId = VC.GroanSoundId
-		s.RollOffMaxDistance = VC.SoundRange
-		s.Parent = a
-		a.Parent = Workspace.Terrain
-		attachment = a
-		sound = s
-	end
-
 	return {
 		id = id,
 		rig = rig,
@@ -115,8 +99,6 @@ local function createView(id: number, x: number, y: number, z: number, state: st
 		stateSince = now,
 		flinchAt = -math.huge,
 		shown = false,
-		attachment = attachment,
-		sound = sound,
 		nextGroan = now + VC.GroanIntervalMin + math.random() * (VC.GroanIntervalMax - VC.GroanIntervalMin),
 		diedAt = nil,
 	}
@@ -124,9 +106,6 @@ end
 
 local function destroyView(view: View)
 	view.rig.model:Destroy()
-	if view.attachment then
-		view.attachment:Destroy()
-	end
 end
 
 local function onSample(id: number, x: number, y: number, z: number, state: string)
@@ -153,6 +132,9 @@ local function onSample(id: number, x: number, y: number, z: number, state: stri
 	view.duration = duration
 	view.lastSample = now
 	if view.pose.state ~= state then
+		if state == "AttackPlayer" or state == "AttackStructure" then
+			SoundController.play("ZombieAttack", Vector3.new(x, y, z))
+		end
 		view.pose.state = state
 		view.stateSince = now
 	end
@@ -164,6 +146,7 @@ local function onKilled(id: number, now: number)
 		return
 	end
 	views[id] = nil
+	SoundController.play("ZombieDeath", Vector3.new(view.x, view.y, view.z))
 	view.diedAt = now
 	view.pose.moving = false
 	view.pose.state = "Idle"
@@ -240,14 +223,9 @@ local function advance(view: View, now: number, dt: number)
 end
 
 local function updateSound(view: View, now: number, distSq: number, soundSq: number)
-	local attachment = view.attachment
-	if attachment and distSq <= soundSq then
-		attachment.WorldPosition = Vector3.new(view.x, view.y, view.z)
-		local sound = view.sound
-		if sound and now >= view.nextGroan then
-			sound:Play()
-			view.nextGroan = now + VC.GroanIntervalMin + math.random() * (VC.GroanIntervalMax - VC.GroanIntervalMin)
-		end
+	if distSq <= soundSq and now >= view.nextGroan then
+		SoundController.play("ZombieGroan", Vector3.new(view.x, view.y, view.z))
+		view.nextGroan = now + VC.GroanIntervalMin + math.random() * (VC.GroanIntervalMax - VC.GroanIntervalMin)
 	end
 end
 
@@ -262,7 +240,8 @@ local function onRender(dt: number)
 	local detailSq = detailDistance * detailDistance
 	local animateSq = animateDistance * animateDistance
 	local alwaysSq = VC.AlwaysUpdateDistance * VC.AlwaysUpdateDistance
-	local soundSq = VC.SoundRange * VC.SoundRange
+	local groanRange = Config.Sounds.Events.ZombieGroan.Range or 0
+	local soundSq = groanRange * groanRange
 
 	table.clear(partBuffer)
 	table.clear(cframeBuffer)

@@ -12,6 +12,7 @@ local Firearm = require(Shared.Firearm)
 local Localization = require(Shared.Localization)
 local Net = require(Shared.Net)
 local InventoryController = require(script.Parent.InventoryController)
+local SoundController = require(script.Parent.SoundController)
 
 type State = { id: string | boolean, slot: number, loaded: number, capacity: number, reserve: number, ammo: string?,
 	reloadStarted: number, reloadEnds: number, readyAt: number, revision: number, shot: boolean }
@@ -35,6 +36,9 @@ local lastSlot = 0
 local equippedAt = 0
 local baseFov: number? = nil
 local hitUntil = 0
+local hitHead = false
+local HIT_COLOR = Color3.fromRGB(240, 240, 225)
+local HEAD_HIT_COLOR = Color3.fromRGB(255, 90, 70)
 local ownProjectiles: { [number]: number } = {}
 local reloadRemote: RemoteEvent
 local panel: Frame
@@ -88,7 +92,8 @@ function WeaponController.reloadProgress(): (boolean, number)
 	end
 	return false, 0
 end
-function WeaponController.hitConfirmed() hitUntil = os.clock() + 0.18 end
+-- Hit marker for any confirmed hit (melee or ranged); a head hit shows red.
+function WeaponController.hitConfirmed(head: boolean?) hitUntil = os.clock() + 0.18; hitHead = head == true end
 
 function WeaponController.predictShot()
 	local held = InventoryController.getHeld()
@@ -223,15 +228,21 @@ local function render(dt: number)
 			elseif weapon.Magazine then Localization.get("WeaponReloadHint") else ""
 		progress.Size = UDim2.new(if reloading and s then Firearm.progress(s.reloadStarted, s.reloadEnds, workspace:GetServerTimeNow()) else 0, 0, 0, 3)
 	end
-	reticle.Visible = active and (UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter
-		or UserInputService:GetLastInputType() == Enum.UserInputType.Gamepad1 or UserInputService.TouchEnabled)
+	local marking = os.clock() < hitUntil
+	local centred = UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter
+		or UserInputService:GetLastInputType() == Enum.UserInputType.Gamepad1 or UserInputService.TouchEnabled
+	reticle.Visible = centred and (active or marking)
 	local gap = 5 + (1 - aimBlend) * 5 + math.max(0, pitchSpring.x) * 3
 	for i, bar in bars do
+		bar.Visible = active
 		bar.BackgroundTransparency = aimBlend * 0.85
 		bar.Size = if i <= 2 then UDim2.fromOffset(7, 2) else UDim2.fromOffset(2, 7)
 		bar.Position = UDim2.fromOffset(if i == 1 then -gap elseif i == 2 then gap else 0, if i == 3 then -gap elseif i == 4 then gap else 0)
 	end
-	for _, bar in hitBars do bar.Visible = os.clock() < hitUntil end
+	for _, bar in hitBars do
+		bar.Visible = marking
+		bar.BackgroundColor3 = if hitHead then HEAD_HIT_COLOR else HIT_COLOR
+	end
 end
 
 function WeaponController.init() reloadRemote = Net.event("ReloadWeapon") end
@@ -239,7 +250,15 @@ function WeaponController.start()
 	buildGui()
 	Net.event("WeaponState").OnClientEvent:Connect(function(nextState: State)
 		if state and nextState.revision <= state.revision then return end
+		local started = nextState.reloadEnds > workspace:GetServerTimeNow()
+			and (state == nil or state.reloadEnds ~= nextState.reloadEnds)
 		state = nextState
+		local handling = typeof(nextState.id) == "string" and HC.Items[nextState.id]
+		local character = player.Character
+		if started and handling and character then
+			local sound = if handling.ReloadStyle == "Breech" then "ReloadShell" else "ReloadMagazine"
+			SoundController.play(sound, character:GetPivot().Position)
+		end
 		if nextState.shot and os.clock() - lastPrediction > 0.25 then WeaponController.predictShot() end
 	end)
 	Net.unreliable("ArrowFired").OnClientEvent:Connect(function(id, _, _, _, _, _, _, owner)

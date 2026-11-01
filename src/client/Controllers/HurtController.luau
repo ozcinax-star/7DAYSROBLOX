@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local SoundController = require(script.Parent.SoundController)
 local WeaponController = require(script.Parent.WeaponController)
 
 local HurtController = {}
@@ -79,6 +80,7 @@ local function watch(character: Model)
 		flashPeak = math.clamp(lost / HC.FlashFullDamage, HC.FlashMinStrength, 1)
 		flashStarted = now
 		WeaponController.punch(math.min(HC.PunchMax, lost * HC.PunchPerDamage))
+		SoundController.play("PlayerHurt")
 	end)
 end
 

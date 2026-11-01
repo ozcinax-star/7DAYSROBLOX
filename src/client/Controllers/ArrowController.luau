@@ -3,9 +3,9 @@
 -- velocity, gravity, server time and ammo; the client runs the same arc (Shared/Ballistics) every
 -- frame, pins an arrow where the server says it stopped and removes it a few seconds later. Bullets
 -- are bright tracers with a muzzle flash and vanish where they stop. A zombie hit flinches and
--- bleeds, a world hit raises dust (ImpactController). The weapon's shot sound plays at the muzzle
--- when it has one.
+-- bleeds, a world hit raises dust (ImpactController). The weapon's shot sound plays at the muzzle.
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -16,6 +16,7 @@ local Config = require(Shared.Config)
 local Net = require(Shared.Net)
 
 local ImpactController = require(script.Parent.ImpactController)
+local SoundController = require(script.Parent.SoundController)
 local ZombieRenderController = require(script.Parent.ZombieRenderController)
 
 local RC = Config.Ranged
@@ -95,22 +96,6 @@ local function flash(origin: Vector3, direction: Vector3)
 	end)
 end
 
--- Plays a shot sound at `origin`; its attachment goes after Config.Ranged.SoundSeconds, even when the
--- asset never loads.
-local function playShot(origin: Vector3, soundId: string)
-	local point = Instance.new("Attachment")
-	point.Name = "ShotSound"
-	point.Position = origin
-	local sound = Instance.new("Sound")
-	sound.SoundId = soundId
-	sound.Volume = RC.SoundVolume
-	sound.RollOffMaxDistance = RC.SoundRange
-	sound.Parent = point
-	point.Parent = Workspace.Terrain
-	sound:Play()
-	task.delay(RC.SoundSeconds, point.Destroy, point)
-end
-
 local function onFired(
 	id: unknown,
 	origin: unknown,
@@ -136,7 +121,7 @@ local function onFired(
 	if typeof(owner) == "Instance" and owner:IsA("Player") then
 		local character = owner.Character
 		local held = character and character:FindFirstChild("HeldItem")
-		if owner == game.Players.LocalPlayer then
+		if owner == Players.LocalPlayer then
 			local view = workspace:FindFirstChild("Viewmodel")
 			if view then held = view:FindFirstChild("HeldItem") or held end
 		end
@@ -144,8 +129,8 @@ local function onFired(
 		local attachment = primary and primary:FindFirstChild("Muzzle")
 		if attachment and attachment:IsA("Attachment") then muzzle = attachment.WorldPosition end
 	end
-	if weapon and weapon.SoundId ~= "" then
-		playShot(muzzle, weapon.SoundId)
+	if weapon then
+		SoundController.play(weapon.Sound, muzzle)
 	end
 	local ammo = if typeof(ammoId) == "string" then RC.Ammo[ammoId] else nil
 	local tracer = ammo ~= nil and ammo.Tracer == true
@@ -197,8 +182,13 @@ local function onStopped(id: unknown, where: unknown, zombieId: unknown)
 	local heading = pose(flight, math.max(0, Workspace:GetServerTimeNow() - flight.launchedAt)).LookVector
 	if zombieId ~= 0 then
 		ImpactController.blood(where, flight.origin)
+		SoundController.play("HitFlesh", where)
 	else
 		ImpactController.shot(where, heading)
+		-- Arrows thud into what they hit; bullets are drowned out by their own shot.
+		if not flight.tracer then
+			SoundController.play("HitWood", where)
+		end
 	end
 	if flight.tracer then
 		if zombieId ~= 0 then

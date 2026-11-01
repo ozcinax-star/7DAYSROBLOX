@@ -21,7 +21,6 @@
 -- (persistence step).
 
 local CollectionService = game:GetService("CollectionService")
-local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -34,6 +33,7 @@ local Harvest = require(Shared.Harvest)
 local HeightField = require(Shared.World.HeightField)
 
 local Localization = require(Shared.Localization)
+local Net = require(Shared.Net)
 
 local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local BuildingKit = require(script.Parent.Parent.World.BuildingKit)
@@ -82,6 +82,7 @@ local nextPlaceAt: { [Player]: number } = {}
 local groundParams: RaycastParams
 local mapOverlap: OverlapParams
 local doorLimiter: RateLimiter.RateLimiter
+local worldSound: UnreliableRemoteEvent
 local removedCallbacks: { (key: number) -> () } = {}
 -- Spike traps, and the next time each zombie may be hurt by one.
 local traps: { [Block]: boolean } = {}
@@ -165,11 +166,13 @@ end
 
 -- Destroys a block, then every block that no longer reaches the ground (they fall and break).
 local function destroyBlock(block: Block)
+	worldSound:FireAllClients("BlockBreak", block.part.Position)
 	removeBlock(block)
 	for _, removed in { block.key, block.top } do
 		for _, key in BuildGrid.unsupported(blocks :: any, removed) do
 			local falling = blocks[key]
 			if falling then
+				worldSound:FireAllClients("BlockBreak", falling.part.Position)
 				removeBlock(falling)
 			end
 		end
@@ -233,6 +236,7 @@ end
 local function setDoorOpen(block: Block, open: boolean)
 	block.open = open
 	block.part.CFrame = BuildGrid.doorCFrame(block.cx, block.cy, block.cz, block.side, open, BC.DoorThickness)
+	worldSound:FireAllClients(if open then "DoorOpen" else "DoorClose", block.part.Position)
 	if block.prompt then
 		block.prompt.ActionText = Localization.get(if open then "DoorClose" else "DoorOpen")
 	end
@@ -424,6 +428,7 @@ local function createBlock(
 	count += 1
 	updateColumn(cx, cz)
 	setTrace()
+	worldSound:FireAllClients("BlockPlace", part.Position)
 	for _, callback in placedCallbacks do
 		task.spawn(callback, key, kind, part)
 	end
@@ -705,9 +710,10 @@ function BuildService.clear()
 end
 
 function BuildService.init()
-	PhysicsService:RegisterCollisionGroup(BC.BarsGroup)
-	PhysicsService:RegisterCollisionGroup(BC.ShotsGroup)
-	PhysicsService:CollisionGroupSetCollidable(BC.BarsGroup, BC.ShotsGroup, false)
+	Workspace:RegisterCollisionGroup(BC.BarsGroup)
+	Workspace:RegisterCollisionGroup(BC.ShotsGroup)
+	Workspace:CollisionGroupSetCollidable(BC.BarsGroup, BC.ShotsGroup, false)
+	worldSound = Net.unreliable("WorldSound")
 	doorLimiter = RateLimiter.new(BC.DoorTogglesPerSecond)
 	folder = Instance.new("Folder")
 	folder.Name = BC.FolderName

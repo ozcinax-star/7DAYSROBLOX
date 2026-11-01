@@ -144,9 +144,8 @@ export type RangedDef = {
 	-- Share of the spread left while aiming (7DTD SpreadMultiplierAiming); nil: cannot be aimed.
 	AimSpread: number?,
 	Noise: Types.NoiseKind?,
-	-- Shot sound asset ("rbxassetid://..."), played at the muzzle by every client; "" is silent until
-	-- an asset is chosen (NEXT_STEPS).
-	SoundId: string,
+	-- Shot sound: a Config.Sounds.Events name, played at the muzzle by every client.
+	Sound: string,
 }
 
 -- Ammo: entity damage, launch speed (m/s) and gravity (m/s^2) of its projectile. Tracer: clients
@@ -524,11 +523,9 @@ Config.ZombieVisual = {
 	CorpseSeconds = 6,
 	-- Hit flinch of a struck zombie (seconds).
 	FlinchSeconds = 0.3,
-	-- Groan audio; empty string disables sound until an asset is chosen.
-	GroanSoundId = "",
+	-- Seconds between one zombie's groans (Config.Sounds.Events.ZombieGroan).
 	GroanIntervalMin = 4,
 	GroanIntervalMax = 12,
-	SoundRange = 120,
 }
 
 -- Building blocks (7DTD: place a frame, upgrade it with the stone axe; docs/REFERENCE_7DTD.md).
@@ -1392,7 +1389,7 @@ Config.Ranged = {
 			DamageOffset = -5,
 			SpeedShare = 0.7,
 			MaxRange = 100,
-			SoundId = "",
+			Sound = "BowRelease",
 		},
 		-- gunHandgunT0PipePistol: 126 rounds a minute, 6-round magazine, about 2 s reload, -4 damage,
 		-- 40 m range, 1.5 degree hip spread (no aiming here). Its damage falloff past 12 m is not in.
@@ -1407,7 +1404,7 @@ Config.Ranged = {
 			SpreadDegrees = 1.5,
 			AimSpread = 0.4,
 			Noise = "Gunshot",
-			SoundId = "",
+			Sound = "PistolShot",
 		},
 		-- gunRifleT0PipeRifle: one round, then about 2.66 s to reload; -3 damage, 150 m, a 5.7 degree hip
 		-- spread that aiming cuts to 0.09 of it. Its +25 % head damage and falloff past 50 m are not in.
@@ -1422,7 +1419,7 @@ Config.Ranged = {
 			SpreadDegrees = 5.7,
 			AimSpread = 0.09,
 			Noise = "Gunshot",
-			SoundId = "",
+			Sound = "RifleShot",
 		},
 		-- gunShotgunT0PipeShotgun: one shell, about 2.3 s to reload, -2 damage a pellet. The shell's
 		-- 10 m range and 4.5 degree spread (the gun adds 7 %: 4.8) and aiming 13 % tighter.
@@ -1437,7 +1434,7 @@ Config.Ranged = {
 			SpreadDegrees = 4.8,
 			AimSpread = 0.87,
 			Noise = "Gunshot",
-			SoundId = "",
+			Sound = "ShotgunShot",
 		},
 		-- gunMGT0PipeMachineGun: 335 rounds a minute while fire is held, 15-round magazine, -17 damage,
 		-- 90 m, 3 degree spread, aiming 0.22 of it. The XML gives no reload time; 3 s is ours.
@@ -1453,7 +1450,7 @@ Config.Ranged = {
 			SpreadDegrees = 3,
 			AimSpread = 0.22,
 			Noise = "Gunshot",
-			SoundId = "",
+			Sound = "MachineGunShot",
 		},
 	} :: { [string]: RangedDef },
 	Ammo = {
@@ -1476,9 +1473,6 @@ Config.Ranged = {
 	TracerLength = 5,
 	FlashSeconds = 0.06,
 	-- Shot sounds: volume, how far they are heard (studs) and how long one may play (seconds).
-	SoundVolume = 1,
-	SoundRange = 180,
-	SoundSeconds = 4,
 	-- Aiming a gun (right mouse, gamepad L2, the Aim button on touch): camera field of view and how
 	-- long the zoom takes (seconds). Ours; 7DTD zooms per weapon.
 	AimFieldOfView = 50,
@@ -2023,6 +2017,68 @@ Config.Hurt = {
 	LowHealthSaturation = -0.4,
 	-- Width of each edge band as a share of the screen.
 	EdgeShare = 0.28,
+}
+
+-- Sound effects (SoundController). Every asset is from Roblox's licensed Pro Sound Effects library
+-- (creator "ProSoundEffects"), free for use in experiences. Ids: one is picked at random per play.
+-- Region: { start, stop } seconds cut from a longer take, measured from its loudness envelope.
+-- Range: studs where a positional sound fades out (nil plays it flat, for the local player only).
+export type SoundDef = {
+	Ids: { string },
+	Volume: number,
+	Pitch: { number }?,
+	Range: number?,
+	Region: { number }?,
+	Looped: boolean?,
+}
+Config.Sounds = {
+	-- One event plays at most this many copies at once; extra plays are dropped (a shotgun's pellets,
+	-- a horde's groans).
+	MaxPerEvent = 6,
+	-- Ambient beds cross-fade over this many seconds between day and night.
+	AmbientFadeSeconds = 6,
+	AmbientDay = "AmbientWindDay",
+	AmbientNight = "AmbientNightCrickets",
+	-- A lit fire's crackle is heard within this distance (studs); checked this often (seconds).
+	FireHearRange = 40,
+	FireCheckSeconds = 1,
+	Events = {
+		-- Regions and volumes come from the measured loudness envelopes (docs/SOUND.md): multi-shot takes
+		-- are cut to their first event, quiet takes are raised.
+		PistolShot = { Ids = { "rbxassetid://9117398114" }, Volume = 0.9, Pitch = { 0.96, 1.04 }, Range = 450, Region = { 0, 0.9 } },
+		RifleShot = { Ids = { "rbxassetid://9118173988", "rbxassetid://9118173999" }, Volume = 1, Pitch = { 0.97, 1.03 }, Range = 650, Region = { 0, 1.6 } },
+		ShotgunShot = { Ids = { "rbxassetid://9112912844", "rbxassetid://9112912848" }, Volume = 1, Pitch = { 0.96, 1.04 }, Range = 500, Region = { 0, 1.2 } },
+		MachineGunShot = { Ids = { "rbxassetid://9114729252" }, Volume = 0.6, Pitch = { 0.95, 1.05 }, Range = 550, Region = { 0, 0.5 } },
+		-- No licensed bow take was found: a quick whoosh pitched up stands in for the string.
+		BowRelease = { Ids = { "rbxassetid://9120972321" }, Volume = 0.6, Pitch = { 1.35, 1.5 }, Range = 80 },
+		DryFire = { Ids = { "rbxassetid://9117396530" }, Volume = 0.8 },
+		ReloadMagazine = { Ids = { "rbxassetid://9117396716" }, Volume = 1, Range = 40 },
+		ReloadShell = { Ids = { "rbxassetid://9112911998" }, Volume = 0.8, Range = 40 },
+		SwingWhoosh = { Ids = { "rbxassetid://9120972321", "rbxassetid://9120972444" }, Volume = 0.5, Pitch = { 0.9, 1.1 }, Range = 40 },
+		HitFlesh = { Ids = { "rbxassetid://9113509723", "rbxassetid://9113523963" }, Volume = 0.9, Pitch = { 0.92, 1.08 }, Range = 70 },
+		HitWood = { Ids = { "rbxassetid://9113225734", "rbxassetid://9113225726" }, Volume = 0.7, Pitch = { 0.92, 1.08 }, Range = 80 },
+		HitStone = { Ids = { "rbxassetid://9118617342", "rbxassetid://9118616114" }, Volume = 0.55, Pitch = { 0.92, 1.08 }, Range = 80 },
+		HitMetal = { Ids = { "rbxassetid://9119072660", "rbxassetid://9119072674" }, Volume = 0.55, Pitch = { 0.92, 1.08 }, Range = 80 },
+		-- Pitched down: the takes are animal growls, a slower playback reads as a human throat.
+		ZombieGroan = {
+			Ids = { "rbxassetid://9113973128", "rbxassetid://9113971531", "rbxassetid://9113971975" },
+			Volume = 0.6, Pitch = { 0.62, 0.78 }, Range = 90,
+		},
+		ZombieAttack = { Ids = { "rbxassetid://9125475729" }, Volume = 1, Pitch = { 0.75, 0.9 }, Range = 70 },
+		ZombieDeath = { Ids = { "rbxassetid://9113524237", "rbxassetid://9113524166" }, Volume = 0.6, Pitch = { 0.8, 0.95 }, Range = 70 },
+		HordeRoar = { Ids = { "rbxassetid://9113985445" }, Volume = 0.6, Pitch = { 0.7, 0.75 } },
+		PlayerHurt = { Ids = { "rbxassetid://9125652466" }, Volume = 0.45, Pitch = { 0.95, 1.05 }, Region = { 0, 0.5 } },
+		TreeFall = { Ids = { "rbxassetid://9117897818" }, Volume = 0.9, Range = 160, Region = { 0, 3 } },
+		BlockBreak = { Ids = { "rbxassetid://9120801590", "rbxassetid://9120801707" }, Volume = 0.6, Pitch = { 0.92, 1.08 }, Range = 100 },
+		BlockPlace = { Ids = { "rbxassetid://9120914426", "rbxassetid://9120914570" }, Volume = 1, Pitch = { 0.92, 1.08 }, Range = 60 },
+		DoorOpen = { Ids = { "rbxassetid://9120839581" }, Volume = 1, Range = 50, Region = { 0.4, 1.3 } },
+		DoorClose = { Ids = { "rbxassetid://9120839871" }, Volume = 1, Range = 50, Region = { 0.4, 1.4 } },
+		ItemPickup = { Ids = { "rbxassetid://9113822732", "rbxassetid://9113823112" }, Volume = 0.5, Pitch = { 0.95, 1.1 } },
+		CraftDone = { Ids = { "rbxassetid://9113649171" }, Volume = 0.35 },
+		AmbientWindDay = { Ids = { "rbxassetid://9114057104" }, Volume = 0.25, Looped = true },
+		AmbientNightCrickets = { Ids = { "rbxassetid://9112765304" }, Volume = 0.3, Looped = true },
+		FireCrackle = { Ids = { "rbxassetid://9112780438" }, Volume = 0.5, Range = 40, Looped = true },
+	} :: { [string]: SoundDef },
 }
 
 -- Player survival stats (7DTD playerMale, buffStatusHungry01-03 and buffStatusThirsty01-03 in 1.0-3.2;

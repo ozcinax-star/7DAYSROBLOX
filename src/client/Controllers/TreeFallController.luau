@@ -10,6 +10,7 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Net = require(Shared.Net)
+local SoundController = require(script.Parent.SoundController)
 
 local HC = Config.Harvest
 -- The trunk ends just short of lying flat, so it rests on the slope instead of sinking into it.
@@ -41,6 +42,7 @@ local function onFelled(model: unknown, base: unknown, direction: unknown)
 			parts[part] = part.Transparency
 		end
 	end
+	SoundController.play("TreeFall", base)
 	falls[model] = {
 		startedAt = os.clock(),
 		start = model:GetPivot(),

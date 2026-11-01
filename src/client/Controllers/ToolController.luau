@@ -31,6 +31,7 @@ local Melee = require(Shared.Melee)
 local Net = require(Shared.Net)
 
 local ImpactController = require(script.Parent.ImpactController)
+local SoundController = require(script.Parent.SoundController)
 local InventoryController = require(script.Parent.InventoryController)
 local ViewmodelController = require(script.Parent.ViewmodelController)
 local ZombieRenderController = require(script.Parent.ZombieRenderController)
@@ -96,7 +97,8 @@ type SwingStyle = "Chop" | "Stab" | "Punch"
 type SwingKey = { at: number, shoulder: number, elbow: number, waist: number }
 -- Motor6D or AnimationConstraint: both carry the Transform the Animator writes.
 type Joints = { shoulder: Instance, elbow: Instance?, waist: Instance? }
-type Swing = { startedAt: number, duration: number, style: SwingStyle, left: boolean, joints: Joints }
+-- strikeAt: os.clock() of the strike key, when the hit lands on screen.
+type Swing = { startedAt: number, duration: number, strikeAt: number, style: SwingStyle, left: boolean, joints: Joints }
 
 local ToolController = {}
 
@@ -106,6 +108,8 @@ local aimRemote: RemoteEvent
 local aimButton: TextButton
 local aiming = false
 local swings: { [Model]: Swing } = {}
+-- Strike moments of swings that already ended their pose, kept until a late hit report arrives.
+local strikes: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any
 -- What a swing last wrote into each joint's Transform and the animation pose it turned, so a frame
 -- the Animator skips (a joint no track moves) is not turned twice; and which arm a character's next
 -- punch uses (weak: characters come and go).
@@ -208,7 +212,11 @@ local function playSwing(character: Model?, toolId: string)
 	local tool = Config.Tools[toolId] or Config.Tools[FIST]
 	local interval = Melee.interval(tool.AttacksPerMinute, MC.SwingDelay)
 	local duration = math.min(MC.SwingMaxSeconds, interval * SWING_SHARE)
-	swings[character] = { startedAt = os.clock(), duration = duration, style = style, left = left, joints = joints }
+	local now = os.clock()
+	local strikeAt = now + SWING_POSES[style][2].at * duration
+	swings[character] = { startedAt = now, duration = duration, strikeAt = strikeAt, style = style, left = left, joints = joints }
+	strikes[character] = strikeAt
+	SoundController.play("SwingWhoosh", character:GetPivot().Position)
 end
 
 -- The joint angles (degrees) of `style` at `progress` (0-1).
@@ -251,6 +259,32 @@ local function stepSwings()
 			layer(joints.waist, CFrame.Angles(0, math.rad(if swing.left then -waist else waist), 0))
 		end
 	end
+end
+
+local surfaceParams = RaycastParams.new()
+surfaceParams.FilterType = Enum.RaycastFilterType.Exclude
+surfaceParams.IgnoreWater = true
+local STONE: { [Enum.Material]: boolean } = {}
+for _, m in { Enum.Material.Rock, Enum.Material.Slate, Enum.Material.Concrete, Enum.Material.Brick,
+	Enum.Material.Cobblestone, Enum.Material.Granite, Enum.Material.Basalt, Enum.Material.Sandstone,
+	Enum.Material.Limestone, Enum.Material.Pavement, Enum.Material.Asphalt, Enum.Material.Marble,
+	Enum.Material.Pebble, Enum.Material.CrackedLava, Enum.Material.Salt, Enum.Material.Glacier,
+	Enum.Material.Ground, Enum.Material.Mud, Enum.Material.Sand } do
+	STONE[m] = true
+end
+local METAL: { [Enum.Material]: boolean } = {
+	[Enum.Material.Metal] = true, [Enum.Material.CorrodedMetal] = true,
+	[Enum.Material.DiamondPlate] = true, [Enum.Material.Foil] = true,
+}
+
+-- The impact sound of a melee hit on the world, from the material just behind the hit point.
+local function surfaceSound(point: Vector3, normal: Vector3): string
+	local character = player.Character
+	surfaceParams.FilterDescendantsInstances = if character then { character } else {}
+	local n = if normal.Magnitude > 1e-3 then normal.Unit else Vector3.yAxis
+	local result = workspace:Raycast(point + n * 0.5, -n, surfaceParams)
+	local material = if result then result.Material else Enum.Material.Wood
+	return if METAL[material] then "HitMetal" elseif STONE[material] then "HitStone" else "HitWood"
 end
 
 local function showMessage(text: string)
@@ -455,7 +489,10 @@ local function trySwing(source: Source, repeated: boolean?)
 			if state == nil or state.reloadEnds > workspace:GetServerTimeNow() or state.readyAt > workspace:GetServerTimeNow() then return end
 			if state.loaded <= 0 then
 				if state.reserve > 0 then WeaponController.reload()
-				else showMessage(Localization.get("NoBullets")); nextSwingAt = now + MC.MessageSeconds end
+				else
+					SoundController.play("DryFire")
+					showMessage(Localization.get("NoBullets")); nextSwingAt = now + MC.MessageSeconds
+				end
 				return
 			end
 		elseif not hasAmmo(ranged) then
@@ -670,12 +707,25 @@ function ToolController.start()
 				playSwing(character, toolId)
 			end
 			local from = if character then character:GetPivot().Position else nil
-			if zombieId ~= 0 then
-				if attacker == player then WeaponController.hitConfirmed() end
-				ZombieRenderController.flinch(zombieId)
-				ImpactController.zombie(zombieId, head == true, from)
-			elseif typeof(point) == "Vector3" and typeof(normal) == "Vector3" and typeof(color) == "Color3" then
-				ImpactController.surface(point, normal, color)
+			local function land()
+				if zombieId ~= 0 then
+					if attacker == player then WeaponController.hitConfirmed(head == true) end
+					ZombieRenderController.flinch(zombieId)
+					ImpactController.zombie(zombieId, head == true, from)
+					local at = ZombieRenderController.getPosition(zombieId)
+					SoundController.play("HitFlesh", at or from)
+				elseif typeof(point) == "Vector3" and typeof(normal) == "Vector3" and typeof(color) == "Color3" then
+					ImpactController.surface(point, normal, color)
+					SoundController.play(surfaceSound(point, normal), point)
+				end
+			end
+			-- The server resolves a hit when the swing starts; the effects wait for the blade to land.
+			local strikeAt = if character then strikes[character] else nil
+			local wait = if strikeAt then strikeAt - os.clock() else 0
+			if wait > 0 then
+				task.delay(wait, land)
+			else
+				land()
 			end
 		end
 	)

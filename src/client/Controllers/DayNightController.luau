@@ -15,6 +15,7 @@ local Config = require(Shared.Config)
 local DayClock = require(Shared.DayClock)
 local Localization = require(Shared.Localization)
 local Net = require(Shared.Net)
+local SoundController = require(script.Parent.SoundController)
 
 -- Lighting at full day and deep night; between them it follows the sun's height.
 local DAY_BRIGHTNESS = 2
@@ -40,6 +41,8 @@ local DayNightController = {}
 local tint: ColorCorrectionEffect
 local clockLabel: TextLabel
 local hordeLabel: TextLabel
+-- Whether the last frame was a horde night, so its start is announced once.
+local wasHordeNight = false
 
 local function attribute(name: string, default: number): number
 	local value = ReplicatedStorage:GetAttribute(name)
@@ -100,6 +103,10 @@ local function update()
 	clockLabel.Text = Localization.get("HudClock", { day = state.day, time = formatTime(state.clockTime) })
 	clockLabel.TextColor3 = if hordeDay then HORDE_COLOR else TEXT_COLOR
 	hordeLabel.Visible = hordeNight
+	if hordeNight and not wasHordeNight then
+		SoundController.play("HordeRoar")
+	end
+	wasHordeNight = hordeNight
 end
 
 function DayNightController.init() end

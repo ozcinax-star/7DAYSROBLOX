@@ -12,6 +12,7 @@ local Config = require(Shared.Config)
 local ItemIcons = require(Shared.ItemIcons)
 local Localization = require(Shared.Localization)
 local Net = require(Shared.Net)
+local SoundController = require(script.Parent.SoundController)
 
 local IC = Config.Inventory
 
@@ -104,6 +105,7 @@ end
 
 local function onGain(id: string, added: number, lost: number)
 	if added > 0 then
+		SoundController.play("ItemPickup")
 		local line = lines[id]
 		if line == nil or line.frame.Parent == nil then
 			local frame, label = newLine(id, GAIN_COLOR)

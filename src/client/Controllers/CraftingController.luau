@@ -19,6 +19,7 @@ local Crafting = require(Shared.Crafting)
 local ItemIcons = require(Shared.ItemIcons)
 local Localization = require(Shared.Localization)
 local Net = require(Shared.Net)
+local SoundController = require(script.Parent.SoundController)
 
 local InventoryController = require(script.Parent.InventoryController)
 
@@ -71,6 +72,17 @@ local CraftingController = {}
 
 local queueRemote: RemoteEvent
 local cancelRemote: RemoteEvent
+-- A queue that shrinks without a recent cancel finished a craft (CraftDone sound).
+local lastCancelAt = -math.huge
+local CANCEL_GRACE_SECONDS = 1
+
+local function queuedUnits(list: { JobView }): number
+	local total = 0
+	for _, job in list do
+		total += job.left
+	end
+	return total
+end
 -- Chosen count per recipe.
 local counts: { [string]: number } = {}
 local rows: { [string]: Row } = {}
@@ -323,6 +335,7 @@ end
 local function buildQueueSlot(parent: Instance, index: number): QueueView
 	local slot = button(parent, `Job{index}`, "", function()
 		if jobs[index] then
+			lastCancelAt = os.clock()
 			cancelRemote:FireServer(index)
 		end
 	end)
@@ -471,6 +484,9 @@ function CraftingController.start()
 	refreshQueue()
 	InventoryController.onSlotsChanged(refreshRows)
 	Net.event("CraftUpdate").OnClientEvent:Connect(function(newJobs: { JobView }, serverTime: number)
+		if queuedUnits(newJobs) < queuedUnits(jobs) and os.clock() - lastCancelAt > CANCEL_GRACE_SECONDS then
+			SoundController.play("CraftDone")
+		end
 		jobs = newJobs
 		sentAt = serverTime
 		refreshQueue()

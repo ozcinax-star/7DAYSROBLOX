@@ -68,6 +68,8 @@ local Definitions: { [string]: "RemoteEvent" | "UnreliableRemoteEvent" } = {
 	-- Server -> client: a short message for the player (Localization key: string, parameters:
 	-- { [string]: string | number }?), shown in the pickup feed.
 	Notice = "RemoteEvent",
+	-- Server -> all clients: a world event worth hearing (Config.Sounds.Events name: string, Vector3).
+	WorldSound = "UnreliableRemoteEvent",
 }
 
 local Net = {}
