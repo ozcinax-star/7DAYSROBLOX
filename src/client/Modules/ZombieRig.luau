@@ -332,6 +332,12 @@ function ZombieRig.newPose(id: number): Pose
 	}
 end
 
+-- True when the zombie should wear a textured shirt that was not cut yet when it was built.
+function ZombieRig.wantsShirt(rig: Rig): boolean
+	local index = rig.look.torsoMesh
+	return not rig.meshTorso and ZombieAssets.Torsos[index] ~= nil and ZombieMeshes.torso(index) ~= nil
+end
+
 -- Hidden details stay where they were; they are not moved while hidden.
 function ZombieRig.setDetailVisible(rig: Rig, visible: boolean)
 	if rig.detailVisible == visible then

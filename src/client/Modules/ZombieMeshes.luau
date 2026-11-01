@@ -25,6 +25,7 @@ local splits: { [number]: Split } = {}
 -- EditableMeshes stay referenced for as long as their MeshParts are drawn.
 local editables: { EditableMesh } = {}
 local started = false
+local readyCallbacks: { () -> () } = {}
 
 local function sideOf(center: Vector3, asset: ZombieAssets.Mesh): number
 	local x, top = asset.sleeveX :: number, asset.sleeveTop :: number
@@ -83,6 +84,9 @@ local function build(index: number, asset: ZombieAssets.Mesh)
 	end)
 	if ok and result then
 		splits[index] = result
+		for _, callback in readyCallbacks do
+			task.spawn(callback)
+		end
 	elseif not ok then
 		warn(`ZombieMeshes: shirt {index} stays a block shirt ({result})`)
 	end
@@ -99,6 +103,11 @@ function ZombieMeshes.prepare()
 			task.spawn(build, index, asset)
 		end
 	end
+end
+
+-- Calls `callback` each time a shirt finishes cutting, so zombies drawn before can be redressed.
+function ZombieMeshes.onReady(callback: () -> ())
+	table.insert(readyCallbacks, callback)
 end
 
 -- The cut shirt `index`, or nil while it is not ready (or could not be cut).

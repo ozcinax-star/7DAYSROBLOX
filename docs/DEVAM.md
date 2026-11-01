@@ -8,7 +8,9 @@ Dal `claude/zombie-animation-weapon-bugs-93a707`, `a3f7690`'ın (dövüş/zombi 
 - **Gömlek kolları kolla dönmüyordu** (`329f70e`): ekoseli gömlek tek parça mesh'ti. İstemci onu bir
   kez gövde ve iki kolluğa keser; kolluk üst kolun yerini alır. **Oyunda çalışması için Game Settings
   → Security'de mesh/görsel API'lerine izin verilmeli**; izin yoksa bu zombiler blok gömlek giyer
-  (Play'de 80 zombi, hata yok). Kesim Edit'te ölçüldü ve görüntüyle doğrulandı.
+  (Play'de 80 zombi, hata yok). Kesim Edit'te ölçüldü ve görüntüyle doğrulandı. Kullanıcı izni açtı;
+  Play'de 80 zombinin 49'u kolluklu ekoseli gömlek giydi. Kesim bitmeden çıkan zombiler kesim bitince
+  yeniden giydirilir.
 - **"Silahla ateş edince zombinin bir eklemi uzadı":** oyun hatası değil. Kullanıcı Ctrl'e basılıyken
   oynamış; Studio'da Ctrl+2/3/4 Play sırasında da taşıma/boyutlandırma/döndürme aracını açar ve
   tıklanan zombi parçası büyür. Oyun Ctrl kullanmıyor; yayınlanmış oyunda bu araçlar yok.

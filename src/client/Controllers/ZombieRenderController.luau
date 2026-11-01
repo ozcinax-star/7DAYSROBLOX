@@ -133,6 +133,26 @@ local function destroyView(view: View)
 	end
 end
 
+-- Living zombies built before their shirt was cut get a new body wearing it, posed at once.
+local function redress()
+	local parts: { BasePart } = {}
+	local cframes: { CFrame } = {}
+	for id, view in views do
+		if ZombieRig.wantsShirt(view.rig) then
+			local old = view.rig
+			view.rig = ZombieRig.build(id)
+			ZombieRig.pose(view.rig, view.pose, parts, cframes)
+			if view.shown then
+				view.rig.model.Parent = container
+			end
+			old.model:Destroy()
+		end
+	end
+	if #parts > 0 then
+		Workspace:BulkMoveTo(parts, cframes, Enum.BulkMoveMode.FireCFrameChanged)
+	end
+end
+
 local function onSample(id: number, x: number, y: number, z: number, state: string, knock: number, crippled: boolean)
 	local now = os.clock()
 	local view = views[id]
@@ -372,6 +392,7 @@ function ZombieRenderController.init()
 	container = Instance.new("Folder")
 	container.Name = "ClientZombies"
 	container.Parent = Workspace
+	ZombieMeshes.onReady(redress)
 	ZombieMeshes.prepare()
 end
 
