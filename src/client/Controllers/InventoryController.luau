@@ -43,6 +43,9 @@ local BUTTON_WIDTH = 72
 -- Header buttons scale their text down to fit but never above the title's size.
 local BUTTON_TEXT_MAX = 18
 local NAME_HEIGHT = 24
+-- Slot item names: never smaller than this (pixels), never larger than that.
+local NAME_MIN_TEXT = 10
+local NAME_MAX_TEXT = 14
 local DURABILITY_HEIGHT = 4
 local NAME_SHOW_SECONDS = 1.6
 local INFO_PADDING = 8
@@ -169,6 +172,12 @@ local function makeSlot(parent: Instance, index: number, order: number, keyText:
 	name.Position = UDim2.new(0, 2, 0.66, 0)
 	name.Size = UDim2.new(1, -4, 0.22, 0)
 	name.TextScaled = true
+	-- Long names used to shrink to ~6 px; below the floor they are cut with an ellipsis instead.
+	name.TextTruncate = Enum.TextTruncate.AtEnd
+	local nameSize = Instance.new("UITextSizeConstraint")
+	nameSize.MinTextSize = NAME_MIN_TEXT
+	nameSize.MaxTextSize = NAME_MAX_TEXT
+	nameSize.Parent = name
 
 	local count = makeLabel(button, "Count")
 	count.AnchorPoint = Vector2.new(1, 0)
@@ -308,6 +317,8 @@ local function render()
 			view.icon.Visible = true
 			ItemIcons.apply(view.icon, slot.id)
 			view.name.Text = itemName(slot.id)
+			-- With the backpack shut the toolbelt shows icons only; the held item's name shows above it.
+			view.name.Visible = backpackOpen or index > IC.ToolbeltSlots
 			local ranged = Config.Ranged.Weapons[slot.id]
 			view.count.Text = if ranged
 				then ammoText(slot, ranged)

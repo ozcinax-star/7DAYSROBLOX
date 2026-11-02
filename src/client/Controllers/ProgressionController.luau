@@ -87,7 +87,8 @@ local function buildGui()
 	local bar = Instance.new("Frame")
 	bar.Name = "Experience"
 	bar.AnchorPoint = Vector2.new(0.5, 1)
-	bar.Position, bar.Size = UDim2.new(0.5, 0, 1, -84), UDim2.fromOffset(360, 8)
+	-- Above the held item's name, which sits right on the toolbelt (they overlapped on screen).
+	bar.Position, bar.Size = UDim2.new(0.5, 0, 1, -108), UDim2.fromOffset(360, 8)
 	bar.BackgroundColor3, bar.BackgroundTransparency, bar.BorderSizePixel = TRACK, 0.15, 0
 	bar.Parent = gui
 	local stroke = Instance.new("UIStroke")
