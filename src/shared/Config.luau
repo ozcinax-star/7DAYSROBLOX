@@ -176,7 +176,8 @@ export type LootPick = { Id: string, Min: number, Max: number, Weight: number }
 
 -- A searchable piece of furniture: Rolls picks, each of which comes up empty with EmptyChance; one more
 -- roll in a building whose Loot attribute is Bonus.
-export type ContainerDef = { Rolls: number, EmptyChance: number, Bonus: string?, Picks: { LootPick } }
+-- SearchSeconds: how long the search key is held (Config.Loot.SearchSeconds when nil).
+export type ContainerDef = { Rolls: number, EmptyChance: number, Bonus: string?, Picks: { LootPick }, SearchSeconds: number? }
 
 -- A harvestable world object (7DTD block). Harvest drops pay two thirds while it is hit, in proportion
 -- to damage, and one third on the killing hit; Destroy drops pay once when it breaks.
@@ -1827,6 +1828,14 @@ Config.Harvest = {
 		FurnitureDesk = { Material = "Wood", Health = 100, Harvest = {}, Destroy = { drop("Wood", 2, 6) } },
 		-- Mfurniture (300); ours: the desk's wood.
 		FurnitureLarge = { Material = "Wood", Health = 300, Harvest = {}, Destroy = { drop("Wood", 2, 6) } },
+		-- A parked car or truck torn apart: scrap over the hits, a few parts when it gives (ours; 7DTD
+		-- vehicles need a wrench and pay by tool).
+		Vehicle = {
+			Material = "Stone",
+			Health = 800,
+			Harvest = { drop("ScrapIron", 40) },
+			Destroy = { drop("MechanicalParts", 1, 2), drop("ElectricalParts", 0, 1) },
+		},
 		-- Mfurniture (300); ours: frame wood and cover cloth.
 		FurnitureSoft = {
 			Material = "Wood",
@@ -1864,6 +1873,8 @@ Config.Harvest = {
 	-- Breakable town furniture: the BuildingKit "Furniture" attribute to its node. The fireplace is
 	-- part of the house's chimney and stays. A container spills what it holds when it breaks.
 	Furniture = {
+		Car = "Vehicle",
+		Truck = "Vehicle",
 		Bed = "FurnitureSoft",
 		Sofa = "FurnitureSoft",
 		Armchair = "FurnitureSoft",
@@ -2044,8 +2055,28 @@ Config.Loot = {
 		StorageRack = "Storage",
 		Workbench = "Storage",
 		Lockers = "Storage",
+		-- Parked cars and trucks (PropKit gives them a Furniture attribute).
+		Car = "Car",
+		Truck = "Car",
 	} :: { [string]: string },
 	Containers = {
+		-- 7DTD "cars" container: a 4 s search (vehicles are the slow searches). Two rolls at 30% empty:
+		-- nothing in 9% of cars, 1.4 stacks on average (one roll left 20% of 4 s searches empty-handed).
+		-- Car parts: mechanical and electrical parts, gas, pipes, duct tape, scrap (the mix is ours).
+		Car = {
+			Rolls = 2,
+			EmptyChance = 0.3,
+			SearchSeconds = 4,
+			Picks = {
+				{ Id = "MechanicalParts", Min = 1, Max = 3, Weight = 3 },
+				{ Id = "ElectricalParts", Min = 1, Max = 3, Weight = 3 },
+				{ Id = "GasCan", Min = 20, Max = 60, Weight = 3 },
+				{ Id = "MetalPipe", Min = 1, Max = 2, Weight = 1.5 },
+				{ Id = "DuctTape", Min = 1, Max = 1, Weight = 1 },
+				{ Id = "ScrapIron", Min = 3, Max = 8, Weight = 2 },
+				{ Id = "Ammo9mm", Min = 3, Max = 8, Weight = 0.5 },
+			},
+		},
 		Fridge = {
 			Rolls = 1,
 			EmptyChance = 0.3,

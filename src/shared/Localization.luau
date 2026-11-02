@@ -288,6 +288,7 @@ local Strings: { [string]: { [string]: string } } = {
 		StorageHint = "Click an item to take it. Pick one in your backpack, then a slot here, to store it.",
 		ItemElectricLamp = "Electric Lamp",
 		ItemTorch = "Torch",
+		ContainerCar = "Car",
 		ItemDuctTape = "Duct Tape",
 		ItemNails = "Nails",
 		ItemRepairKit = "Repair Kit",

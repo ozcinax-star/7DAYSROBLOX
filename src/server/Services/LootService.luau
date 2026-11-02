@@ -127,13 +127,13 @@ end
 
 -- Whether a finished hold on a prompt at `position` is a valid search: the hold lasted, the player
 -- is alive, near and under the rate limit.
-local function canSearch(player: Player, position: Vector3): boolean
+local function canSearch(player: Player, position: Vector3, seconds: number?): boolean
 	local started = holdStarted[player]
 	holdStarted[player] = nil
 	if not searchLimiter:allow(player) then
 		return false
 	end
-	if started == nil or os.clock() - started < LC.SearchSeconds * HOLD_TOLERANCE then
+	if started == nil or os.clock() - started < (seconds or LC.SearchSeconds) * HOLD_TOLERANCE then
 		return false
 	end
 	local character = player.Character
@@ -171,11 +171,11 @@ local function onSearch(player: Player, bag: Bag)
 end
 
 -- A hold-to-search prompt (the server re-checks the hold time and the distance).
-local function newPrompt(objectText: string, onTriggered: (Player) -> ()): ProximityPrompt
+local function newPrompt(objectText: string, onTriggered: (Player) -> (), seconds: number?): ProximityPrompt
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = Localization.get("LootSearch")
 	prompt.ObjectText = objectText
-	prompt.HoldDuration = LC.SearchSeconds
+	prompt.HoldDuration = seconds or LC.SearchSeconds
 	prompt.MaxActivationDistance = LC.SearchDistance
 	prompt.RequiresLineOfSight = false
 	prompt.PromptButtonHoldBegan:Connect(function(player)
@@ -343,7 +343,8 @@ local function fill(container: Container, searcher: Player?): Inventory.Inventor
 end
 
 local function onSearchContainer(player: Player, container: Container)
-	if not canSearch(player, container.point.WorldPosition) or not inSight(player, container) then
+	local seconds = LC.Containers[container.kind].SearchSeconds
+	if not canSearch(player, container.point.WorldPosition, seconds) or not inSight(player, container) then
 		return
 	end
 	takeAll(player, fill(container, player))
@@ -413,7 +414,7 @@ local function addContainers(map: Instance)
 			if container then
 				onSearchContainer(player, container)
 			end
-		end)
+		end, LC.Containers[kind].SearchSeconds)
 		container = {
 			model = model,
 			point = point,

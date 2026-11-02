@@ -46,6 +46,15 @@ local function block(model: Model, base: CFrame, name: string, size: Vector3, x:
 	return part(model, name, size, base * CFrame.new(x, y + size.Y / 2, z), style)
 end
 
+-- Makes a vehicle a world container and a harvestable object (LootService and HarvestService find
+-- models by their Furniture attribute). The id comes from where it stands, so it is unique and stable
+-- between server starts (the world save remembers broken ones by it).
+local function searchable(model: Model, kind: string, base: CFrame)
+	local p = base.Position
+	model:SetAttribute("Furniture", kind)
+	model:SetAttribute("FurnitureCell", `{kind}:{math.round(p.X)},{math.round(p.Z)}`)
+end
+
 local function car(model: Model, base: CFrame, paint: Palette.Style)
 	block(model, base, "Body", Vector3.new(6, 2.2, 12), 0, 1, 0, paint)
 	block(model, base, "Cabin", Vector3.new(5.6, 2, 6), 0, 3.2, 0.6, paint)
@@ -199,8 +208,10 @@ local Builders: { [string]: Builder } = {
 	end,
 	Car = function(model, base, _scale, key)
 		car(model, base, PartFactory.pick(Palette.CarPaints, key))
+		searchable(model, "Car", base)
 	end,
 	Truck = function(model, base)
+		searchable(model, "Truck", base)
 		block(model, base, "Chassis", Vector3.new(7, 2.4, 20), 0, 1, 0, S.Rust)
 		block(model, base, "Cab", Vector3.new(7, 4, 6), 0, 3.4, -6.5, S.CarPaint)
 		block(model, base, "Bed", Vector3.new(7, 1.4, 12), 0, 3.4, 3.5, S.Rust)
