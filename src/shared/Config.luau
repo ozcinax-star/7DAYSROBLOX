@@ -563,7 +563,7 @@ Config.ZombieVisual = {
 	BareArmChance = 0.45,
 	BareShinChance = 0.25,
 	-- Death: collapse time, then the body lies still before it is removed.
-	DeathFallSeconds = 0.8,
+	DeathFallSeconds = 1.2,
 	CorpseSeconds = 6,
 	-- Hit flinch of a struck zombie (seconds).
 	FlinchSeconds = 0.3,

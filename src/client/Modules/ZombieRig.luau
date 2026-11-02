@@ -71,6 +71,14 @@ local KNEE_REST = 0.08
 local ARM_SPREAD = 0.1
 -- Lying corpses are lifted by about half a body thickness so they rest on the ground.
 local CORPSE_LIFT = 0.35
+-- Death collapse: share of the fall spent buckling, how far the hips sag (share of hip height),
+-- the extra forward sag of the torso, thigh and knee fold, and the roll onto one side (radians).
+local DEATH_BUCKLE_SHARE = 0.4
+local DEATH_DROP_SHARE = 0.38
+local DEATH_SAG_RADIANS = 0.5
+local DEATH_THIGH_RADIANS = 0.9
+local DEATH_KNEE_RADIANS = 1.5
+local DEATH_ROLL_RADIANS = 0.35
 
 export type Rig = {
 	model: Model,
@@ -295,15 +303,25 @@ function ZombieRig.pose(rig: Rig, p: Pose, parts: { BasePart }, cframes: { CFram
 
 	local base = CF(p.x, p.ground, p.z) * ANG(0, p.yaw, 0)
 	local death = p.death
+	-- Collapse in two beats: the knees buckle and the body sags (buckle), then it topples, speeding up
+	-- like a falling weight, and rolls a little to one side before it lies still (fall).
+	local buckle, fall = 0, 0
 	if death then
-		local fall = 1 - (1 - death) * (1 - death)
-		base = base * CF(0, CORPSE_LIFT * fall, 0) * ANG(-HALF_PI * fall * p.deathDirection, 0, 0)
+		local b = math.clamp(death / DEATH_BUCKLE_SHARE, 0, 1)
+		buckle = b * b * (3 - 2 * b)
+		local f = math.clamp((death - DEATH_BUCKLE_SHARE * 0.7) / (1 - DEATH_BUCKLE_SHARE * 0.7), 0, 1)
+		fall = f * f
+		torsoPitch -= DEATH_SAG_RADIANS * buckle
+		base = base
+			* CF(0, CORPSE_LIFT * fall, 0)
+			* ANG(-HALF_PI * fall * p.deathDirection, 0, DEATH_ROLL_RADIANS * look.limpSide * fall)
 		gait = 0
 	end
 
 	local bob = VC.BobHeight * math.cos(2 * phase) * gait
 	local lurchForward = 0.4 * strike
-	local pelvisPivot = base * CF(0, (HIP_HEIGHT + bob - dip) * s, -lurchForward * s) * ANG(0, -torsoTwist, -lean)
+	local sag = HIP_HEIGHT * DEATH_DROP_SHARE * buckle * (1 - fall)
+	local pelvisPivot = base * CF(0, (HIP_HEIGHT + bob - dip - sag) * s, -lurchForward * s) * ANG(0, -torsoTwist, -lean)
 	local waist = pelvisPivot * CF(0, WAIST_UP * s, 0) * ANG(torsoPitch, torsoTwist * 2, torsoRoll)
 	local neck = waist * CF(0, NECK_UP * s, 0)
 
@@ -331,7 +349,9 @@ function ZombieRig.pose(rig: Rig, p: Pose, parts: { BasePart }, cframes: { CFram
 		local dead = look.deadArm == side
 		local legSwing = if side < 0 then -sinP else sinP
 		if death then
-			pitch, elbow, spread = 2.4, 0.4, 0.5
+			pitch = torsoLean * (1 - buckle) + 0.1 + 2.3 * fall
+			elbow = 0.2 + 0.3 * fall
+			spread = 0.15 + 0.4 * fall
 		elseif dead then
 			pitch = torsoLean + 0.05 + VC.ArmHangSwingRadians * 0.6 * legSwing * gait
 			elbow, spread = 0.1, ARM_SPREAD
@@ -373,7 +393,9 @@ function ZombieRig.pose(rig: Rig, p: Pose, parts: { BasePart }, cframes: { CFram
 		local thighPitch = swing * amp - (if isBad then 0.08 * limp * gait else 0)
 		local turnOut = if isBad then side * 0.08 * limp else 0
 		if death then
-			thighPitch, knee = 0.15 * side, 0.5
+			local fold = buckle * (1 - 0.5 * fall)
+			thighPitch = DEATH_THIGH_RADIANS * fold + 0.15 * side * fall
+			knee = DEATH_KNEE_RADIANS * fold + 0.3 * fall
 		end
 		local hip = pelvisPivot * CF(side * HIP_X * s, 0, 0) * ANG(thighPitch, 0, turnOut)
 		local kneeJoint = hip * CF(0, -THIGH.Y * s, 0) * ANG(-knee, 0, 0)
