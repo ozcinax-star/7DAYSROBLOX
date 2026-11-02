@@ -338,7 +338,7 @@ Config.Zombie = {
 	-- Zombies are solid on the client (ZombieVisual.BodyHeight): a player standing on one, or right
 	-- against it, is within reach of zombies this close (horizontal studs), up to a body height higher.
 	-- Without it a player on a zombie's head could not be hit. A player in the middle of a 1-block
-	-- pillar stays out of reach (2.85 studs from a zombie at its side).
+	-- pillar stays out of reach (measured: the nearest zombie stayed 2.90 studs away, no hits in 15 s).
 	ReachUpDistance = 2,
 	-- 7DTD: a common zombie hits for 8 every 1.5 s by day and every 1.1 s at night.
 	AttackDamage = 8,

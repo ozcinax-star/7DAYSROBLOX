@@ -373,7 +373,8 @@ Kullanıcı önce kaydı onayladı, sonra "sormadan devam et", en son "kendi ter
   alındı ve `LoadPart Containers` ile geri geldi.
 - Katı zombiler: çarpışma kapalıyken 0,05 stud, açıkken 1,34 stud (temas); 80 zombiyle 59,5 FPS.
   Zombinin tepesinde duran oyuncu önce 10 sn hasar almadı (can 84). `ReachUpDistance` ile alttaki
-  zombi bir gövde boyu yukarı uzanıyor: can 92→37.
+  zombi bir gövde boyu yukarı uzanıyor: can 92→37. 1 bloklu sütunun (tahta parmaklık) ortasında duran
+  oyuncu güvende kaldı: 15 sn'de 0 vuruş, en yakın zombi 2,90 stud (`ReachUpDistance` 2).
 - Ölüm: ham kaynakların yarısı 300 sn'lik çantada (odun 50→25, hurda 60→30, lif 20→10, küçük taş
   20→10, kumaş 4→2, kil 20→10). Kereste, çerçeve, yiyecek ve aletler kaldı; ölüm yazısı ve "Your bag"
   işareti göründü. Yeniden doğuş 4,8 sn; yiyecek 100, su 99,9, dayanıklılık 100, can 100.
@@ -382,7 +383,9 @@ Kullanıcı önce kaydı onayladı, sonra "sormadan devam et", en son "kendi ter
   vuruş iki parçayı 1 aşındırdı (250→246). Paneldeki kafa yuvasına tıklayınca kapüşon aşınmasıyla
   çantaya döndü ve şapka yeniden göründü. Yelek ölümden sonra kaldı. `ReloadCharacter` birebir aynı
   (artık zırhı da sınıyor). `ArmorTakeOff`'a kötü türler, NaN, 5000 karakter ve 200'lük sel gönderildi:
-  hata yok, durum değişmedi.
+  hata yok, durum değişmedi. Rig kontrolü: 40 stud yürüyüşte boyun 0,405 rad dönerken kabuklar uzva göre
+  0,0000 stud kaydı. Gerçek birinci şahısta (`LockFirstPerson`) kabukların LocalTransparencyModifier'ı 1,
+  görüş temiz. Zırh yalnızca zombi vuruşunu keser; açlık/susuzluk ve bulanık su hasarı kesilmez.
 
 Bu turda öğrenilen tuzaklar "Bilinen sorunlar" bölümünde (sahte depo, prompt seçimi, kamera yönü).
 `user_mouse_input` ile bir arayüz düğmesine tıklamak için `instance_path` kullan
