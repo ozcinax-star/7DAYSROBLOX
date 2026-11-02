@@ -329,6 +329,11 @@ Config.Zombie = {
 	AttackRange = 3.6,
 	-- A target more than this far above or below the zombie (another floor, a roof) cannot be hit.
 	AttackHeightTolerance = 3,
+	-- Zombies are solid on the client (ZombieVisual.BodyHeight): a player standing on one, or right
+	-- against it, is within reach of zombies this close (horizontal studs), up to a body height higher.
+	-- Without it a player on a zombie's head could not be hit. A player in the middle of a 1-block
+	-- pillar stays out of reach (2.85 studs from a zombie at its side).
+	ReachUpDistance = 2,
 	-- 7DTD: a common zombie hits for 8 every 1.5 s by day and every 1.1 s at night.
 	AttackDamage = 8,
 	-- 7DTD meleeHandZombieShort DamageBlock: damage to a player block per hit, at the same rate.

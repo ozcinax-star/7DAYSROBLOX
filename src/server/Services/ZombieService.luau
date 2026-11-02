@@ -875,8 +875,12 @@ function stepMovement(zombie: Zombie, players: { PlayerInfo }, now: number, dt: 
 			enterSearch(zombie, now, target.x, target.z)
 			return
 		end
-		-- The height check keeps a zombie from hitting a player on the floor above or on a roof.
-		if dist <= ZC.AttackRange and math.abs(target.y - zombie.y) <= ZC.AttackHeightTolerance then
+		-- The height check keeps a zombie from hitting a player on the floor above or on a roof; a
+		-- player standing on a zombie (or right against it) is reached a body height up.
+		local rise = target.y - zombie.y
+		local reach = ZC.AttackHeightTolerance
+			+ (if dist <= ZC.ReachUpDistance then Config.ZombieVisual.BodyHeight else 0)
+		if dist <= ZC.AttackRange and rise >= -ZC.AttackHeightTolerance and rise <= reach then
 			if state ~= "AttackPlayer" then
 				-- Arms go out first; the client plays the grab at the same moment.
 				zombie.nextAttack = math.max(zombie.nextAttack, now + ZC.AttackWindup)
