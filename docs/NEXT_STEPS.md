@@ -40,9 +40,21 @@ Aynı gün sonradan yapılanlar:
 
 Kullanıcı kararı bekleyen:
 - **Kalıcılık:** 2 Kasım'da kullanıcı onayıyla yapıldı ([SAVE.md](SAVE.md)). Kalanlar:
-  - loot konteyner durumu
+  - ~~loot konteyner durumu~~: yapıldı (2 Kasım, `Containers` dünya parçası)
   - gerçek mağazada 50 döngülük kapı testi
   - lobi ve ReserveServer dünyaları (PLAN 3. aşama)
+
+**Öz eleştiri turu (2 Kasım 2026, Claude):** Studio görüntüsü düzeldi; ekran görüntüleriyle eleştirip
+düzelttim. Özet ve commit'ler DEVAM.md'nin başında: zombi görünüşü ve ölüm çöküşü, ruh hali, türlerin
+gözden okunması, yalnızca oyuncu çevresinde doğma, HUD, aranabilir ve kırılabilir arabalar, konteyner
+kaydı, katı zombiler. Bu turdan kalan eleştiriler (öncelik sırasıyla):
+- **Zırh ve giysi** (24. madde, 5): 7DTD'nin temel döngüsünde var, bizde hiç yok.
+- **Zombi silueti:** hâlâ kutulardan; dokulu mesh segmentleri gerçek çözüm. Zombi başına 23 parça
+  (gövde çarpıştırıcısı dahil); telefon ölçülmedi.
+- **Kasaba bakımlı görünüyor:** çöp, moloz, kırık cam, sönük ya da titreyen sokak lambası yok.
+- **Ceset duvara giriyor;** kapalı odadaki gezgin zombi kovalamıyorsa orada kalıyor.
+- **Üst kat kapıları zombiyi durdurmuyor;** oyuncu harita kapısını kıramıyor (açabiliyor).
+- **Barut oranı** doğrulanmadı.
 
 **Silah kullanımı (1 Kasım 2026, Codex):** Şarjör/doldurma artık her silah için sunucuda gerçek;
 nişan, tepme, mermi paneli ve birinci/üçüncü şahıs tutuşu yenilendi. 90 test geçti. Kontroller:
@@ -184,7 +196,7 @@ kürek 5 / 3 / 3 (2,2 sn) 7DTD'den; taş kazma ve kereste bizim (1. soru). Kalan
 - **Üst üste torbalar:** aynı noktada ölen zombilerin torbaları üst üste duruyor; prompt en
   yakınını seçiyor.
 - **Bina loot'u:** bitti (`91a33a8`). Kalan: 7DTD'deki çöp kutusu, tuvalet, masa, dosya dolabı,
-  kitaplık kapları (eşyaları yok); kap penceresi (eşyayı tek tek alma); kayıt.
+  kitaplık kapları (eşyaları yok); kap penceresi (eşyayı tek tek alma). Kayıt yapıldı (2 Kasım).
 
 ### 6. Gündüz-gece (bitti, 31 Ekim)
 
@@ -483,7 +495,7 @@ Hepsi [REFERENCE_7DTD.md](REFERENCE_7DTD.md) dosyasında; başında bizim uyarla
 
 ## Sonra: 7DTD'den gelecekler
 
-- **Zombilerin oyuncuya girmesi:** saldıran zombi oyuncudan en az bir gövde mesafesinde durmalı.
+- ~~**Zombilerin oyuncuya girmesi**~~: yapıldı (2 Kasım): zombiler katı, oyuncu içlerinden geçemiyor.
 - **Taşıma yükü:** 45 slotun 27'si cezasız; sonrası her slot %2,6 yavaşlatır.
 - **Alet kalitesi (1–6).**
 

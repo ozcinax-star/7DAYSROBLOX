@@ -361,6 +361,20 @@ haritada 53 demir kayası; demir kazma kayayı 15 vuruşta kırdı (hurda 60 →
 `UserInputService:GetKeysPressed()` W, D, S'yi sırayla basılı gösterdi (büyük ihtimalle kullanıcı aynı
 anda oyundaydı). Karaktere dokunan testler durduruldu.
 
+### 28. Bölüm: kayıt, sistemler ve öz eleştiri turu (2 Kasım)
+
+Kullanıcı önce kaydı onayladı, sonra "sormadan devam et", en son "kendi tercihlerinle devam et, kendi
+ürününü her seferinde eleştir" dedi. Commit listesi ve özet DEVAM.md'nin başında; kayıt ayrıntısı
+[SAVE.md](SAVE.md). Bu turun ölçümleri:
+- Zombiler yalnızca oyuncu çevresinde doğuyor: en yakın zombi 71–85 stud, can 100'de kaldı.
+- Arabalar: aramada 2000 zarda %20,3 boş (eski tek zar), hurda 3–8; taş kazma vuruş başına 1 hurda.
+  Sonra zar 2'ye çıktı (%9 boş).
+- Konteyner kaydı: 183 konteynerin kimliği benzersiz. Bir arabada kalan 5 elektrik parçası kaydedildi,
+  alındı ve `LoadPart Containers` ile geri geldi.
+- Katı zombiler: çarpışma kapalıyken 0,05 stud, açıkken 1,34 stud (temas); 80 zombiyle 59,5 FPS.
+
+Bu turda öğrenilen tuzaklar "Bilinen sorunlar" bölümünde (sahte depo, prompt seçimi, kamera yönü).
+
 ## Mevcut durum
 
 | Alan | Durum |
@@ -833,11 +847,19 @@ Bu yöntem `tools/studio/` altındaki araçlarla çalışır.
 - **Ses kaynağı:** Mağaza aramasında yükleyici süzgeci yok. Pro Sound Effects adlarıyla ara
   (`... (SFX)`) ve `creatorName == "ProSoundEffects"` olanları al. Yükleyiciyi
   `GetProductInfoAsync` ile, sesin kendisini `PlaybackLoudness` zarfıyla doğrula ([SOUND.md](SOUND.md)).
+- **Studio'da kayıt sahte depoda** (`Config.Persistence.StudioUsesLiveStore = false`): Play durunca
+  silinir, yani gerçek yeniden başlatma Studio'da ölçülemez. Yükleme yolunu `DebugCommand("SaveReport")`
+  ve ardından `DebugCommand("LoadPart", "<parça>")` ile sına.
+- **E hangi istemi tetikler:** Yan yana iki konteynerde E, istemcinin seçtiği istemi tetikler (yere
+  atılan çanta da araya girer). Testte `ProximityPromptService.PromptTriggered` ile hangi modelin
+  arandığını kaydet; tek başına duran konteyner seç; eşyayı sunucuda karakteri uzağa taşıyıp at.
+- **Hareket tuşları kameraya göredir:** Karakteri `PivotTo` ile çevirmek birinci şahıs kamerasını
+  çevirmez. Kameranın bakışını oku; zombi arkadaysa S ile yürü.
 - **Python ile dosya yazarken:** `open(p, 'w')` Windows'ta CRLF yazar; git commit'te LF'ye çevirir
   (uyarı verir, içerik doğru).
 
 - **Telefonda FPS hiç ölçülmedi.** Aşama 1'in kapısı (kullanıcı erteledi). Bina parça sayısı hedefin
-  üstünde; zombi başına parça sayısı 17'ye çıktı.
+  üstünde; zombi başına parça sayısı 23 (15 gövde, 7 yüz ayrıntısı, 1 görünmez çarpıştırıcı).
 - **Araç zinciri hiç çalıştırılmadı.** README'deki `stylua --check`, `selene src` ve `lune run tests/run`
   komutları bu makinede hiç koşmadı. İlk çalıştırmada format ve lint düzeltmeleri çıkabilir.
   `tests/run.luau`'nun gerçek Lune'da da geçtiği doğrulanmalı.
