@@ -48,7 +48,7 @@ Kullanıcı kararı bekleyen:
 düzelttim. Özet ve commit'ler DEVAM.md'nin başında: zombi görünüşü ve ölüm çöküşü, ruh hali, türlerin
 gözden okunması, yalnızca oyuncu çevresinde doğma, HUD, aranabilir ve kırılabilir arabalar, konteyner
 kaydı, katı zombiler. Bu turdan kalan eleştiriler (öncelik sırasıyla):
-- **Zırh ve giysi** (24. madde, 5): 7DTD'nin temel döngüsünde var, bizde hiç yok.
+- ~~**Zırh ve giysi**~~: yapıldı (`e239c07`). Kabuklar kutu biçiminde; kapüşon başta kaba duruyor.
 - **Zombi silueti:** hâlâ kutulardan; dokulu mesh segmentleri gerçek çözüm. Zombi başına 23 parça
   (gövde çarpıştırıcısı dahil); telefon ölçülmedi.
 - **Kasaba bakımlı görünüyor:** çöp, moloz, kırık cam, sönük ya da titreyen sokak lambası yok.
@@ -144,6 +144,9 @@ Her sorunun ilk seçeneği benim önerim.
    ve dolum gününü tutuyor. Ekleme türünden bir değişiklik: eski kayıtlar sorunsuz yükleniyor, parça
    yoksa konteynerler normal doluyor. Kayıt şeması kuralı gereği bildiriyorum. Öneri: kalsın.
    İstenmezse `LootService`'teki `registerWorld("Containers", …)` satırı kaldırılır.
+10. **Yeni karakter kayıt parçası `Armor` (2 Kasım):** giyilen zırh, oyuncunun dünyadaki karakter
+   kaydında tutuluyor. Bu da ekleme türünden; eski kayıtlarda parça yoksa oyuncu zırhsız başlıyor.
+   Öneri: kalsın.
 
 Cevaplananlar: oyuncu zombiye aletle vuracak (bu planın 2. maddesi); zombiler üst kata çıkıyor
 (bitti); kapsam kuralı değişti, ana referans 7DTD ve karşılığında bir şey çıkmıyor (PLAN, Kapsam).
@@ -470,7 +473,9 @@ adım, PLAN'a karar satırıyla):
 2. ~~Meşale~~: yapıldı (2 Kasım): elde ışık, konan meşale, başlangıçta bir tane.
 3. ~~Kömür ve nitrat kayaları~~: yapıldı (2 Kasım). Yanık ağaçlar henüz yok.
 4. Kimya istasyonu: barut (sırt çantasında, oranı doğrulanmadı) ve mermi (tezgâhta) yapıldı (2 Kasım); istasyonun kendisi henüz yok.
-5. **Zırh ve giysi:** 7DTD'nin zırh kademeleri; yüzde hasar azaltma.
+5. ~~**Zırh ve giysi**~~: yapıldı (2 Kasım, `e239c07`). 4 yuva, ilkel (8) ve demir (18) set, puan başına %1
+   azaltma (en fazla %80), aşınma, ölümde kalma, kayıt, uzuv kabukları. Kalanlar: ağır zırhın hareket ve
+   ses cezası, kalite kademeleri, set bonusları, orta (deri) set.
 6. Perkler yapıldı (2 Kasım): deneyim, seviye, Scavenger / Builder / Combat (3 kademe, K). Tarif kitapları henüz yok; bütün tarifler açık.
 7. **Zombi türleri:** PLAN 2. aşama (Normal, Hızlı, Ses-duyarlı) ve 7DTD özel zombileri.
 8. **Tüccar ve para:** 7DTD trader; PLAN gelir modeliyle çakışmaması gerekir, kullanıcıya sorulacak.

@@ -23,8 +23,13 @@ düzeldi; ekran görüntüleriyle eleştirip düzelttiklerim (ayrı commit'ler):
   Zombinin kafasına çıkan oyuncu vurulamıyordu (10 sn can 84'te kaldı). Şimdi alttaki ya da dipteki
   zombiler bir gövde boyu yukarı uzanıyor: can 92→37.
 - **Ölüm cezası** Play'de doğrulandı (aşağıda, "Doğrulanmamış" 2).
+- **Zırh** (`e239c07`): 4 yuva; ilkel set (8 puan/parça, lif + odun) ve demir set (18, tezgâh). Elde
+  tutup tıklayınca giyilir, çantanın yanındaki panelden çıkar; ölümde kalır ve kaydedilir; uzuvlarda
+  kabuk olarak görünür. Ölçüm: kapüşon + demir yelek (26) 8'lik vuruşu 5,92'ye indirdi, parçalar
+  250→246 aşındı. Kayıt yükleme birebir aynı, kötü girdi testinde hata yok. Eksikler: ağır zırhın
+  hareket ve ses cezası, kalite, set bonusu.
 
-97 test geçiyor. Doğrulanmayanlar: gerçek yeniden başlatmada kayıt (Studio'da sahte depo Play durunca
+98 test geçiyor. Doğrulanmayanlar: gerçek yeniden başlatmada kayıt (Studio'da sahte depo Play durunca
 silinir), telefon FPS'i, seslerin kulakla ayarı.
 
 ## Güncel ek: silah kullanımı (1 Kasım 2026, Codex)
@@ -122,7 +127,7 @@ kullanıcı soruları), [PLAN.md](PLAN.md) (tasarım kararları; kodla çelişir
 - **Proje:** Roblox co-op zombi survival. Ana referans 7 Days to Die (7DTD). Rojo dosya yapısı,
   Luau `--!strict`. Kodu Claude yazar; kullanıcı test eder ve son kararı verir.
 - **Aşama:** PLAN yol haritasının 1. aşaması (prototip). Telefon FPS kapısı kullanıcı kararıyla ertelendi.
-- **Testler:** 97 test, hepsi geçiyor (Studio'da `H.test`).
+- **Testler:** 98 test, hepsi geçiyor (Studio'da `H.test`).
 - **Çalışan sistemler:**
   - **Dünya:** 2048×2048 harita, 37 bina, gündüz-gece, tehdit ve horde.
   - **Zombiler:** Humanoid'siz; sarsılarak yürür, eve girer.
@@ -205,7 +210,7 @@ bitince sıradaki eksik sistemi sormadan başlat, sonunda raporla. Ayrıntı: NE
 2. ~~Meşale~~: yapıldı (2 Kasım): elde ışık, konan meşale, başlangıçta bir tane.
 3. ~~Kömür ve nitrat kayaları~~: yapıldı (2 Kasım). Yanık ağaçlar henüz yok.
 4. Kimya istasyonu: barut (sırt çantasında, oranı doğrulanmadı) ve mermi (tezgâhta) yapıldı (2 Kasım); istasyonun kendisi henüz yok.
-5. **Zırh ve giysi.**
+5. Zırh yapıldı (2 Kasım): 4 yuva, ilkel ve demir set. Hareket cezası, kalite ve set bonusu yok.
 6. Perkler yapıldı (2 Kasım): deneyim, seviye, Scavenger / Builder / Combat (3 kademe, K). Tarif kitapları henüz yok; bütün tarifler açık.
 7. **Zombi türleri:** Normal, Hızlı, Ses-duyarlı ve 7DTD özel zombileri.
 8. **Tüccar ve para:** önce kullanıcıya sor (gelir modeliyle çakışabilir).

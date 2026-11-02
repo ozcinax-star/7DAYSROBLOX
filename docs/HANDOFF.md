@@ -378,7 +378,15 @@ Kullanıcı önce kaydı onayladı, sonra "sormadan devam et", en son "kendi ter
   20→10, kumaş 4→2, kil 20→10). Kereste, çerçeve, yiyecek ve aletler kaldı; ölüm yazısı ve "Your bag"
   işareti göründü. Yeniden doğuş 4,8 sn; yiyecek 100, su 99,9, dayanıklılık 100, can 100.
 
+- Zırh: kapüşon + demir yelek (26 puan) Normal zombinin 8'lik vuruşunu 5,92'ye indirdi (4 vuruş); her
+  vuruş iki parçayı 1 aşındırdı (250→246). Paneldeki kafa yuvasına tıklayınca kapüşon aşınmasıyla
+  çantaya döndü ve şapka yeniden göründü. Yelek ölümden sonra kaldı. `ReloadCharacter` birebir aynı
+  (artık zırhı da sınıyor). `ArmorTakeOff`'a kötü türler, NaN, 5000 karakter ve 200'lük sel gönderildi:
+  hata yok, durum değişmedi.
+
 Bu turda öğrenilen tuzaklar "Bilinen sorunlar" bölümünde (sahte depo, prompt seçimi, kamera yönü).
+`user_mouse_input` ile bir arayüz düğmesine tıklamak için `instance_path` kullan
+("LocalPlayer.PlayerGui.Armor.ArmorPanel.Head"): ekran görüntüsü piksel ölçüsü görüntü alanından küçük.
 
 ## Mevcut durum
 
