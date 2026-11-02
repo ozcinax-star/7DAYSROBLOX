@@ -2417,6 +2417,20 @@ Config.Storage = {
 	CheckSeconds = 0.5,
 }
 
+-- Doors of the map's buildings (MapDoorService). They start closed; anyone opens or closes them with the
+-- interact key. Zombies cannot open doors (7DTD): a closed one is a structure they break through.
+Config.MapDoors = {
+	Tag = "MapDoor",
+	FolderName = "MapDoors",
+	-- 7DTD wooden doors are tough; ours match a placed wood door so both hold zombies alike.
+	Health = 1000,
+	-- Seconds the leaf takes to swing.
+	SwingSeconds = 0.35,
+	-- Studs from the leaf's centre within which the prompt works (server re-checks with slack).
+	Reach = 8,
+	TogglesPerSecond = 4,
+}
+
 -- Save and load (PersistenceService, ProfileStore). Changing a store name or a key format loses every
 -- save made under the old one: ask the user first, and bump the version with a migration instead.
 -- Experience, levels and perks (ProgressionService, Shared/Progression). PLAN MVP: Scavenger,

@@ -47,6 +47,10 @@ local function onCommand(player: Player, command: unknown, value: unknown)
 		ThreatService.setDirectorEnabled(false)
 		ZombieService.clear()
 		ZombieService.spawn(value)
+	elseif command == "SpawnHorde" then
+		-- One horde zombie: it knows where the nearest player is and runs there (tests doors, walls).
+		ThreatService.setDirectorEnabled(false)
+		ZombieService.spawn(1, true)
 	elseif command == "Clear" then
 		ThreatService.setDirectorEnabled(false)
 		ZombieService.clear()

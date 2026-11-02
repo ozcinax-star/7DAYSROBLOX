@@ -6,9 +6,11 @@
 -- Walls stand on cell centre lines, so a wall blocks exactly one row of navigation cells and doorways
 -- stay walkable. A wall's core carries the facade material when it faces outside; every room
 -- (FloorPlan.rooms) paints its side of the wall with a thin lining and gets its own floor finish,
--- ceiling light and dressing. Casings, linings, door leaves and other trims are decor (no collision),
--- so they can never close a doorway for players or for the zombie navigation grid.
+-- ceiling light and dressing. Casings, linings and other trims are decor (no collision). Door leaves
+-- are built without collision too; MapDoorService turns them into working doors outside the map
+-- folder, so they never close a doorway for the zombie navigation grid.
 
+local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -406,66 +408,44 @@ local function windowDetails(ctx: Ctx, floor: Floor, run: Run, first: number, la
 	end
 end
 
--- Leaves of an open door lying flat against the wall beside the opening on `side`, when that wall is
--- a full solid cell with free floor in front of it. Returns false when they do not fit.
-local function doorLeaves(
-	ctx: Ctx,
-	floor: Floor,
-	run: Run,
-	first: number,
-	last: number,
-	side: number,
-	style: Palette.Style
-): boolean
-	local cells = run.cells
+-- Working door leaves for a doorway: one leaf (two for a double opening) hinged at the jamb, built
+-- closed in the opening and swinging 90 degrees toward `side`. Each leaf is a Model tagged
+-- Config.MapDoors.Tag with its closed and open pivots as attributes; MapDoorService moves it out of the
+-- map, gives it a prompt and decides when it collides. Built without collision, so the zombie
+-- navigation grid never rasterises a door as a wall.
+local function doorLeaf(ctx: Ctx, floor: Floor, run: Run, first: number, last: number, side: number, style: Palette.Style)
 	local lo, hi = run.lo[first], run.hi[last]
 	local width = hi - lo
-	if width > CELL * 2 + 0.1 then
-		return false
-	end
-	local double = width > CELL + 0.1
-	local dx = if run.axis == "z" then -side else 0
-	local dz = if run.axis == "x" then -side else 0
-	local usable: { { dir: number, key: string } } = {}
-	for _, e in { { first - 1, -1 }, { last + 1, 1 } } do
-		local index, dir = e[1], e[2]
-		-- Run ends may be shortened at junctions; only middle cells are a full cell long.
-		if index > 1 and index < #cells and cells[index].kind == "#" then
-			local wall = cells[index]
-			local r, c = sideCell(run.axis, wall.row, wall.col, side)
-			local key = faceKey(floor, r, c, dx, dz)
-			if FloorPlan.charAt(floor.plan, r, c) == "." and not ctx.usedFaces[key] then
-				table.insert(usable, { dir = dir, key = key })
-			end
-		end
-	end
-	local needed = if double then 2 else 1
-	if #usable < needed then
-		return false
-	end
-
-	local leafWidth = if double then width / 2 - 0.15 else width - 0.3
+	local leaves = if width > CELL + 0.1 then 2 else 1
+	local leafWidth = width / leaves - 0.1
 	local leafHeight = DOOR_TOP - FLOOR_TOP - 0.1
 	local y = floor.y0 + FLOOR_TOP + 0.05 + leafHeight / 2
 	local sign = alongSign(run.axis, side)
-	for i = 1, needed do
-		local u = usable[i]
-		ctx.usedFaces[u.key] = true
-		local along = if u.dir < 0 then lo - leafWidth / 2 - 0.05 else hi + leafWidth / 2 + 0.05
-		local frame = wallFrame(run.axis, run.fixed, along, y, side)
-			* CFrame.new(0, 0, WALL / 2 + LINING + LEAF_THICKNESS / 2 + 0.02)
-		decor(ctx, "DoorLeaf", V(leafWidth, leafHeight, LEAF_THICKNESS), frame, style)
-		-- The hinge is at the opening; the knob sits near the free end, away from it.
-		local knobX = u.dir * sign * (leafWidth / 2 - 0.4)
-		decor(
-			ctx,
+	for i = 1, leaves do
+		local hingeAlong = if i == 1 then lo else hi
+		local along = if i == 1 then lo + 0.05 + leafWidth / 2 else hi - 0.05 - leafWidth / 2
+		local closed = wallFrame(run.axis, run.fixed, along, y, side)
+		local hingeX = (hingeAlong - along) * sign
+		local turn = if hingeX > 0 then math.pi / 2 else -math.pi / 2
+		local open = closed * CFrame.new(hingeX, 0, 0) * CFrame.Angles(0, turn, 0) * CFrame.new(-hingeX, 0, 0)
+		local door = Instance.new("Model")
+		door.Name = "MapDoor"
+		door.Parent = ctx.model
+		local leaf = PartFactory.make(door, "DoorLeaf", V(leafWidth, leafHeight, LEAF_THICKNESS), ctx.transform * closed, style, DECOR)
+		door.PrimaryPart = leaf
+		local knob = PartFactory.make(
+			door,
 			"DoorKnob",
 			V(0.25, 0.25, 0.25),
-			frame * CFrame.new(knobX, -0.6, LEAF_THICKNESS / 2 + 0.12),
-			S.Brass
+			ctx.transform * closed * CFrame.new(-hingeX * 0.8, -0.6, 0),
+			S.Brass,
+			DECOR
 		)
+		knob.CanQuery = false
+		door:SetAttribute("ClosedPivot", ctx.transform * closed)
+		door:SetAttribute("OpenPivot", ctx.transform * open)
+		CollectionService:AddTag(door, Config.MapDoors.Tag)
 	end
-	return true
 end
 
 -- Casings, threshold, leaves, stoop, canopy and lamp of one doorway segment.
@@ -491,13 +471,10 @@ local function doorDetails(ctx: Ctx, floor: Floor, run: Run, first: number, last
 		end
 	end
 
-	-- Exterior doors swing into the building; interior doors into whichever room has space.
+	-- Exterior doors swing into the building; interior doors into the first room beside them.
 	local leafStyle = if exterior then PartFactory.pick(Palette.DoorPaints, ctx.key) else S.Wood
-	for s, side in { -1, 1 } do
-		if sideRegions[s] > 0 and doorLeaves(ctx, floor, run, first, last, side, leafStyle) then
-			break
-		end
-	end
+	local swing = if sideRegions[1] > 0 then -1 elseif sideRegions[2] > 0 then 1 else 1
+	doorLeaf(ctx, floor, run, first, last, swing, leafStyle)
 
 	if not exterior or floor.index ~= 1 then
 		return

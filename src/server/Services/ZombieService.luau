@@ -232,7 +232,9 @@ local diedCallbacks: { DiedCallback } = {}
 -- Ground cells holding a player structure that blocks zombies (BuildService), with their path cost.
 local structureCosts: { [number]: number } = {}
 local hasStructures = false
-local structureHit: StructureHitCallback? = nil
+local structureHits: { StructureHitCallback } = {}
+-- True once start() marked the navigation grid from the map; structure marks made before would be lost.
+local navReady = false
 local aliveCount = 0
 local nextId = 1
 local spawnQueue = 0
@@ -839,10 +841,12 @@ local function stepZombie(zombie: Zombie, players: { PlayerInfo }, now: number, 
 		end
 	end
 	local cell = zombie.pushing
-	if breaking and cell and structureHit and now >= zombie.nextAttack then
+	if breaking and cell and #structureHits > 0 and now >= zombie.nextAttack then
 		zombie.nextAttack = now + (if DayNightService.isNight() then ZC.AttackCooldownNight else ZC.AttackCooldown)
 		local x, z = grid:cellCenter(cell)
-		task.spawn(structureHit, x, z, ZC.AttackBlockDamage)
+		for _, callback in structureHits do
+			task.spawn(callback, x, z, ZC.AttackBlockDamage)
+		end
 	end
 end
 
@@ -1510,6 +1514,7 @@ end
 function ZombieService.start()
 	markNavigation()
 	buildBuildingNavs()
+	navReady = true
 	-- Player structures hide players too (bars do not); BuildService creates their folder and the
 	-- collision groups in init.
 	sightParams.CollisionGroup = Config.Build.ShotsGroup
@@ -1794,13 +1799,18 @@ function ZombieService.setStructure(x: number, z: number, cost: number?)
 	hasStructures = next(structureCosts) ~= nil
 end
 
--- Sets the listener for zombies hitting a player structure (one listener: BuildService).
+-- Adds a listener for zombies hitting a structure cell (BuildService: player blocks; MapDoorService:
+-- closed map doors). Each listener damages what it owns at (x, z) and ignores the rest.
 function ZombieService.onStructureHit(callback: StructureHitCallback)
-	structureHit = callback
+	table.insert(structureHits, callback)
 end
 
 function ZombieService.getNavGrid(): NavGrid.NavGrid
 	return grid
+end
+
+function ZombieService.isNavReady(): boolean
+	return navReady
 end
 
 return ZombieService
