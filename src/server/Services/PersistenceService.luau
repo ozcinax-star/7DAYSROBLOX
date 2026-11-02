@@ -311,14 +311,21 @@ function PersistenceService.debugReport(): string
 	return `world {world.Key}: {#written} B, {table.concat(parts, " ")}, characters={characters}, read-back match={match}`
 end
 
--- Debug: snapshots the player's character, empties their inventory and restores it from the snapshot
--- (the inventory and vitals parts; crafting refunds are skipped, they would duplicate a live queue).
+-- What debugReloadCharacter empties each part to before it reloads the snapshot.
+local EMPTY_CHARACTER: { [string]: any } = {
+	Inventory = { Slots = {}, Selected = 1 },
+	Vitals = { Food = 0, Water = 0, Stamina = 0, Health = 1 },
+	Armor = {},
+}
+
+-- Debug: snapshots the player's character, empties their inventory, vitals and armour and restores them
+-- from the snapshot (crafting refunds are skipped, they would duplicate a live queue).
 function PersistenceService.debugReloadCharacter(player: Player): string
 	if not restored[player] then
 		return "character not restored yet"
 	end
 	local entry = {}
-	for _, name in { "Inventory", "Vitals" } do
+	for name in EMPTY_CHARACTER do
 		local part = characterParts[name]
 		if part then
 			entry[name] = part.save(player)
@@ -326,7 +333,7 @@ function PersistenceService.debugReloadCharacter(player: Player): string
 	end
 	local before = HttpService:JSONEncode(entry)
 	for name, data in entry do
-		characterParts[name].load(player, { Slots = {}, Selected = 1, Food = 0, Water = 0, Stamina = 0, Health = 1 })
+		characterParts[name].load(player, EMPTY_CHARACTER[name])
 		characterParts[name].load(player, data)
 	end
 	local after = {}

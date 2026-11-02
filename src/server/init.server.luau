@@ -25,6 +25,7 @@ local order = {
 	require(Services.StationService),
 	require(Services.StorageService),
 	require(Services.SurvivalService),
+	require(Services.ArmorService),
 	require(Services.DebugService),
 	-- Last: its start() restores the world once every other service has set up.
 	require(Services.PersistenceService),

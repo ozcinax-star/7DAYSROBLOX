@@ -18,10 +18,16 @@ export type UseDef = { Food: number?, Water: number?, Heal: number?, HealRate: n
 -- Durability: tools only, uses when new; tools never stack. Repair: tools that can be repaired.
 -- Raw: a raw resource (half of what is carried drops on death, PLAN). Use: a consumable. Fill: a
 -- terrain block that "use" puts back into dug ground, made of this Enum.Material.
+-- A piece of armour: the equipment slot it is worn in, its armour rating and its set (Config.Armor.Sets
+-- gives the look on the character).
+export type ArmorDef = { Slot: string, Rating: number, Set: string }
+
 export type ItemDef = {
 	Stack: number,
 	Color: { number },
 	Durability: number?,
+	-- Armour worn in an equipment slot (ArmorService); "use" puts it on.
+	Armor: ArmorDef?,
 	Repair: RepairDef?,
 	Raw: boolean?,
 	Use: UseDef?,
@@ -1003,6 +1009,17 @@ Config.Items = {
 	Gunpowder = { Stack = 6000, Color = { 0.2, 0.2, 0.22 } },
 	PotassiumNitrate = { Stack = 6000, Color = { 0.92, 0.9, 0.84 }, Raw = true },
 	Lighter = { Stack = 1, Durability = 50, Color = { 0.8, 0.22, 0.16 } },
+	-- Armour (Config.Armor): 7DTD 1.x light armour is rated 8 a piece, heavy armour 18, and pieces start
+	-- at 250 durability (quality 1). The primitive set is 7DTD's plant-fibre clothing; the iron set is
+	-- ours (7DTD 1.x heavy sets need leather and an armour kit we do not have).
+	PrimitiveHood = { Stack = 1, Durability = 250, Armor = { Slot = "Head", Rating = 8, Set = "Primitive" }, Color = { 0.55, 0.5, 0.32 } },
+	PrimitiveOutfit = { Stack = 1, Durability = 250, Armor = { Slot = "Chest", Rating = 8, Set = "Primitive" }, Color = { 0.55, 0.5, 0.32 } },
+	PrimitiveGloves = { Stack = 1, Durability = 250, Armor = { Slot = "Hands", Rating = 8, Set = "Primitive" }, Color = { 0.55, 0.5, 0.32 } },
+	PrimitiveShoes = { Stack = 1, Durability = 250, Armor = { Slot = "Feet", Rating = 8, Set = "Primitive" }, Color = { 0.55, 0.5, 0.32 } },
+	IronHelmet = { Stack = 1, Durability = 250, Repair = IRON_REPAIR, Armor = { Slot = "Head", Rating = 18, Set = "Iron" }, Color = { 0.45, 0.46, 0.48 } },
+	IronVest = { Stack = 1, Durability = 250, Repair = IRON_REPAIR, Armor = { Slot = "Chest", Rating = 18, Set = "Iron" }, Color = { 0.45, 0.46, 0.48 } },
+	IronGloves = { Stack = 1, Durability = 250, Repair = IRON_REPAIR, Armor = { Slot = "Hands", Rating = 18, Set = "Iron" }, Color = { 0.45, 0.46, 0.48 } },
+	IronBoots = { Stack = 1, Durability = 250, Repair = IRON_REPAIR, Armor = { Slot = "Feet", Rating = 18, Set = "Iron" }, Color = { 0.45, 0.46, 0.48 } },
 	Forge = { Stack = 10, Color = { 0.45, 0.3, 0.25 } }, -- workstationForge
 	-- resourceForgedIron; its stack is ours.
 	ForgedIron = { Stack = 500, Color = { 0.4, 0.42, 0.46 } },
@@ -1263,6 +1280,17 @@ Config.Recipes = {
 	},
 	-- 7DTD repair kit: 1 Forged Iron and 1 Duct Tape (11 s), backpack.
 	RepairKit = { Output = "RepairKit", Count = 1, Ingredients = costs({ ForgedIron = 1, DuctTape = 1 }), Seconds = 11 },
+	-- 7DTD 1.x plant-fibre clothing: 5 plant fibres and 5 wood a piece, 2 s, in the backpack.
+	PrimitiveHood = { Output = "PrimitiveHood", Count = 1, Ingredients = costs({ PlantFiber = 5, Wood = 5 }), Seconds = 2 },
+	PrimitiveOutfit = { Output = "PrimitiveOutfit", Count = 1, Ingredients = costs({ PlantFiber = 5, Wood = 5 }), Seconds = 2 },
+	PrimitiveGloves = { Output = "PrimitiveGloves", Count = 1, Ingredients = costs({ PlantFiber = 5, Wood = 5 }), Seconds = 2 },
+	PrimitiveShoes = { Output = "PrimitiveShoes", Count = 1, Ingredients = costs({ PlantFiber = 5, Wood = 5 }), Seconds = 2 },
+	-- Iron armour (ours): forged iron plates on cloth, taped, at the workbench (7DTD heavy armour is a
+	-- workbench craft too). The vest takes more plate than the small pieces.
+	IronHelmet = { Output = "IronHelmet", Count = 1, Ingredients = costs({ ForgedIron = 6, Cloth = 2, DuctTape = 1 }), Seconds = 30, Station = "Workbench" },
+	IronVest = { Output = "IronVest", Count = 1, Ingredients = costs({ ForgedIron = 10, Cloth = 4, DuctTape = 2 }), Seconds = 45, Station = "Workbench" },
+	IronGloves = { Output = "IronGloves", Count = 1, Ingredients = costs({ ForgedIron = 4, Cloth = 2, DuctTape = 1 }), Seconds = 25, Station = "Workbench" },
+	IronBoots = { Output = "IronBoots", Count = 1, Ingredients = costs({ ForgedIron = 5, Cloth = 2, DuctTape = 1 }), Seconds = 25, Station = "Workbench" },
 	-- 7DTD workbench: 25 Forged Iron, 20 Mechanical Parts, 5 Duct Tape, 100 Nails and 100 Wood (379 s),
 	-- backpack.
 	Workbench = {
@@ -1323,13 +1351,21 @@ Config.Crafting = {
 		"DuctTape",
 		"Nails",
 		"RepairKit",
+		"PrimitiveHood",
+		"PrimitiveOutfit",
+		"PrimitiveGloves",
+		"PrimitiveShoes",
+		"IronHelmet",
+		"IronVest",
+		"IronGloves",
+		"IronBoots",
 		"Workbench",
 		"Generator",
 		"ElectricLamp",
 	},
 	-- 7DTD's crafting window files recipes under category tabs; "All" lists every recipe. Each recipe
 	-- in Order names its tab.
-	Categories = { "All", "Tools", "Weapons", "Building", "Resources", "Food" },
+	Categories = { "All", "Tools", "Weapons", "Armor", "Building", "Resources", "Food" },
 	Category = {
 		StoneAxe = "Tools",
 		StoneShovel = "Tools",
@@ -1374,6 +1410,14 @@ Config.Crafting = {
 		DuctTape = "Resources",
 		Nails = "Resources",
 		RepairKit = "Tools",
+		PrimitiveHood = "Armor",
+		PrimitiveOutfit = "Armor",
+		PrimitiveGloves = "Armor",
+		PrimitiveShoes = "Armor",
+		IronHelmet = "Armor",
+		IronVest = "Armor",
+		IronGloves = "Armor",
+		IronBoots = "Armor",
 		Workbench = "Building",
 		CornSeed = "Food",
 		PotatoSeed = "Food",
@@ -2135,8 +2179,17 @@ Config.Loot = {
 			Rolls = 1,
 			EmptyChance = 0.35,
 			Bonus = "Fabric",
+			-- Wardrobes and dressers hold worn clothing now and then; iron armour is rare (ours).
 			Picks = {
 				{ Id = "Cloth", Min = 2, Max = 6, Weight = 1 },
+				{ Id = "PrimitiveHood", Min = 1, Max = 1, Weight = 0.12 },
+				{ Id = "PrimitiveOutfit", Min = 1, Max = 1, Weight = 0.12 },
+				{ Id = "PrimitiveGloves", Min = 1, Max = 1, Weight = 0.12 },
+				{ Id = "PrimitiveShoes", Min = 1, Max = 1, Weight = 0.12 },
+				{ Id = "IronHelmet", Min = 1, Max = 1, Weight = 0.03 },
+				{ Id = "IronVest", Min = 1, Max = 1, Weight = 0.03 },
+				{ Id = "IronGloves", Min = 1, Max = 1, Weight = 0.03 },
+				{ Id = "IronBoots", Min = 1, Max = 1, Weight = 0.03 },
 			},
 		},
 		Medicine = {
@@ -2315,6 +2368,29 @@ Config.Sounds = {
 
 -- Player survival stats (7DTD playerMale, buffStatusHungry01-03 and buffStatusThirsty01-03 in 1.0-3.2;
 -- docs/REFERENCE_7DTD.md part B section 6). Health is the Humanoid's (max 100); the rest is server state.
+-- Armour (ArmorService). 7DTD 1.x has four slots. Each rating point takes ReductionPerPoint off a
+-- zombie hit (a full primitive set, 32, takes 32%; full iron, 72, takes 72%), never more than
+-- MaxReduction. The 1% a point mapping is a community reading, not a published formula (ours to tune).
+-- Every equipped piece that is not broken loses WearPerHit durability per hit taken (7DTD armour wears
+-- when you take damage); a broken piece stays on and protects nothing.
+Config.Armor = {
+	Slots = { "Head", "Chest", "Hands", "Feet" },
+	ReductionPerPoint = 0.01,
+	MaxReduction = 0.8,
+	WearPerHit = 1,
+	-- Put-on and take-off requests a second per player.
+	ChangesPerSecond = 4,
+	-- How each set looks on the character: shells welded to the limbs (blocky style, PLAN art row).
+	Sets = {
+		Primitive = { Color = { 0.55, 0.49, 0.33 }, Material = Enum.Material.Fabric },
+		Iron = { Color = { 0.42, 0.43, 0.45 }, Material = Enum.Material.DiamondPlate },
+	} :: { [string]: { Color: { number }, Material: Enum.Material } },
+	-- Shell size around each limb (share of the limb's size) and how far up the head the hood or helmet
+	-- sits (share of the head height).
+	ShellScale = 1.12,
+	HeadCoverShare = 0.6,
+}
+
 Config.Survival = {
 	MaxStamina = 100,
 	MaxFood = 100,
@@ -2548,6 +2624,8 @@ Config.Debug = {
 	-- Items given by the debug "give kit" command.
 	TestKit = {
 		{ Id = "StoneAxe", Count = 1 },
+		{ Id = "PrimitiveHood", Count = 1 },
+		{ Id = "IronVest", Count = 1 },
 		{ Id = "StoneShovel", Count = 1 },
 		{ Id = "StonePickaxe", Count = 1 },
 		{ Id = "WoodenClub", Count = 1 },

@@ -229,6 +229,7 @@ local topLinks: { [number]: StairLink } = {}
 -- Upper-level fields toward one goal cell, built on first use (upper floors are small).
 local upperFields: { [number]: NavGrid.Field } = {}
 local diedCallbacks: { DiedCallback } = {}
+local playerDamageFilter: ((Player, number) -> number)? = nil
 -- Ground cells holding a player structure that blocks zombies (BuildService), with their path cost.
 local structureCosts: { [number]: number } = {}
 local hasStructures = false
@@ -889,7 +890,12 @@ function stepMovement(zombie: Zombie, players: { PlayerInfo }, now: number, dt: 
 			if now >= zombie.nextAttack then
 				zombie.nextAttack = now
 					+ (if DayNightService.isNight() then ZC.AttackCooldownNight else ZC.AttackCooldown)
-				target.humanoid:TakeDamage(ZC.AttackDamage * zombie.kind.DamageShare)
+				local damage = ZC.AttackDamage * zombie.kind.DamageShare
+				local filter = playerDamageFilter
+				if filter then
+					damage = filter(target.player, damage)
+				end
+				target.humanoid:TakeDamage(damage)
 			end
 			return
 		end
@@ -1634,6 +1640,12 @@ function ZombieService.slow(id: number, factor: number, seconds: number)
 end
 
 -- Registers a listener for zombie deaths (body position, killing player if any).
+-- What of a zombie's hit reaches a player (ArmorService cuts it by the worn armour). Called inside the
+-- zombie step: it must not yield.
+function ZombieService.setPlayerDamageFilter(filter: (Player, number) -> number)
+	playerDamageFilter = filter
+end
+
 function ZombieService.onDied(callback: DiedCallback)
 	table.insert(diedCallbacks, callback)
 end

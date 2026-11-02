@@ -491,7 +491,8 @@ local function trySwing(source: Source, repeated: boolean?)
 		sendUse(now, Config.Build.PlaceCooldown)
 		return
 	end
-	if held and Config.Items[held.id] and Config.Items[held.id].Use then
+	-- Food, drink, medicine and armour are used, not swung (armour is put on, ArmorService).
+	if item and (item.Use or item.Armor) then
 		ViewmodelController.act("Use")
 		sendUse(now, SC.UseSeconds)
 		return

@@ -68,6 +68,10 @@ local Definitions: { [string]: "RemoteEvent" | "UnreliableRemoteEvent" } = {
 	-- Server -> client: a short message for the player (Localization key: string, parameters:
 	-- { [string]: string | number }?), shown in the pickup feed.
 	Notice = "RemoteEvent",
+	-- Server -> owner: the worn armour, { [slot]: { id: string, durability: number? } | false }.
+	ArmorUpdate = "RemoteEvent",
+	-- Client -> server: take off the piece in this armour slot (slot name).
+	ArmorTakeOff = "RemoteEvent",
 	-- Server -> owner: experience, level, perk points and tiers (Progression.toSaved shape), and the
 	-- experience the next level needs.
 	ProgressionUpdate = "RemoteEvent",

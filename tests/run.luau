@@ -28,6 +28,7 @@ local ItemIcons = require("../src/shared/ItemIcons")
 local Vitals = require("../src/shared/Vitals")
 local Challenges = require("../src/shared/Challenges")
 local ItemInfo = require("../src/shared/ItemInfo")
+local Armor = require("../src/shared/Armor")
 local Localization = require("../src/shared/Localization")
 
 local passed, failed = 0, 0
@@ -1968,6 +1969,37 @@ test("loaded weapon removal and refund preserve cartridges", function()
 	expectEq(removed[1].loadedRounds, 4)
 	assert(Inventory.addAll(inv, { { stack = removed[1] } }))
 	expectEq((inv.slots[2] :: Inventory.Stack).loadedRounds, 4)
+end)
+test("armour cuts zombie hits by its rating, wears and stops protecting when broken", function()
+	local AC = Config.Armor
+	local worn = Armor.empty()
+	expectEq(Armor.rating(worn), 0, "nothing worn")
+	expectEq((Armor.absorb(worn, 8)), 8, "no armour, full hit")
+	for _, id in { "PrimitiveHood", "PrimitiveOutfit", "PrimitiveGloves", "PrimitiveShoes" } do
+		local slot = Armor.slotOf(id) :: string
+		worn[slot] = { id = id, count = 1, source = "Craft", durability = Config.Items[id].Durability }
+	end
+	expectEq(Armor.rating(worn), 32, "full primitive set")
+	local left, broke = Armor.absorb(worn, 8)
+	assert(math.abs(left - 8 * (1 - 32 * AC.ReductionPerPoint)) < 1e-9, `primitive set leaves {left}`)
+	assert(not broke, "nothing broke")
+	expectEq((worn.Head :: Inventory.Stack).durability, 250 - AC.WearPerHit, "a hit wears each piece")
+	-- A broken piece stays on and adds nothing; the reduction never passes the cap.
+	local chest = worn.Chest :: Inventory.Stack
+	chest.durability = AC.WearPerHit
+	local _, brokeNow = Armor.absorb(worn, 8)
+	assert(brokeNow, "the chest broke on this hit")
+	expectEq(Armor.rating(worn), 24, "broken chest no longer counts")
+	expectEq(Armor.reduction(1000), AC.MaxReduction, "capped")
+	expectEq(Armor.slotOf("Wood"), nil, "wood is not armour")
+	for id, item in Config.Items do
+		if item.Armor then
+			assert(table.find(AC.Slots, item.Armor.Slot), `{id} has an unknown slot`)
+			assert(AC.Sets[item.Armor.Set], `{id} has an unknown set`)
+			assert(item.Stack == 1 and item.Durability, `{id} must be a single durable item`)
+			assert(Config.Recipes[id], `{id} has no recipe`)
+		end
+	end
 end)
 print(`\n{passed} passed, {failed} failed`)
 if failed > 0 then

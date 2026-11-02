@@ -1,6 +1,6 @@
 --!strict
 -- ItemInfo: the numbers an item's info panel shows, read from Config (7DTD shows a selected item's
--- stats under its description): a melee tool's damage, durability, what food, drink or medicine
+-- stats under its description): a melee tool's damage, armour rating, durability, what food, drink or medicine
 -- gives, a placed block's hit points and the ammo a weapon takes. Each line is a Localization key and
 -- its value; the client formats them.
 
@@ -36,6 +36,9 @@ function ItemInfo.lines(id: string): { Line }
 			table.insert(names, ammo)
 		end
 		table.insert(lines, { key = "InfoAmmo", value = table.concat(names, ",") })
+	end
+	if item.Armor then
+		table.insert(lines, { key = "InfoArmor", value = number(item.Armor.Rating) })
 	end
 	if item.Durability then
 		table.insert(lines, { key = "InfoDurability", value = number(item.Durability) })
