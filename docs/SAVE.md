@@ -24,6 +24,7 @@ sağlıyor: bir kayıt aynı anda tek bir sunucuda açık olabiliyor.
 | --- | --- |
 | Clock | Gün ve saat |
 | Threat | İz (tehdit) |
+| Containers | Aranmış loot konteynerlerinde kalanlar ve dolum günü (`FurnitureCell` kimliğiyle). Çıkıp girince kasaba yeniden dolmaz. |
 | Harvest | Kesilmiş ağaçlar, kırılmış kayalar ve mobilyalar; yarım kalan hasar |
 | Dig | Kazılan ve doldurulan zemin, kesilmiş otlar |
 | Blocks | Bütün bloklar (tür, can, yükseltme, yön, açık kapı) ve yatak sahipleri |
@@ -49,8 +50,6 @@ Bunlar bilinçli kararlar ya da sonraki işler:
 
 - **Zombiler:** dünya yüklenince yeniden doğarlar.
 - **Ölüm çantaları ve loot çantaları** (5 dakikalık).
-- **Loot konteynerlerinin aranmış durumu:** yeniden başlatmada dolarlar. Kalıcı kimlikleri yok;
-  `furniture:<hücre>` kimliği kullanılarak eklenebilir.
 - **Yarım kazılmış bir sütunun hasarı.**
 - **Kazılan çukurların üstündeki gevşek ot modelleri:** asıl yüksekliklerinde yeniden çıkar ve
   havada kalabilirler.
@@ -66,6 +65,10 @@ Bunlar bilinçli kararlar ya da sonraki işler:
 - ProfileStore 300 sn'de bir, oyuncu çıkınca ve sunucu kapanırken kaydeder.
 
 **Studio'da ölçülenler** (2 Kasım, sahte depo):
+- Konteynerler: 183 konteynerin kimliği benzersiz. Dolu çantayla aranan bir arabada 5 elektrik
+  parçası kaldı ve kaydedildi. Parçalar alınınca araba "(empty)" oldu, `LoadPart Containers` ile
+  tekrar "Car" oldu ve aynı 5 parçayı yeniden verdi. Gerçek yeniden başlatma Studio'da ölçülemez,
+  çünkü sahte depo Play durunca silinir.
 - Mağazadan geri okunan veri yazılanla aynı. Karşılaştırma derin ve sıradan bağımsız; `JSONEncode` sözlük
   anahtarlarını sıralamadığı için ilk sürümdeki metin karşılaştırması güvenilir değildi.
 - Karakter boşaltılıp geri yüklenince aynı.

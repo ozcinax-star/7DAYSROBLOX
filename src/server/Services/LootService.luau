@@ -6,7 +6,8 @@
 -- and the rest stays inside. A bag vanishes when it is empty, after Config.Loot.BagSeconds (or its
 -- own lifetime), or when too many bags exist (the oldest goes first; bags with their own lifetime,
 -- death bags, are kept). A container is filled on its first search and again
--- Config.Loot.ContainerRespawnDays in-game days after it was last filled; all players share it.
+-- Config.Loot.ContainerRespawnDays in-game days after it was last filled; all players share it, and
+-- the world save keeps what searched containers still hold (rejoining does not restock the town).
 -- What bags and containers hold is server-only.
 
 local Players = game:GetService("Players")
@@ -25,6 +26,7 @@ local RateLimiter = require(script.Parent.Parent.Modules.RateLimiter)
 local DayNightService = require(script.Parent.DayNightService)
 local InventoryService = require(script.Parent.InventoryService)
 local MapService = require(script.Parent.MapService)
+local PersistenceService = require(script.Parent.PersistenceService)
 local ProgressionService = require(script.Parent.ProgressionService)
 local ZombieService = require(script.Parent.ZombieService)
 
@@ -447,7 +449,56 @@ local function onDropRequest(player: Player, index: unknown)
 	end
 end
 
+-- A container's saved id: its FurnitureCell (stable between server starts; HarvestService names broken
+-- furniture by it too), or its kind and spot for furniture without one.
+local function containerId(container: Container): string
+	local cell = container.model:GetAttribute("FurnitureCell")
+	if typeof(cell) == "string" then
+		return cell
+	end
+	local p = container.point.WorldPosition
+	return `{container.kind}@{math.round(p.X)},{math.round(p.Z)}`
+end
+
+-- Saved world part "Containers": each searched container's slots and the day it was filled. Broken
+-- furniture (no parent) is left out; HarvestService remembers it is gone.
+local function saveContainers(): any
+	local rows = {}
+	for _, container in containers do
+		if container.inventory and container.model.Parent then
+			table.insert(rows, {
+				Id = containerId(container),
+				Day = container.filledDay,
+				Slots = Inventory.serialize(container.inventory),
+			})
+		end
+	end
+	return rows
+end
+
+local function loadContainers(data: any)
+	if type(data) ~= "table" then
+		return
+	end
+	local byId: { [string]: Container } = {}
+	for _, container in containers do
+		byId[containerId(container)] = container
+	end
+	for _, row in data do
+		local container = if type(row) == "table" and type(row.Id) == "string" then byId[row.Id] else nil
+		local day = if container then row.Day else nil
+		if container and type(day) == "number" and day == day and day >= 0 and day ~= math.huge then
+			local inventory = Inventory.new(0, LC.BagSlots)
+			Inventory.deserialize(inventory, row.Slots)
+			container.inventory = inventory
+			container.filledDay = math.floor(day)
+			container.prompt.ObjectText = containerName(container)
+		end
+	end
+end
+
 function LootService.init()
+	PersistenceService.registerWorld("Containers", { save = saveContainers, load = loadContainers })
 	searchLimiter = RateLimiter.new(LC.SearchesPerSecond)
 	dropLimiter = RateLimiter.new(LC.DropsPerSecond)
 	Net.event("InventoryDrop")
