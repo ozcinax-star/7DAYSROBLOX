@@ -1060,11 +1060,14 @@ local function seenFromPlayers(players: { PlayerInfo }, x: number, z: number): b
 end
 
 local function pickSpawnPoint(players: { PlayerInfo }): (number?, number?)
-	local cx, cz = 0, 0
-	if #players > 0 then
-		local info = players[math.random(1, #players)]
-		cx, cz = info.x, info.z
+	-- Zombies only spawn around players: ones spawned before anyone joined stood around the middle of
+	-- the map, next to where players arrive, and attacked them in their first seconds (seen in Play).
+	-- The queue waits until a player is in.
+	if #players == 0 then
+		return nil, nil
 	end
+	local info = players[math.random(1, #players)]
+	local cx, cz = info.x, info.z
 	for _ = 1, ZC.SpawnAttempts do
 		local angle = math.random() * math.pi * 2
 		local radius = randomRange(ZC.SpawnMinDistance, ZC.SpawnMaxDistance)
