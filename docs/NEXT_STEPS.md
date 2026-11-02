@@ -140,6 +140,11 @@ Her sorunun ilk seçeneği benim önerim.
    demir, tamirde dövme demir kullanılıyor (PLAN, Kararlar). Öneri: hayvan ve av (deri) ya da tezgâh
    (tamir kiti, koli bandı) gelene kadar böyle kalsın.
 
+9. **Yeni kayıt parçası `Containers` (2 Kasım):** dünya kaydına eklendi; aranmış konteynerlerde kalanları
+   ve dolum gününü tutuyor. Ekleme türünden bir değişiklik: eski kayıtlar sorunsuz yükleniyor, parça
+   yoksa konteynerler normal doluyor. Kayıt şeması kuralı gereği bildiriyorum. Öneri: kalsın.
+   İstenmezse `LootService`'teki `registerWorld("Containers", …)` satırı kaldırılır.
+
 Cevaplananlar: oyuncu zombiye aletle vuracak (bu planın 2. maddesi); zombiler üst kata çıkıyor
 (bitti); kapsam kuralı değişti, ana referans 7DTD ve karşılığında bir şey çıkmıyor (PLAN, Kapsam).
 
