@@ -88,6 +88,9 @@ export type Rig = {
 	-- Fixed order: jaw, left socket, right socket, left eye, right eye, wound, mouth.
 	detail: { BasePart },
 	detailVisible: boolean,
+	-- Invisible collider that keeps the local character out of a living zombie; not queryable, so
+	-- shots, tools and the camera ignore it.
+	body: BasePart,
 	look: ZombieLook.Look,
 	scale: number,
 }
@@ -204,11 +207,23 @@ function ZombieRig.build(id: number): Rig
 		blob.Parent = detail[index]
 	end
 	model.PrimaryPart = core[2]
+	local body = Instance.new("Part")
+	body.Name = "Body"
+	body.Shape = Enum.PartType.Cylinder
+	body.Size = V(VC.BodyHeight, VC.BodyDiameter, VC.BodyDiameter) * s
+	body.Transparency = 1
+	body.Anchored = true
+	body.CanCollide = true
+	body.CanQuery = false
+	body.CanTouch = false
+	body.CastShadow = false
+	body.Parent = model
 	return {
 		model = model,
 		core = core,
 		detail = detail,
 		detailVisible = true,
+		body = body,
 		look = look,
 		scale = s,
 	}
@@ -232,6 +247,11 @@ function ZombieRig.newPose(id: number): Pose
 		deathDirection = if Noise.hash(id, 17, 9173) < 0.7 then 1 else -1,
 		attackCooldown = ZC.AttackCooldown,
 	}
+end
+
+-- A dead zombie stops blocking: the corpse is walked over.
+function ZombieRig.setSolid(rig: Rig, solid: boolean)
+	rig.body.CanCollide = solid
 end
 
 -- Hidden details stay where they were; they are not moved while hidden.
@@ -349,6 +369,12 @@ function ZombieRig.pose(rig: Rig, p: Pose, parts: { BasePart }, cframes: { CFram
 
 	local core = rig.core
 	local n = #parts
+	if p.death == nil then
+		-- The collider stands on the ground at the zombie's position, upright (a cylinder's axis is X).
+		n += 1
+		parts[n] = rig.body
+		cframes[n] = CF(p.x, p.ground + VC.BodyHeight * s / 2, p.z) * ANG(0, 0, HALF_PI)
+	end
 	parts[n + 1] = core[1]
 	cframes[n + 1] = pelvisPivot * CF(0, PELVIS_UP * s, 0)
 	parts[n + 2] = core[2]

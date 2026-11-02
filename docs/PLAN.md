@@ -215,7 +215,7 @@ Lobi, PvP ve hikâye için verilmiş kararlar.
 | Ses takibi | Zombiler yeni ses duyana kadar ilk yüksek sese ilerler | Tehdit sistemi, Gürültü |
 | Horde | Varsayılan 7. gece; lobi kurulurken 5–10; oyuncu başına 20 zombi | Temel kararlar ve Teknik mimari |
 | İnşa kademeleri | Tahta → Taş → Beton → Demir → Çelik (en dayanıklı) | Kapsam |
-| Zombi hareketi | Horde dışı zombiler yavaş ve sarsılarak yürür (The Walking Dead); kollarını öne uzatarak saldırır | Yürüyen oyuncu kaçabilir; tehlike sayıdan ve sıkışmaktan gelir. Hızlar Config'de |
+| Zombi hareketi | Horde dışı zombiler yavaş ve sarsılarak yürür (The Walking Dead); kollarını öne uzatarak saldırır | Yürüyen oyuncu kaçabilir; tehlike sayıdan ve sıkışmaktan gelir. Zombiler katıdır: oyuncu içlerinden geçemez, kalabalık köşeye sıkıştırır (2 Kasım; istemcide görünmez gövde silindiri, ceset engellemez). Hızlar Config'de |
 | Zombiler ve binalar | Zombiler evlere girip çıkar ve merdivenle üst kata çıkar. Spawn'ların düşük bir kısmı (varsayılan %10) bina içinde uyuyan zombidir | Üst kat güvenli sığınak değil. Uyuyan zombi görünce, duyunca ya da çarpılınca uyanır |
 | Zombi görünümü | Zayıf, çürümüş yüz ve görünen deri; stilize, kan yok. Ten dağılımı küçük bir ABD kasabası gibi: %70 açık, %16 buğday, %14 koyu/siyah | Sanat stili satırıyla uyumlu. Oranlar Config'den ayarlanır |
 | Zombi loot'u | Ölen zombi yaklaşık %20 ihtimalle loot torbası bırakır. İçerik şimdilik bir ortak seçim (hurda demir, kumaş veya küçük taş) ve %15 ihtimalle aşınmış taş alet; torba 18 slot, 20 dk ömür, 1 sn arama (7DTD). Envantere sığmayan eşya oyuncunun ayağına torba olarak düşer | 7DTD'de %2–4; oturumlar kısa olduğu için daha cömert. Oran ve tablo Config'de |

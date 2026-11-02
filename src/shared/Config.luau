@@ -484,6 +484,11 @@ Config.ZombieVisual = {
 	AlwaysUpdateDistance = 15,
 	-- Off-screen zombies are re-posed once every N frames.
 	OffscreenUpdateEveryFrames = 6,
+	-- A living zombie blocks the local character with an invisible upright cylinder (studs, times
+	-- the zombie's height scale): players cannot walk through zombies, and a crowd can corner them
+	-- (7DTD zombies are solid). Narrower than the shoulders so a player can still stand at arm's reach.
+	BodyDiameter = 1.6,
+	BodyHeight = 5,
 	-- Interpolation duration bounds between two server samples (seconds).
 	MinInterpolation = 0.08,
 	MaxInterpolation = 0.6,

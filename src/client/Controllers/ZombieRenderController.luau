@@ -161,6 +161,7 @@ local function onKilled(id: number, now: number)
 	tombstones[id] = now
 	SoundController.play("ZombieDeath", Vector3.new(view.x, view.y, view.z))
 	view.diedAt = now
+	ZombieRig.setSolid(view.rig, false)
 	view.pose.moving = false
 	view.pose.state = "Idle"
 	-- Corpses keep their face visible up close; the details follow the normal LOD afterwards.
