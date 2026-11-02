@@ -263,6 +263,24 @@ function PersistenceService.saveNow()
 	end
 end
 
+-- Order-independent deep equality of saved values (JSONEncode does not order dictionary keys).
+local function same(a: any, b: any): boolean
+	if type(a) ~= "table" or type(b) ~= "table" then
+		return a == b
+	end
+	for key, value in a do
+		if not same(value, b[key]) then
+			return false
+		end
+	end
+	for key in b do
+		if a[key] == nil then
+			return false
+		end
+	end
+	return true
+end
+
 -- Debug: saves now, reads the world back from the store and compares it with what was written; returns
 -- a one-line report (part sizes, character count, whether the read-back matches).
 function PersistenceService.debugReport(): string
@@ -276,8 +294,16 @@ function PersistenceService.debugReport(): string
 		local value = world.Data.Parts[name]
 		table.insert(parts, `{name}={if value ~= nil then #HttpService:JSONEncode(value) else 0}B`)
 	end
-	local readBack = worldStore:GetAsync(world.Key)
-	local match = readBack ~= nil and HttpService:JSONEncode(readBack.Data) == written
+	-- Profile:Save() is queued: read back until the write lands (or give up after a few seconds).
+	local match = false
+	for _ = 1, 12 do
+		local readBack = worldStore:GetAsync(world.Key)
+		match = readBack ~= nil and same(readBack.Data, world.Data)
+		if match then
+			break
+		end
+		task.wait(0.5)
+	end
 	local characters = 0
 	for _ in world.Data.Characters do
 		characters += 1
@@ -307,8 +333,7 @@ function PersistenceService.debugReloadCharacter(player: Player): string
 	for name in entry do
 		after[name] = characterParts[name].save(player)
 	end
-	local same = HttpService:JSONEncode(after) == before
-	return `character {player.UserId}: {#before} B, reload identical={same}`
+	return `character {player.UserId}: {#before} B, reload identical={same(after, entry)}`
 end
 
 -- Debug: loads the last saved copy of one world part into the running world (tests a load path without
