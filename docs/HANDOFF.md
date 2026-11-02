@@ -372,6 +372,11 @@ Kullanıcı önce kaydı onayladı, sonra "sormadan devam et", en son "kendi ter
 - Konteyner kaydı: 183 konteynerin kimliği benzersiz. Bir arabada kalan 5 elektrik parçası kaydedildi,
   alındı ve `LoadPart Containers` ile geri geldi.
 - Katı zombiler: çarpışma kapalıyken 0,05 stud, açıkken 1,34 stud (temas); 80 zombiyle 59,5 FPS.
+  Zombinin tepesinde duran oyuncu önce 10 sn hasar almadı (can 84). `ReachUpDistance` ile alttaki
+  zombi bir gövde boyu yukarı uzanıyor: can 92→37.
+- Ölüm: ham kaynakların yarısı 300 sn'lik çantada (odun 50→25, hurda 60→30, lif 20→10, küçük taş
+  20→10, kumaş 4→2, kil 20→10). Kereste, çerçeve, yiyecek ve aletler kaldı; ölüm yazısı ve "Your bag"
+  işareti göründü. Yeniden doğuş 4,8 sn; yiyecek 100, su 99,9, dayanıklılık 100, can 100.
 
 Bu turda öğrenilen tuzaklar "Bilinen sorunlar" bölümünde (sahte depo, prompt seçimi, kamera yönü).
 

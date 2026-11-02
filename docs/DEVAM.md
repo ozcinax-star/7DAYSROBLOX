@@ -18,8 +18,11 @@ düzeldi; ekran görüntüleriyle eleştirip düzelttiklerim (ayrı commit'ler):
   (eski tek zar), hurda 3–8; taş kazmayla vuruş başına 1 hurda.
 - **Konteyner kaydı** (`45440af`): aranmış konteynerlerde kalanlar dünya kaydında. Önceden özel sunucudan
   çıkıp girince bütün kasaba yeniden doluyordu.
-- **Katı zombiler** (`5f8f2f4`): oyuncu artık zombilerin içinden geçemiyor; kalabalık köşeye sıkıştırır.
-  Ölçüm: çarpışma kapalıyken 0,05 stud, açıkken 1,34 stud (temas); 80 zombiyle 59,5 FPS.
+- **Katı zombiler** (`5f8f2f4`, `caa4374`): oyuncu artık zombilerin içinden geçemiyor; kalabalık köşeye
+  sıkıştırır. Ölçüm: çarpışma kapalıyken 0,05 stud, açıkken 1,34 stud (temas); 80 zombiyle 59,5 FPS.
+  Zombinin kafasına çıkan oyuncu vurulamıyordu (10 sn can 84'te kaldı). Şimdi alttaki ya da dipteki
+  zombiler bir gövde boyu yukarı uzanıyor: can 92→37.
+- **Ölüm cezası** Play'de doğrulandı (aşağıda, "Doğrulanmamış" 2).
 
 97 test geçiyor. Doğrulanmayanlar: gerçek yeniden başlatmada kayıt (Studio'da sahte depo Play durunca
 silinir), telefon FPS'i, seslerin kulakla ayarı.
@@ -175,7 +178,10 @@ serbest kalır; V ile serbest fare moduna geçilir.
    2. Elde sopa ya da balta, nişangâh zombinin gövdesinde, kol mesafesinde sol tık.
    3. Beklenen: çubukta yaklaşık 125 can azalıyor.
    4. Olmazsa V ile serbest fareyle dene; hangi modda olmadığını öğren.
-2. **Ölüm** test edilmedi.
+2. ~~**Ölüm**~~: doğrulandı (2 Kasım). Ham kaynakların yarısı 300 sn'lik çantaya düştü (odun 50→25,
+   hurda 60→30, lif 20→10, küçük taş 20→10, kumaş 4→2, kil 20→10). Kereste, çerçeve, yiyecek ve
+   aletler kaldı. Ölüm ekranı yazısı ve "Your bag" işareti göründü. Yeniden doğuş 4,8 sn sürdü,
+   değerler tam geldi (yiyecek 100, su 99,9, dayanıklılık 100, can 100).
 3. **Telefon:** ateş istasyonunun üç istemi (E / R / F) dokunmatikte denenmedi.
 
 ## Kullanıcı kararı bekleyenler (NEXT_STEPS, 1–8)
