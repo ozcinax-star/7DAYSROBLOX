@@ -542,6 +542,18 @@ function MapService.init()
 		spawnPoint.z
 	)
 	spawn.Neutral = true
+	-- Players arrive on the forest floor, not on Roblox's grey spawn pad (it read as a stray tile).
+	spawn.Transparency = 1
+	spawn.CanCollide = false
+	spawn.CanQuery = false
+	spawn.CanTouch = false
+	-- No blue spawn bubble: zombies never spawn near arriving players (ZombieService), so it only
+	-- broke the look.
+	spawn.Duration = 0
+	local studs = spawn:FindFirstChildOfClass("Decal")
+	if studs then
+		studs:Destroy()
+	end
 	spawn.Parent = map
 	ready = true
 end
