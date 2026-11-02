@@ -27,6 +27,7 @@ sağlıyor: bir kayıt aynı anda tek bir sunucuda açık olabiliyor.
 | Harvest | Kesilmiş ağaçlar, kırılmış kayalar ve mobilyalar; yarım kalan hasar |
 | Dig | Kazılan ve doldurulan zemin, kesilmiş otlar |
 | Blocks | Bütün bloklar (tür, can, yükseltme, yön, açık kapı) ve yatak sahipleri |
+| MapDoors | Haritadaki kapılardan açık bırakılanlar ve kırılanlar |
 | Crops | Ekin türü ve yaşı |
 | Generators | Yakıt ve açık/kapalı |
 | Stations | Ateşlerin yakıtı ve yanıp yanmadığı |
@@ -65,7 +66,8 @@ Bunlar bilinçli kararlar ya da sonraki işler:
 - ProfileStore 300 sn'de bir, oyuncu çıkınca ve sunucu kapanırken kaydeder.
 
 **Studio'da ölçülenler** (2 Kasım, sahte depo):
-- Dünya kaydı 2,3 KB; mağazadan geri okunan veri yazılanla birebir aynı.
+- Mağazadan geri okunan veri yazılanla aynı. Karşılaştırma derin ve sıradan bağımsız; `JSONEncode` sözlük
+  anahtarlarını sıralamadığı için ilk sürümdeki metin karşılaştırması güvenilir değildi.
 - Karakter boşaltılıp geri yüklenince aynı.
 - Kırılan blok kayıttan aynı canla geri geldi.
 - Atlatılan saat kayıttaki saate döndü.

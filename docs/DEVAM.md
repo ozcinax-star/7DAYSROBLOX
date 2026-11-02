@@ -19,6 +19,12 @@ Debug GiveKit artık demir balta ve demir kürek de verir. Ayrıntı ve test ad�
 birinci şahıs kopyaları Play'de denetlendi; makineliyle 3 atış sunucudan doğrulandı. Mobil FPS ölçülmedi.
 Önceki oturumların oynanış doğrulamaları ve aşağıdaki yol haritası devam ediyor.
 
+## Güncel ek: bina kapıları (2 Kasım 2026, Claude)
+
+Kullanıcı: "kapılar açık geliyor, açılıp kapanabilmeli". Haritadaki 134 kapı artık gerçek. Başta kapalılar
+ve E ile açılıp kapanıyorlar. Zombiler kapı açamıyor, kapalı kapıyı kırıyor. Açık ve kırık kapılar dünya
+kaydında. Debug: `"SpawnHorde"` oyuncuyu bilen tek horde zombisi doğurur (kapı ve duvar testleri için).
+
 ## Güncel ek: otonom sistem turu (2 Kasım 2026, Claude)
 
 Kullanıcı "sormadan geliştirmeye devam et" dedi. Kayıttan sonra şunlar eklendi (ayrı commit'ler):
