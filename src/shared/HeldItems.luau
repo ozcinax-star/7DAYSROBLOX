@@ -3,6 +3,7 @@
 -- the grip contract stays here so InventoryService and ViewmodelController use the same model.
 -- Every part is cosmetic, massless and welded; gameplay never raycasts against held equipment.
 
+local CollectionService = game:GetService("CollectionService")
 local Config = require("./Config")
 local EquipmentModels = require("./EquipmentModels")
 
@@ -52,6 +53,8 @@ function HeldItems.addFlame(head: BasePart, share: number)
 	light.Color = Color3.fromRGB(def.Color[1], def.Color[2], def.Color[3])
 	light.Shadows = true
 	light.Parent = head
+	-- Clients make tagged torch lights flicker (DayNightController).
+	CollectionService:AddTag(light, def.Tag)
 	local fire = Instance.new("Fire")
 	fire.Size = 1.6
 	fire.Heat = 4

@@ -75,7 +75,7 @@ local CORPSE_LIFT = 0.35
 -- the extra forward sag of the torso, thigh and knee fold, and the roll onto one side (radians).
 local DEATH_BUCKLE_SHARE = 0.4
 local DEATH_DROP_SHARE = 0.38
-local DEATH_SAG_RADIANS = 0.5
+local DEATH_SAG_RADIANS = 1
 local DEATH_THIGH_RADIANS = 0.9
 local DEATH_KNEE_RADIANS = 1.5
 local DEATH_ROLL_RADIANS = 0.35
@@ -183,6 +183,20 @@ function ZombieRig.build(id: number): Rig
 		makePart(model, "Wound", WOUND * s, VC.WoundColor, Enum.Material.Slate),
 		makePart(model, "Mouth", MOUTH * s, VC.MouthColor, Enum.Material.SmoothPlastic),
 	}
+	-- The kind shows in the eyes: colour, glow and size (Config.Zombie.Kinds).
+	local kind = Config.Zombie.Kinds[look.kind]
+	for index = 4, 5 do
+		local eye = detail[index]
+		if kind.EyeColor then
+			eye.Color = color(kind.EyeColor)
+		end
+		if kind.EyeGlow then
+			eye.Material = Enum.Material.Neon
+		end
+		if kind.EyeScale then
+			eye.Size *= kind.EyeScale
+		end
+	end
 	-- Sockets, eyes, wound and mouth are rounded blobs.
 	for index = 2, 7 do
 		local blob = Instance.new("SpecialMesh")
@@ -326,7 +340,8 @@ function ZombieRig.pose(rig: Rig, p: Pose, parts: { BasePart }, cframes: { CFram
 	local neck = waist * CF(0, NECK_UP * s, 0)
 
 	-- Head: compensates part of the hunch so it looks ahead, lolls to its tilted side and twitches.
-	local headPitch = hunch * (if chasing or attacking then 0.85 else 0.35)
+	-- A dying head drops onto the chest as the knees buckle.
+	local headPitch = -0.6 * buckle + hunch * (if chasing or attacking then 0.85 else 0.35)
 		- (if state == "Idle" then 0.25 else 0)
 		+ twitch(p.now, look.twitchSeed + 31)
 	local headRoll = look.headTilt + VC.HeadLollRadians * math.sin(phase * 0.5 + look.twitchSeed) * (0.4 + gait)
@@ -358,8 +373,9 @@ function ZombieRig.pose(rig: Rig, p: Pose, parts: { BasePart }, cframes: { CFram
 		elseif attacking then
 			local claw = strike * (if index == 1 then 1 else 0.8)
 			pitch = torsoLean + VC.ArmReachRadians + VC.AttackArmLiftRadians * claw
-			elbow = 0.35 + 0.6 * claw
-			spread = -0.15
+			-- Arms reach out and apart: a bent elbow at full lift put the forearm through the face.
+			elbow = 0.15 + 0.15 * claw
+			spread = 0.12
 		elseif chasing then
 			pitch = torsoLean + VC.ArmReachRadians + VC.ArmReachBobRadians * math.sin(phase + side * HALF_PI)
 			elbow = 0.3 + 0.12 * math.sin(phase * 2 + side)

@@ -90,6 +90,11 @@ function ZombieLook.fromId(id: number): Look
 	-- stays dark instead of washing out to grey.
 	local rotColor = scale(VC.RotColor, math.min(1, brightness(base) / brightness(VC.RotColor)))
 	local rot = lerp(VC.RotMin, VC.RotMax, roll(id, 2))
+	local kindDef = Config.Zombie.Kinds[ZombieKinds.nameOf(id)]
+	-- A kind's skin tint (the bloated listener) is mixed in before the decay.
+	if kindDef.SkinTint and kindDef.SkinTintShare then
+		base = mix(base, kindDef.SkinTint, kindDef.SkinTintShare)
+	end
 	local skin = mix(base, rotColor, rot)
 	local extremity = mix(base, rotColor, math.min(1, rot + VC.ExtremityRot))
 	local shirts = VC.ShirtColors

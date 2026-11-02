@@ -265,6 +265,13 @@ export type ZombieKind = {
 	HearingShare: number,
 	Hunch: number,
 	Limp: number,
+	-- How a player tells the kind apart: eye colour, glowing eyes (Neon, readable at night), eye size
+	-- share and a tint mixed into the skin (0 = none).
+	EyeColor: { number }?,
+	EyeGlow: boolean?,
+	EyeScale: number?,
+	SkinTint: { number }?,
+	SkinTintShare: number?,
 }
 Config.Zombie = {
 	-- Spawn mix and stats per kind (ours; 7DTD has many named zombies, PLAN keeps three for the MVP).
@@ -274,8 +281,15 @@ Config.Zombie = {
 	KindOrder = { "Normal", "Fast", "Listener" },
 	Kinds = {
 		Normal = { Weight = 0.65, HealthShare = 1, SpeedShare = 1, DamageShare = 1, HearingShare = 1, Hunch = 1, Limp = 1 },
-		Fast = { Weight = 0.2, HealthShare = 0.75, SpeedShare = 1.6, DamageShare = 0.75, HearingShare = 1, Hunch = 0.35, Limp = 0 },
-		Listener = { Weight = 0.15, HealthShare = 1.2, SpeedShare = 0.9, DamageShare = 1, HearingShare = 2, Hunch = 1.4, Limp = 0.6 },
+		Fast = {
+			Weight = 0.2, HealthShare = 0.75, SpeedShare = 1.6, DamageShare = 0.75, HearingShare = 1, Hunch = 0.35, Limp = 0,
+			EyeColor = { 1, 0.35, 0.15 }, EyeGlow = true,
+		},
+		Listener = {
+			Weight = 0.15, HealthShare = 1.2, SpeedShare = 0.9, DamageShare = 1, HearingShare = 2, Hunch = 1.4, Limp = 0.6,
+			EyeColor = { 0.85, 0.95, 0.9 }, EyeGlow = true, EyeScale = 1.6,
+			SkinTint = { 0.55, 0.62, 0.45 }, SkinTintShare = 0.35,
+		},
 	} :: { [string]: ZombieKind },
 	-- 7DTD: a common ("slim") zombie has 125 health, randomised by +-15% per zombie.
 	MaxHealth = 125,
@@ -501,9 +515,10 @@ Config.ZombieVisual = {
 	ArmHangSwingRadians = 0.22,
 	ArmReachRadians = 1.3,
 	ArmReachBobRadians = 0.14,
-	-- Extra torso pitch and arm lift at the moment a grab lands.
+	-- Extra torso pitch and arm lift at the moment a grab lands. A big lift read as "hands up" on
+	-- screen: the grab is a forward thrust carried by the lunge.
 	AttackLungeRadians = 0.35,
-	AttackArmLiftRadians = 0.35,
+	AttackArmLiftRadians = 0.08,
 	-- Short head/torso jerks: average seconds between twitches and their strength.
 	TwitchInterval = 3,
 	TwitchRadians = 0.35,
@@ -530,19 +545,19 @@ Config.ZombieVisual = {
 	},
 	-- Decay pulls the skin toward RotColor by a per-zombie amount; hands, forearms and the face rot
 	-- a little more (ExtremityRot). Stylized per PLAN: grey-green decay, no red gore.
-	RotColor = { 0.5, 0.55, 0.45 },
-	RotMin = 0.25,
-	RotMax = 0.5,
+	RotColor = { 0.44, 0.5, 0.4 },
+	RotMin = 0.45,
+	RotMax = 0.75,
 	ExtremityRot = 0.15,
 	-- Faces are gaunt: the head is darkened slightly and shrunk on X.
 	FaceShade = 0.88,
 	-- Dried, dark decay; milky, clouded eyes that do not glow.
-	-- Clotted blood, bruised sunken sockets, milky yellowed eyes and a dark open mouth (rounded blobs:
-	-- black boxes read as sunglasses and tape on screen).
-	WoundColor = { 0.33, 0.08, 0.06 },
-	EyeSocketColor = { 0.22, 0.11, 0.1 },
+	-- A dark rotten gash, bruised sunken sockets, milky yellowed eyes and a dark open mouth (rounded
+	-- blobs: black boxes read as sunglasses and tape on screen). No red gore (PLAN: stylized decay).
+	WoundColor = { 0.18, 0.13, 0.09 },
+	EyeSocketColor = { 0.16, 0.12, 0.1 },
 	EyeColor = { 0.78, 0.74, 0.5 },
-	MouthColor = { 0.12, 0.04, 0.04 },
+	MouthColor = { 0.08, 0.06, 0.05 },
 	-- Dirty, faded clothing.
 	ShirtColors = {
 		{ 0.55, 0.52, 0.47 },
@@ -813,7 +828,7 @@ Config.Build = {
 	} :: { [string]: BlockDef },
 	-- Torch light (placed and held; ours: 7DTD gives a torch LightValue, not a range). Held torches use
 	-- HeldShare of the range so a carried light does not outshine a placed one.
-	Torch = { Range = 26, Brightness = 1.8, Color = { 255, 168, 92 }, HeldShare = 0.8 },
+	Torch = { Range = 26, Brightness = 1.8, Color = { 255, 168, 92 }, HeldShare = 0.8, Flicker = 0.15, FlickerHz = 7, Tag = "TorchLight" },
 	-- Height of a farm plot slab (studs); crops stand on it.
 	PlotHeight = 0.8,
 	-- A player respawning on a bedroll stands with the root this far above its centre (studs).

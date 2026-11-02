@@ -8,6 +8,7 @@ local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local CollectionService = game:GetService("CollectionService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -45,6 +46,12 @@ local DAY_DECAY = Color3.fromRGB(112, 108, 100)
 local NIGHT_DECAY = Color3.fromRGB(22, 25, 34)
 local ATMOSPHERE_OFFSET = 0.25
 local DAY_GLARE = 0.15
+-- An overcast sky: clouds thicken toward night and darken with it.
+local DAY_CLOUD_COVER = 0.72
+local NIGHT_CLOUD_COVER = 0.6
+local CLOUD_DENSITY = 0.55
+local DAY_CLOUD = Color3.fromRGB(196, 196, 190)
+local NIGHT_CLOUD = Color3.fromRGB(28, 30, 38)
 -- Clock label.
 local LABEL_WIDTH = 200
 local LABEL_HEIGHT = 24
@@ -56,6 +63,7 @@ local DayNightController = {}
 
 local tint: ColorCorrectionEffect
 local atmosphere: Atmosphere
+local clouds: Clouds
 local clockLabel: TextLabel
 local hordeLabel: TextLabel
 -- Whether the last frame was a horde night, so its start is announced once.
@@ -123,6 +131,21 @@ local function update()
 	atmosphere.Color = NIGHT_AIR:Lerp(DAY_AIR, light)
 	atmosphere.Decay = NIGHT_DECAY:Lerp(DAY_DECAY, light)
 	atmosphere.Glare = DAY_GLARE * light
+	clouds.Cover = NIGHT_CLOUD_COVER + (DAY_CLOUD_COVER - NIGHT_CLOUD_COVER) * light
+	clouds.Color = NIGHT_CLOUD:Lerp(DAY_CLOUD, light)
+
+	-- Torch flames waver: brightness follows two mixed sines per light, offset by its position.
+	local torch = Config.Build.Torch
+	local now = os.clock()
+	for _, instance in CollectionService:GetTagged(torch.Tag) do
+		if instance:IsA("PointLight") and instance.Parent then
+			local p = instance.Parent :: BasePart
+			local seed = p.Position.X * 0.37 + p.Position.Z * 0.71
+			local wave = math.sin(now * torch.FlickerHz * 6.283 + seed) * 0.6
+				+ math.sin(now * torch.FlickerHz * 2.3 * 6.283 + seed * 1.7) * 0.4
+			instance.Brightness = torch.Brightness * (1 + torch.Flicker * wave)
+		end
+	end
 
 	clockLabel.Text = Localization.get("HudClock", { day = state.day, time = formatTime(state.clockTime) })
 	clockLabel.TextColor3 = if hordeDay then HORDE_COLOR else TEXT_COLOR
@@ -143,6 +166,9 @@ function DayNightController.start()
 	atmosphere = existing or Instance.new("Atmosphere")
 	atmosphere.Offset = ATMOSPHERE_OFFSET
 	atmosphere.Parent = Lighting
+	clouds = Workspace.Terrain:FindFirstChildOfClass("Clouds") or Instance.new("Clouds")
+	clouds.Density = CLOUD_DENSITY
+	clouds.Parent = Workspace.Terrain
 	buildGui(Players.LocalPlayer:WaitForChild("PlayerGui") :: PlayerGui)
 	RunService.PreRender:Connect(update)
 end

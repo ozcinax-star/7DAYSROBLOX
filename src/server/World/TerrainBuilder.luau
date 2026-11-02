@@ -62,7 +62,18 @@ function TerrainBuilder.sample(): HeightGrid
 	return { columns = columns, half = half, heights = heights, surfaces = surfaces }
 end
 
+-- Worn, late-summer ground colours (the default lime grass read as a cheerful park on screen).
+local MATERIAL_COLORS: { [Enum.Material]: Color3 } = {
+	[Enum.Material.Grass] = Color3.fromRGB(104, 112, 66),
+	[Enum.Material.LeafyGrass] = Color3.fromRGB(92, 102, 60),
+	[Enum.Material.Ground] = Color3.fromRGB(96, 82, 64),
+	[Enum.Material.Mud] = Color3.fromRGB(78, 66, 52),
+}
+
 function TerrainBuilder.build(grid: HeightGrid)
+	for material, colour in MATERIAL_COLORS do
+		Workspace.Terrain:SetMaterialColor(material, colour)
+	end
 	local terrain = Workspace.Terrain
 	terrain:Clear()
 
