@@ -537,9 +537,12 @@ Config.ZombieVisual = {
 	-- Faces are gaunt: the head is darkened slightly and shrunk on X.
 	FaceShade = 0.88,
 	-- Dried, dark decay; milky, clouded eyes that do not glow.
-	WoundColor = { 0.2, 0.17, 0.12 },
-	EyeSocketColor = { 0.12, 0.1, 0.09 },
-	EyeColor = { 0.52, 0.54, 0.46 },
+	-- Clotted blood, bruised sunken sockets, milky yellowed eyes and a dark open mouth (rounded blobs:
+	-- black boxes read as sunglasses and tape on screen).
+	WoundColor = { 0.33, 0.08, 0.06 },
+	EyeSocketColor = { 0.22, 0.11, 0.1 },
+	EyeColor = { 0.78, 0.74, 0.5 },
+	MouthColor = { 0.12, 0.04, 0.04 },
 	-- Dirty, faded clothing.
 	ShirtColors = {
 		{ 0.55, 0.52, 0.47 },
@@ -564,6 +567,8 @@ Config.ZombieVisual = {
 	CorpseSeconds = 6,
 	-- Hit flinch of a struck zombie (seconds).
 	FlinchSeconds = 0.3,
+	-- Worn shoes of a zombie whose shins are covered.
+	ShoeColor = { 0.16, 0.13, 0.11 },
 	-- Seconds between one zombie's groans (Config.Sounds.Events.ZombieGroan).
 	GroanIntervalMin = 4,
 	GroanIntervalMax = 12,

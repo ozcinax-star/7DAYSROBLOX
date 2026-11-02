@@ -43,18 +43,26 @@ local HEAD = V(0.82, 1, 0.88)
 local HEAD_UP = 0.55
 local UPPER_ARM = V(0.36, 1, 0.36)
 local FOREARM = V(0.32, 1, 0.32)
+-- Hands hang below the forearm, curled a little; feet sit under the shin, toes forward (-Z).
+local HAND = V(0.3, 0.36, 0.22)
+local HAND_CURL = 0.35
+local FOOT = V(0.4, 0.22, 0.66)
+local FOOT_FORWARD = 0.14
 -- Face and wound details, relative to the head / torso centre.
 local JAW = V(0.6, 0.2, 0.6)
 local JAW_HINGE = V(0, -0.45, 0.22)
 local JAW_OPEN = -0.3
 local JAW_OFFSET = V(0, -0.08, -0.32)
-local SOCKET = V(0.22, 0.17, 0.08)
-local SOCKET_OFFSET = V(0.19, 0.1, -0.42)
+local SOCKET = V(0.2, 0.15, 0.1)
+local SOCKET_OFFSET = V(0.17, 0.1, -0.37)
 -- Small dull eyes sunk into the sockets (they barely stand out of the socket face).
-local EYE = V(0.07, 0.07, 0.04)
-local EYE_OFFSET = V(0.19, 0.08, -0.45)
+local EYE = V(0.08, 0.08, 0.06)
+local EYE_OFFSET = V(0.17, 0.08, -0.4)
+-- The dark gap of the open mouth, between the skull and the dropped jaw.
+local MOUTH = V(0.34, 0.16, 0.06)
+local MOUTH_OFFSET = V(0, -0.36, -0.36)
 -- A slanted gash rather than a square patch.
-local WOUND = V(0.5, 0.16, 0.05)
+local WOUND = V(0.42, 0.26, 0.08)
 local WOUND_OFFSET = V(0.3, 0.2, -0.33)
 local WOUND_TILT = 0.45
 -- Resting bends (radians).
@@ -67,9 +75,9 @@ local CORPSE_LIFT = 0.35
 export type Rig = {
 	model: Model,
 	-- Fixed order: pelvis, torso, head, left upper arm, left forearm, right upper arm, right forearm,
-	-- left thigh, left shin, right thigh, right shin.
+	-- left thigh, left shin, right thigh, right shin, left hand, right hand, left foot, right foot.
 	core: { BasePart },
-	-- Fixed order: jaw, left socket, right socket, left eye, right eye, wound.
+	-- Fixed order: jaw, left socket, right socket, left eye, right eye, wound, mouth.
 	detail: { BasePart },
 	detailVisible: boolean,
 	look: ZombieLook.Look,
@@ -130,7 +138,8 @@ function ZombieRig.build(id: number): Rig
 	local s = look.height
 	local model = Instance.new("Model")
 	model.Name = `Zombie{id}`
-	local skin = Enum.Material.SmoothPlastic
+	-- Concrete's fine grain reads as dry, mottled skin; smooth plastic read as a toy.
+	local skin = Enum.Material.Concrete
 	local cloth = Enum.Material.Fabric
 	local armTint = if look.bareArms then look.skin else look.shirt
 	local armMaterial = if look.bareArms then skin else cloth
@@ -148,7 +157,15 @@ function ZombieRig.build(id: number): Rig
 		makePart(model, "LeftShin", SHIN * s, shinTint, shinMaterial),
 		makePart(model, "RightThigh", THIGH * s, look.pants, cloth),
 		makePart(model, "RightShin", SHIN * s, shinTint, shinMaterial),
+		makePart(model, "LeftHand", HAND * s, look.extremity, skin),
+		makePart(model, "RightHand", HAND * s, look.extremity, skin),
+		makePart(model, "LeftFoot", FOOT * s, if look.bareShins then look.extremity else VC.ShoeColor, skin),
+		makePart(model, "RightFoot", FOOT * s, if look.bareShins then look.extremity else VC.ShoeColor, skin),
 	}
+	-- An ovoid skull instead of a box head.
+	local skull = Instance.new("SpecialMesh")
+	skull.MeshType = Enum.MeshType.Sphere
+	skull.Parent = core[3]
 	local detail = {
 		makePart(model, "Jaw", JAW * s, look.extremity, skin),
 		makePart(model, "LeftSocket", SOCKET * s, VC.EyeSocketColor, skin),
@@ -156,7 +173,14 @@ function ZombieRig.build(id: number): Rig
 		makePart(model, "LeftEye", EYE * s, VC.EyeColor, skin),
 		makePart(model, "RightEye", EYE * s, VC.EyeColor, skin),
 		makePart(model, "Wound", WOUND * s, VC.WoundColor, Enum.Material.Slate),
+		makePart(model, "Mouth", MOUTH * s, VC.MouthColor, Enum.Material.SmoothPlastic),
 	}
+	-- Sockets, eyes, wound and mouth are rounded blobs.
+	for index = 2, 7 do
+		local blob = Instance.new("SpecialMesh")
+		blob.MeshType = Enum.MeshType.Sphere
+		blob.Parent = detail[index]
+	end
 	model.PrimaryPart = core[2]
 	return {
 		model = model,
@@ -333,7 +357,9 @@ function ZombieRig.pose(rig: Rig, p: Pose, parts: { BasePart }, cframes: { CFram
 		cframes[n + 1] = shoulder * CF(0, -UPPER_ARM.Y / 2 * s, 0)
 		parts[n + 2] = core[3 + index * 2]
 		cframes[n + 2] = elbowJoint * CF(0, -FOREARM.Y / 2 * s, 0)
-		n += 2
+		parts[n + 3] = core[11 + index]
+		cframes[n + 3] = elbowJoint * CF(0, -FOREARM.Y * s, 0) * ANG(HAND_CURL, 0, 0) * CF(0, -HAND.Y / 2 * s, 0)
+		n += 3
 	end
 
 	-- Legs. The limping leg swings less, stays stiff and turns out; the other bends its knee while
@@ -355,7 +381,11 @@ function ZombieRig.pose(rig: Rig, p: Pose, parts: { BasePart }, cframes: { CFram
 		cframes[n + 1] = hip * CF(0, -THIGH.Y / 2 * s, 0)
 		parts[n + 2] = core[7 + index * 2]
 		cframes[n + 2] = kneeJoint * CF(0, -SHIN.Y / 2 * s, 0)
-		n += 2
+		-- The foot stays level with the ground: it undoes the leg's pitch.
+		local ankle = kneeJoint * CF(0, -SHIN.Y * s, 0) * ANG(knee - thighPitch, 0, 0)
+		parts[n + 3] = core[13 + index]
+		cframes[n + 3] = ankle * CF(0, -FOOT.Y / 2 * s, -FOOT_FORWARD * s)
+		n += 3
 	end
 
 	if rig.detailVisible then
@@ -374,6 +404,8 @@ function ZombieRig.pose(rig: Rig, p: Pose, parts: { BasePart }, cframes: { CFram
 		cframes[n + 6] = waist
 			* CF(WOUND_OFFSET.X * bad * s, (TORSO.Y / 2 + WOUND_OFFSET.Y) * s, WOUND_OFFSET.Z * s)
 			* ANG(0, 0, WOUND_TILT * bad)
+		parts[n + 7] = detail[7]
+		cframes[n + 7] = head * CF(MOUTH_OFFSET * s) * ANG(-0.15 * strike, 0, 0)
 	end
 end
 
