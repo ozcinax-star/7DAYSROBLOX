@@ -151,12 +151,13 @@ Palette.Fabrics = {
 	style(rgb(80, 80, 86), M.Fabric),
 } :: { Style }
 
+-- Painted plank doors (Wood's grain under a pale paint reads as marble); the white one is weathered.
 Palette.DoorPaints = {
-	style(rgb(140, 42, 36), M.Wood),
-	style(rgb(44, 72, 62), M.Wood),
-	style(rgb(52, 70, 100), M.Wood),
-	style(rgb(96, 66, 44), M.Wood),
-	style(rgb(226, 222, 208), M.Wood),
+	style(rgb(128, 44, 38), M.WoodPlanks),
+	style(rgb(44, 72, 62), M.WoodPlanks),
+	style(rgb(52, 70, 100), M.WoodPlanks),
+	style(rgb(96, 66, 44), M.WoodPlanks),
+	style(rgb(196, 188, 170), M.WoodPlanks),
 } :: { Style }
 
 Palette.ShutterPaints = {

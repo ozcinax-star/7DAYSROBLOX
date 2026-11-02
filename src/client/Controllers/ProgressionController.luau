@@ -17,6 +17,8 @@ local player = Players.LocalPlayer
 local BACK = Color3.fromRGB(20, 24, 23)
 local FILL = Color3.fromRGB(209, 177, 105)
 local MUTED = Color3.fromRGB(150, 150, 140)
+-- The empty part of the experience bar, lighter than the HUD panels so the bar reads on dark ground.
+local TRACK = Color3.fromRGB(70, 74, 70)
 
 local ProgressionController = {}
 
@@ -85,14 +87,18 @@ local function buildGui()
 	local bar = Instance.new("Frame")
 	bar.Name = "Experience"
 	bar.AnchorPoint = Vector2.new(0.5, 1)
-	bar.Position, bar.Size = UDim2.new(0.5, 0, 1, -82), UDim2.fromOffset(360, 6)
-	bar.BackgroundColor3, bar.BackgroundTransparency, bar.BorderSizePixel = BACK, 0.25, 0
+	bar.Position, bar.Size = UDim2.new(0.5, 0, 1, -84), UDim2.fromOffset(360, 8)
+	bar.BackgroundColor3, bar.BackgroundTransparency, bar.BorderSizePixel = TRACK, 0.15, 0
 	bar.Parent = gui
+	local stroke = Instance.new("UIStroke")
+	stroke.Color, stroke.Transparency, stroke.Thickness = Color3.new(0, 0, 0), 0.4, 1
+	stroke.Parent = bar
 	xpFill = Instance.new("Frame")
 	xpFill.BackgroundColor3, xpFill.BorderSizePixel = FILL, 0
 	xpFill.Size = UDim2.fromScale(0, 1)
 	xpFill.Parent = bar
-	levelLabel = label(bar, "", UDim2.fromOffset(200, 16), UDim2.fromOffset(0, -18), 13)
+	levelLabel = label(bar, "", UDim2.fromOffset(200, 18), UDim2.fromOffset(0, -20), 15)
+	levelLabel.TextStrokeTransparency = 0.5
 	local hint = label(bar, Localization.get("PerksOpenHint"), UDim2.fromOffset(150, 16), UDim2.new(1, -150, 0, -18), 12)
 	hint.TextXAlignment = Enum.TextXAlignment.Right
 	hint.TextColor3 = MUTED
@@ -154,6 +160,11 @@ local function buildGui()
 		open.Activated:Connect(toggle)
 	end
 	gui.Parent = player:WaitForChild("PlayerGui")
+end
+
+-- True while the perk panel is up (the camera frees the cursor for its buttons).
+function ProgressionController.isOpen(): boolean
+	return panel ~= nil and panel.Visible
 end
 
 function ProgressionController.init()

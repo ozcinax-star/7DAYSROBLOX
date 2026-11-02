@@ -1192,6 +1192,8 @@ local function buildSign(ctx: Ctx, key: string)
 	)
 	local gui = Instance.new("SurfaceGui")
 	gui.Face = Enum.NormalId.Front
+	-- Painted lettering, not a light: it darkens with the world at night.
+	gui.LightInfluence = 1
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 	gui.PixelsPerStud = SIGN_PIXELS_PER_STUD
 	local label = Instance.new("TextLabel")

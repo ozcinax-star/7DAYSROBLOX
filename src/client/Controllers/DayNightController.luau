@@ -31,8 +31,8 @@ local HORDE_TINT = Color3.fromRGB(255, 170, 160)
 local HORDE_SATURATION = -0.15
 -- Base grade for a worn, post-collapse look: drained colour, a little contrast, a dusty warm tint.
 local BASE_TINT = Color3.fromRGB(255, 246, 232)
-local BASE_SATURATION = -0.22
-local BASE_CONTRAST = 0.08
+local BASE_SATURATION = -0.32
+local BASE_CONTRAST = 0.1
 -- Atmosphere by day and by night (dusty haze by day, a cold thick dark at night). The same for every
 -- graphics preset, so no preset sees further than another.
 local DAY_DENSITY = 0.32

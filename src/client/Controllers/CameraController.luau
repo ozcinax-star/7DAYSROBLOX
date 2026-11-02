@@ -21,6 +21,7 @@ local Localization = require(Shared.Localization)
 
 local GraphicsController = require(script.Parent.GraphicsController)
 local InventoryController = require(script.Parent.InventoryController)
+local ProgressionController = require(script.Parent.ProgressionController)
 
 type Mode = "Shoulder" | "FirstPerson" | "Free"
 
@@ -57,7 +58,7 @@ end
 
 -- True while the player needs the cursor for the UI.
 local function cursorWanted(): boolean
-	return altHeld or InventoryController.isBackpackOpen() or GraphicsController.isOpen()
+	return altHeld or InventoryController.isBackpackOpen() or GraphicsController.isOpen() or ProgressionController.isOpen()
 end
 
 local function showNotice()
