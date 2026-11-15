@@ -1,3 +1,24 @@
+# Zombie Survival (Roblox) - 7 Days Roblox
+
+**TR:** Roblox icin yazilmis, 7 Days to Die'dan esinlenen co-op zombi hayatta kalma prototipi (Rojo + Luau, `--!strict`). Oyuncu gelistikce dunya daha tehlikeli olur. **Bu bir .exe degildir**; Roblox Studio'da acilan bir `.rbxl` yer dosyasidir.
+
+- Indirme sayfasi: https://ozcinax-star.github.io/7DAYSROBLOX/
+- Surum ve `.rbxl` dosyasi: https://github.com/ozcinax-star/7DAYSROBLOX/releases/latest
+
+### Calistirma (Turkce)
+
+1. [Roblox Studio](https://create.roblox.com/) kur.
+2. Release sayfasindan `ZombieSurvival.rbxl` dosyasini indir, Studio ile ac, **Play** (veya **Run**) bas.
+3. Kaynaktan derlemek istersen: `rokit install`, sonra `rojo build default.project.json -o ZombieSurvival.rbxl`. Canli gelistirme icin `rojo serve` ve Studio'daki Rojo eklentisi.
+
+### Durum (durust)
+
+Prototip asamasindadir. Harita (2048x2048, 37 bina), zombiler, envanter, crafting, insa, silahlar, hayatta kalma, tarim, jenerator ve gorevler kodda calisiyor; ayrintilar `docs/NEXT_STEPS.md`. Henuz yok: kayit sistemi (SaveService ayrilmis), monetizasyon, perk sistemi, telefon FPS testi, gecikmeli cok oyunculu test. Yayinlanmis bir Roblox oyun sayfasi yoktur. Bazi ekipman modelleri yazarin Roblox hesabina yuklu `rbxassetid` varliklaridir; baska hesaplarda yuklenmeyebilir (model yoksa oyun yine calisir, parcalar eksik gorunebilir).
+
+**EN:** A co-op zombie survival prototype for Roblox inspired by 7 Days to Die. Download `ZombieSurvival.rbxl` from the latest release, open it in Roblox Studio and press Play, or build from source with Rojo (`rojo build`). Not a standalone executable; no published Roblox experience exists yet. Licence: MIT (code); Roblox assets are excluded.
+
+---
+
 # Zombie Survival (Roblox)
 
 Co-op zombie survival where the world gets more dangerous the more you grow. Design decisions live in

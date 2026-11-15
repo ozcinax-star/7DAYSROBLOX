@@ -19,3 +19,14 @@ roblox.d.luau
 Thumbs.db
 .vscode/
 .idea/
+
+# Agent / tooling (never public)
+AGENTS.md
+.claude/
+.codex/
+.superpowers/
+.verinoda/
+.graphify/
+graphify-out/
+*.tmp
+*.log

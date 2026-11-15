@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>7 Days Roblox - Zombi Hayatta Kalma</title>
+<meta name="description" content="Roblox için co-op zombi hayatta kalma prototipi. .rbxl yer dosyasını indir, Roblox Studio'da aç, oyna. Açık kaynak, MIT.">
+<meta name="theme-color" content="#e8e2d3">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23171410'/%3E%3Ctext x='16' y='24' font-size='22' font-weight='900' text-anchor='middle' fill='%23a8281c' font-family='Arial'%3E7%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top"><span>7 Days Roblox</span><nav><a href="#sistemler">Sistemler</a><a href="#dongu">Gün ve gece</a><a href="#indir">İndir</a><a href="#durum">Durum</a></nav></header>
+
+<div class="hero">
+<h1><span>Yedinci</span><span class="seven">gece</span><span>geliyor.</span></h1>
+<p class="lead">Roblox için co-op zombi hayatta kalma. Topla, üret, inşa et; gürültü yaptıkça zombiler seni bulur. Her yedinci gece sürü gelir. Oyuncu geliştikçe dünya daha tehlikeli olur.</p>
+<div class="cta"><a class="btn" href="https://github.com/ozcinax-star/7DAYSROBLOX/releases/latest/download/ZombieSurvival.rbxl">ZombieSurvival.rbxl indir</a><a class="btn alt" href="#indir">Nasıl açılır?</a></div>
+<p class="meta">Bu bir .exe değildir: Roblox Studio'da açılan bir yer dosyasıdır. Prototip aşaması.</p>
+</div>
+
+<div class="strip">
+<div><b>2048²</b><small>stud'lık, kodla kurulan harita</small></div>
+<div><b>37</b><small>girilebilir bina, bazıları iki katlı</small></div>
+<div><b>11 dk</b><small>bir gün-gece döngüsü</small></div>
+<div><b>174</b><small>aranabilir mobilya</small></div>
+<div><b>5</b><small>tehdit kademesi</small></div>
+</div>
+
+<section id="dongu"><div class="wrap two">
+<div class="reveal"><h2>Gün, gece, sürü</h2>
+<p>Dünya saati sunucuda tutulur: bir gün-gece 11 dakikadır. Gün sayacı ilerler ve varsayılan olarak her 7. gün bir horde gecesidir. Horde gecesinde oyuncu başına 20 zombilik dalgalar gelir; gece boyunca ortam nüfusu da artar.</p>
+<p style="margin-top:14px">Yandaki çizim bu döngüyü gösterir; sayfayı kaydırdıkça akrep döner. Çizim oyun görüntüsü değil, belgelerdeki sayılardan çizilmiş bir şemadır.</p></div>
+<div class="sticky"><svg class="cycle" viewBox="0 0 400 410" role="img" aria-label="11 dakikalık gün-gece döngüsü şeması">
+<circle cx="200" cy="200" r="170" fill="#f2eee3"/>
+<path d="M200 200 L200 30 A170 170 0 0 1 200 370 Z" fill="#e9c46a" opacity=".6"/>
+<path d="M200 200 L200 370 A170 170 0 0 1 200 30 Z" fill="#171410"/>
+<text x="290" y="208" font-family="Arial" font-weight="900" font-size="28" text-anchor="middle" fill="#171410">GÜN</text>
+<text x="110" y="208" font-family="Arial" font-weight="900" font-size="28" text-anchor="middle" fill="#e8e2d3">GECE</text>
+<circle cx="200" cy="200" r="170" fill="none" stroke="#171410" stroke-width="4"/>
+<g id="hand"><line x1="200" y1="200" x2="200" y2="40" stroke="#a8281c" stroke-width="8" stroke-linecap="round"/><circle cx="200" cy="40" r="12" fill="#a8281c"/></g>
+<circle cx="200" cy="200" r="10" fill="#171410"/>
+<text x="200" y="402" font-family="Arial" font-size="15" text-anchor="middle" fill="#171410">11 dk = 1 gün · her 7. gece horde</text>
+</svg></div>
+</div></section>
+
+<section id="sistemler"><div class="wrap">
+<h2 class="reveal">Kodda çalışan sistemler</h2>
+<p class="reveal" style="max-width:640px;margin-bottom:32px">Aşağıdakiler depodaki belgelerde (docs/NEXT_STEPS.md) "bitti" olarak geçen sistemlerdir. Sayılar 7 Days to Die'dan esinlenen değerlerdir.</p>
+<div class="grid">
+<article class="reveal"><h3>Zombiler</h3><p>Humanoid kullanmayan, 17 parçalı eklemli zombi; akış alanıyla yol bulma, eve girme, merdivenle üst kat, binada uyuyan zombi, ses takibi, sunucu LOD'u.</p></article>
+<article class="reveal"><h3>Tehdit sistemi</h3><p>Gürültü ve İz sayaçları, ses noktaları ve 5 tehdit kademesi; kademe yükseldikçe ortam nüfusu artar.</p></article>
+<article class="reveal"><h3>İnşa</h3><p>4 stud'lık ızgarada çerçeve, ahşap, kırık taş, merdiven, kapı, parmaklık, kazık tuzağı, yatak rulosu; çökme ve zombilerin en zayıf duvarı kırması.</p></article>
+<article class="reveal"><h3>Envanter ve crafting</h3><p>10'luk kuşak + 45'lik çanta, kaynaklı yığınlar, dört işlik crafting kuyruğu, iptal ve iade, taşla tamir.</p></article>
+<article class="reveal"><h3>Toplama ve kazı</h3><p>Ağaç, çalı, ot, kaya ve mobilya kırma; ağaç devirme; araziyi voxel voxel kazma ve Dirt ile doldurma.</p></article>
+<article class="reveal"><h3>Silahlar</h3><p>Yakın dövüş aletleri, yay ve ok, boru tabanca, tüfek, pompalı, makineli; şarjör, doldurma, sapma ve nişan; menzil ve hasar sunucuda hesaplanır.</p></article>
+<article class="reveal"><h3>Hayatta kalma</h3><p>Dayanıklılık, yemek, su, açlık kademeleri, koşma, kamp ateşinde pişirme, demirci ocağı, ölüm torbası.</p></article>
+<article class="reveal"><h3>Tarım ve güç</h3><p>Tarla, üç ekin, büyüme ve hasat; jeneratör, benzin, 48 stud'da lambalar, gürültü ve İz.</p></article>
+<article class="reveal"><h3>Arayüz</h3><p>Çanta, crafting ve sandık panelleri, 19 görevlik görev zinciri, omuz kamerası, Auto/Low/Medium/High grafik ayarı.</p></article>
+</div></div></section>
+
+<section><div class="wrap two">
+<div class="reveal"><h2>Tehdit kademeleri</h2><p>Yaptığın gürültü ve bıraktığın iz arttıkça dünya sertleşir. Beş kademe vardır; kademe eşikleri ve değerleri <code>src/shared/Config.luau</code> içindedir. Yandaki kısa adlar sadece okunabilirlik içindir.</p></div>
+<ol class="tiers reveal"><li><span>Sakin</span></li><li><span>Fark edildin</span></li><li><span>Peşindeler</span></li><li><span>Kuşatma</span></li><li><span>Horde</span></li></ol>
+</div></section>
+
+<section id="indir"><div class="wrap two">
+<div class="reveal"><h2>İndir ve oyna</h2>
+<p>Roblox oyunları .exe olmaz. Bu projenin indirilebilir hali, Rojo ile derlenmiş bir <b>.rbxl</b> yer dosyasıdır.</p>
+<p style="margin-top:16px"><a class="btn" href="https://github.com/ozcinax-star/7DAYSROBLOX/releases/latest/download/ZombieSurvival.rbxl">ZombieSurvival.rbxl</a></p>
+<p class="meta">SHA256 ve sürüm notları: <a href="https://github.com/ozcinax-star/7DAYSROBLOX/releases/latest">Release sayfası</a></p></div>
+<ol class="steps reveal"><li><b>Roblox Studio'yu kur</b> (ücretsiz, create.roblox.com).</li><li><b>.rbxl dosyasını Studio ile aç.</b></li><li><b>Play</b> ya da <b>Run</b>'a bas.</li><li><b>Kaynaktan derlemek istersen:</b><pre>rokit install
+rojo build default.project.json -o ZombieSurvival.rbxl</pre>Canlı geliştirme: <code>rojo serve</code> ve Studio'daki Rojo eklentisinde Connect.</li></ol>
+</div></section>
+
+<section class="status" id="durum"><div class="wrap">
+<h2>Dürüst durum</h2>
+<div class="two">
+<div><h3>Çalışıyor</h3><ul><li>Yukarıdaki sistemlerin tamamı kodda var; geliştirme sırasında Studio'da ve Lune birim testleriyle sınandı (belgelere göre 90 test).</li><li>Sunucu-otoriter tasarım: hasar, tehdit ve inşa sunucuda hesaplanır.</li></ul></div>
+<div><h3>Henüz yok / sınanmadı</h3><ul><li>Kayıt sistemi (SaveService yalnızca ayrılmış), perk ve monetizasyon.</li><li>Orta seviye telefonda 30 FPS testi yapılmadı; gecikmeli çok oyunculu test bekliyor.</li><li>Yayınlanmış bir Roblox oyun sayfası yok; oyun şimdilik .rbxl olarak dağıtılıyor.</li><li>Bazı ekipman modelleri yazarın hesabına yüklü varlıklardır; başka hesaplarda yüklenmeyebilir.</li></ul></div>
+</div>
+<p style="margin-top:28px"><a href="https://github.com/ozcinax-star/7DAYSROBLOX">Kaynak kod (GitHub, MIT)</a> · <a href="https://github.com/ozcinax-star/7DAYSROBLOX/blob/master/docs/NEXT_STEPS.md">Sıradaki işler</a></p>
+</div></section>
+
+<footer>7 Days to Die'dan esinlenmiş bağımsız bir hayran projesidir; o oyunun hiçbir varlığını içermez. Roblox, Roblox Corporation'ın markasıdır.</footer>
+<script src="main.js"></script>
+</body>
+</html>
